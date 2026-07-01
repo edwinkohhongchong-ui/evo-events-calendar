@@ -1,25 +1,44 @@
+"use client";
+
 import { isToday } from "date-fns";
+import { useDroppable } from "@dnd-kit/core";
+import EventCard from "./EventCard";
 import { DayData } from "@/lib/dayIndex";
-import { LEVEL_COLORS } from "@/lib/constants";
-import { formatEventTime } from "@/lib/dates";
+import { toDateStr } from "@/lib/dates";
+import { occurrenceKey } from "@/lib/occurrenceKey";
+import { EventOccurrence } from "@/lib/types";
 
 interface DayCellProps {
   day: Date;
   isCurrentMonth: boolean;
   isSunday: boolean;
   dayData: DayData | undefined;
+  onDayClick: (dateStr: string) => void;
+  onEventClick: (occurrence: EventOccurrence) => void;
 }
 
-export default function DayCell({ day, isCurrentMonth, isSunday, dayData }: DayCellProps) {
+export default function DayCell({
+  day,
+  isCurrentMonth,
+  isSunday,
+  dayData,
+  onDayClick,
+  onEventClick,
+}: DayCellProps) {
+  const dateStr = toDateStr(day);
   const dayNumber = day.getDate();
   const today = isToday(day);
+  const { setNodeRef, isOver } = useDroppable({ id: dateStr });
 
   return (
     <div
+      ref={setNodeRef}
+      onClick={() => onDayClick(dateStr)}
       className={[
-        "min-h-[120px] border border-gray-200 p-1.5 flex flex-col gap-1",
+        "min-h-[120px] border border-gray-200 p-1.5 flex flex-col gap-1 cursor-pointer",
         isCurrentMonth ? "bg-white" : "bg-gray-50",
         isSunday && isCurrentMonth ? "bg-gold/10" : "",
+        isOver ? "ring-2 ring-inset ring-gold" : "",
       ].join(" ")}
     >
       <div className="flex items-center justify-between">
@@ -64,22 +83,9 @@ export default function DayCell({ day, isCurrentMonth, isSunday, dayData }: DayC
 
       {dayData && dayData.occurrences.length > 0 && (
         <div className="flex flex-col gap-0.5">
-          {dayData.occurrences.map(({ event, occurrenceDate }) => {
-            const time = formatEventTime(event.event_time);
-            return (
-              <div
-                key={`${event.id}-${occurrenceDate}`}
-                className={[
-                  "text-[13px] leading-tight px-1 py-0.5 rounded border truncate",
-                  LEVEL_COLORS[event.level],
-                ].join(" ")}
-                title={event.name}
-              >
-                {time && <span className="font-medium">{time} </span>}
-                {event.name}
-              </div>
-            );
-          })}
+          {dayData.occurrences.map((occ) => (
+            <EventCard key={occurrenceKey(occ)} occurrence={occ} onClick={() => onEventClick(occ)} />
+          ))}
         </div>
       )}
     </div>

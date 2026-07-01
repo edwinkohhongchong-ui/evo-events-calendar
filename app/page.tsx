@@ -1,10 +1,16 @@
 import { getMonthGrid } from "@/lib/calendar";
 import { getCalendarData } from "@/lib/data";
 import { expandEvents } from "@/lib/recurrence";
-import { buildDayIndex } from "@/lib/dayIndex";
+import { applyOverrides } from "@/lib/overrides";
 import { toDateStr } from "@/lib/dates";
-import CalendarHeader from "@/components/CalendarHeader";
-import CalendarGrid from "@/components/CalendarGrid";
+import CalendarBoard from "@/components/CalendarBoard";
+
+// This is a live, mutable calendar (drag-and-drop, add/edit/delete) — every
+// render must hit Supabase fresh. Without this, Next.js's default fetch
+// cache serves stale data for a previously-visited ?year=&month= URL even
+// after a successful write (confirmed: DB updates, but a revisited/refreshed
+// page kept rendering the pre-write state).
+export const dynamic = "force-dynamic";
 
 interface HomeProps {
   searchParams: { year?: string; month?: string };
@@ -19,14 +25,23 @@ export default async function Home({ searchParams }: HomeProps) {
   const gridStartStr = toDateStr(gridStart);
   const gridEndStr = toDateStr(gridEnd);
 
-  const { events, holidays, seasons } = await getCalendarData(gridStartStr, gridEndStr);
-  const occurrences = expandEvents(events, gridStart, gridEnd);
-  const dayIndex = buildDayIndex(weeks.flat(), occurrences, holidays, seasons);
+  const { events, holidays, seasons, overrides } = await getCalendarData(
+    gridStartStr,
+    gridEndStr
+  );
+  const eventsById = new Map(events.map((e) => [e.id, e]));
+  const rawOccurrences = expandEvents(events, gridStart, gridEnd);
+  const occurrences = applyOverrides(rawOccurrences, overrides, eventsById, gridStartStr, gridEndStr);
 
   return (
     <main className="max-w-6xl mx-auto p-4 sm:p-6">
-      <CalendarHeader monthStart={monthStart} />
-      <CalendarGrid weeks={weeks} monthStart={monthStart} dayIndex={dayIndex} />
+      <CalendarBoard
+        weeks={weeks}
+        monthStart={monthStart}
+        occurrences={occurrences}
+        holidays={holidays}
+        seasons={seasons}
+      />
     </main>
   );
 }

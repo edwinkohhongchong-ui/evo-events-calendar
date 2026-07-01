@@ -1,10 +1,11 @@
 import { supabase } from "./supabase";
-import { EventRow, HolidayRow, SeasonRow } from "./types";
+import { EventRow, HolidayRow, SeasonRow, OverrideRow } from "./types";
 
 export interface CalendarData {
   events: EventRow[];
   holidays: HolidayRow[];
   seasons: SeasonRow[];
+  overrides: OverrideRow[];
 }
 
 // Fetches everything needed to render the grid for [gridStart, gridEnd]
@@ -14,13 +15,14 @@ export async function getCalendarData(
   gridStartStr: string,
   gridEndStr: string
 ): Promise<CalendarData> {
-  const [events, holidays, seasons] = await Promise.all([
+  const [events, holidays, seasons, overrides] = await Promise.all([
     getEvents(gridStartStr, gridEndStr),
     getHolidays(gridStartStr, gridEndStr),
     getSeasons(gridStartStr, gridEndStr),
+    getOverrides(gridStartStr, gridEndStr),
   ]);
 
-  return { events, holidays, seasons };
+  return { events, holidays, seasons, overrides };
 }
 
 async function getEvents(gridStartStr: string, gridEndStr: string): Promise<EventRow[]> {
@@ -84,6 +86,29 @@ async function getSeasons(gridStartStr: string, gridEndStr: string): Promise<Sea
     return data ?? [];
   } catch (err) {
     console.error("getSeasons threw:", err);
+    return [];
+  }
+}
+
+// Fetches overrides whose new_date OR original_date falls in this grid range
+// — an occurrence can be dragged into view from another month, or out of
+// view from this one, so both directions must be checked.
+async function getOverrides(gridStartStr: string, gridEndStr: string): Promise<OverrideRow[]> {
+  try {
+    const { data, error } = await supabase
+      .from("event_overrides")
+      .select("*")
+      .or(
+        `and(new_date.gte.${gridStartStr},new_date.lte.${gridEndStr}),and(original_date.gte.${gridStartStr},original_date.lte.${gridEndStr})`
+      );
+
+    if (error) {
+      console.error("getOverrides failed:", error.message);
+      return [];
+    }
+    return data ?? [];
+  } catch (err) {
+    console.error("getOverrides threw:", err);
     return [];
   }
 }

@@ -53,9 +53,23 @@ export interface SeasonRow {
   notes: string | null;
 }
 
+export interface OverrideRow {
+  id: string;
+  event_id: string;
+  original_date: string; // yyyy-MM-dd — the natural, anchor-derived occurrence date
+  new_date: string; // yyyy-MM-dd — where that occurrence was dragged to
+  created_at: string;
+}
+
 // A single occurrence of an event rendered on a specific day (recurring
 // events expand into one EventOccurrence per occurrence date).
 export interface EventOccurrence {
   event: EventRow;
-  occurrenceDate: string; // yyyy-MM-dd
+  occurrenceDate: string; // yyyy-MM-dd — the date to render this occurrence on
+  // The natural, anchor-derived date this occurrence would fall on absent any
+  // override. Stable identity for a given occurrence across repeated drags —
+  // always upsert/lookup overrides by this, not by occurrenceDate, so
+  // dragging an already-moved occurrence again updates the same override row.
+  originalDate: string;
+  isOverridden: boolean;
 }

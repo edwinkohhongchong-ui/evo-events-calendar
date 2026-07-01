@@ -25,7 +25,14 @@ export function expandEvent(
 
   if (event.recurring === "None") {
     if (!isBefore(anchor, rangeStart) && !isAfter(anchor, rangeEnd)) {
-      return [{ event, occurrenceDate: event.event_date }];
+      return [
+        {
+          event,
+          occurrenceDate: event.event_date,
+          originalDate: event.event_date,
+          isOverridden: false,
+        },
+      ];
     }
     return [];
   }
@@ -52,7 +59,8 @@ export function expandEvent(
 
   const occurrences: EventOccurrence[] = [];
   while (!isAfter(cur, effectiveEnd)) {
-    occurrences.push({ event, occurrenceDate: toDateStr(cur) });
+    const dateStr = toDateStr(cur);
+    occurrences.push({ event, occurrenceDate: dateStr, originalDate: dateStr, isOverridden: false });
     cur = step(cur);
   }
   return occurrences;
