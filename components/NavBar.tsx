@@ -13,6 +13,8 @@ const LINKS = [
 export default function NavBar() {
   const pathname = usePathname();
 
+  if (pathname === "/login") return null;
+
   return (
     <nav className="bg-navy text-white">
       <div className="max-w-6xl mx-auto px-4 sm:px-6 flex items-center gap-1 h-11">
