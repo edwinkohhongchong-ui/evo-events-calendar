@@ -23,7 +23,7 @@ export default function SeasonsTable({ seasons }: { seasons: SeasonRow[] }) {
         </button>
       </div>
       <div className="border border-gray-200 rounded-md overflow-hidden overflow-x-auto">
-        <table className="w-full text-sm">
+        <table className="w-full text-sm whitespace-nowrap">
           <thead className="bg-navy text-white text-left">
             <tr>
               <th className="px-3 py-2">Name</th>

@@ -17,23 +17,28 @@ export default function NavBar() {
 
   return (
     <nav className="bg-navy text-white">
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 flex items-center gap-1 h-11">
-        <span className="font-semibold text-sm mr-4">+EVO Events</span>
-        {LINKS.map((link) => {
-          const active = pathname === link.href;
-          return (
-            <Link
-              key={link.href}
-              href={link.href}
-              className={[
-                "px-3 py-1.5 text-sm rounded",
-                active ? "bg-white/15 font-medium" : "hover:bg-white/10",
-              ].join(" ")}
-            >
-              {link.label}
-            </Link>
-          );
-        })}
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 flex items-center h-12 gap-3">
+        <span className="font-semibold text-sm whitespace-nowrap shrink-0">+EVO Events</span>
+        {/* Scrolls horizontally instead of wrapping/overflowing the page at
+            narrow widths — see PROJECT decision: NavBar is in-scope for the
+            mobile pass, the calendar grid it sits above is not. */}
+        <div className="flex items-center gap-1 overflow-x-auto">
+          {LINKS.map((link) => {
+            const active = pathname === link.href;
+            return (
+              <Link
+                key={link.href}
+                href={link.href}
+                className={[
+                  "px-3 py-1.5 text-sm rounded whitespace-nowrap shrink-0",
+                  active ? "bg-white/15 font-medium" : "hover:bg-white/10",
+                ].join(" ")}
+              >
+                {link.label}
+              </Link>
+            );
+          })}
+        </div>
       </div>
     </nav>
   );

@@ -53,7 +53,7 @@ export default function ChecklistTable({ checklist }: { checklist: ChecklistRow[
   return (
     <div>
       {error && <ErrorBanner message={error} onDismiss={() => setError(null)} />}
-      <div className="flex items-center justify-between mb-3 gap-3">
+      <div className="flex items-center justify-between mb-3 gap-3 flex-wrap">
         <label className="flex items-center gap-2 text-sm">
           Target month
           <select
@@ -78,7 +78,7 @@ export default function ChecklistTable({ checklist }: { checklist: ChecklistRow[
         </button>
       </div>
       <div className="border border-gray-200 rounded-md overflow-hidden overflow-x-auto">
-        <table className="w-full text-sm">
+        <table className="w-full text-sm whitespace-nowrap">
           <thead className="bg-navy text-white text-left">
             <tr>
               <th className="px-3 py-2">Category</th>
