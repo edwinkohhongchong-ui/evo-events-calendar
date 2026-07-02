@@ -135,7 +135,8 @@ export interface OverrideRow {
   id: string;
   event_id: string;
   original_date: string; // yyyy-MM-dd — the natural, anchor-derived occurrence date
-  new_date: string; // yyyy-MM-dd — where that occurrence was dragged to
+  new_date: string; // yyyy-MM-dd — the effective date, always set even on a time-only override
+  new_time: string | null; // HH:mm:ss — null means no time override, use the base event's event_time
   created_at: string;
 }
 
@@ -150,4 +151,10 @@ export interface EventOccurrence {
   // dragging an already-moved occurrence again updates the same override row.
   originalDate: string;
   isOverridden: boolean;
+  // Effective start/end time — the override's new_time when set, otherwise
+  // the base event's event_time/end_time. All rendering code reads these,
+  // never event.event_time/event.end_time directly, so a time override is
+  // reflected everywhere the occurrence is shown (month view and day view).
+  startTime: string | null;
+  endTime: string | null;
 }

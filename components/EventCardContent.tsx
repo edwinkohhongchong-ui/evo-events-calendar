@@ -5,9 +5,13 @@ import { endsNextDay } from "@/lib/timeMath";
 
 export default function EventCardContent({ occurrence }: { occurrence: EventOccurrence }) {
   const { event } = occurrence;
-  const time = formatEventTimeRange(event.event_time, event.end_time);
+  // Effective time (post-override), not event.event_time/event.end_time
+  // directly — a time override from day-view must show here too.
+  const time = formatEventTimeRange(occurrence.startTime, occurrence.endTime);
   const nextDay =
-    !!event.event_time && !!event.end_time && endsNextDay(event.event_time, event.end_time);
+    !!occurrence.startTime &&
+    !!occurrence.endTime &&
+    endsNextDay(occurrence.startTime, occurrence.endTime);
 
   return (
     <div

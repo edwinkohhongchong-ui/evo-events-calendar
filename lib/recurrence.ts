@@ -31,6 +31,8 @@ export function expandEvent(
           occurrenceDate: event.event_date,
           originalDate: event.event_date,
           isOverridden: false,
+          startTime: event.event_time,
+          endTime: event.end_time,
         },
       ];
     }
@@ -60,7 +62,14 @@ export function expandEvent(
   const occurrences: EventOccurrence[] = [];
   while (!isAfter(cur, effectiveEnd)) {
     const dateStr = toDateStr(cur);
-    occurrences.push({ event, occurrenceDate: dateStr, originalDate: dateStr, isOverridden: false });
+    occurrences.push({
+      event,
+      occurrenceDate: dateStr,
+      originalDate: dateStr,
+      isOverridden: false,
+      startTime: event.event_time,
+      endTime: event.end_time,
+    });
     cur = step(cur);
   }
   return occurrences;

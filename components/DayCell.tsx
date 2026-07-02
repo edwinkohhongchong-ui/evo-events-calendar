@@ -2,6 +2,7 @@
 
 import { isToday } from "date-fns";
 import { useDroppable } from "@dnd-kit/core";
+import Link from "next/link";
 import EventCard from "./EventCard";
 import { DayData } from "@/lib/dayIndex";
 import { toDateStr } from "@/lib/dates";
@@ -42,15 +43,17 @@ export default function DayCell({
       ].join(" ")}
     >
       <div className="flex items-center justify-between">
-        <span
+        <Link
+          href={`/day/${dateStr}`}
+          onClick={(e) => e.stopPropagation()}
           className={[
-            "text-xs font-medium leading-none",
+            "text-xs font-medium leading-none hover:underline",
             isCurrentMonth ? "text-navy" : "text-gray-400",
             today ? "flex items-center justify-center w-5 h-5 rounded-full bg-navy text-white" : "",
           ].join(" ")}
         >
           {dayNumber}
-        </span>
+        </Link>
       </div>
 
       {dayData && dayData.holidays.length > 0 && (

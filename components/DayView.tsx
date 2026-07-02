@@ -1,0 +1,168 @@
+"use client";
+
+import { useEffect, useMemo, useRef, useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
+import {
+  DndContext,
+  DragOverlay,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  DragStartEvent,
+  DragEndEvent,
+} from "@dnd-kit/core";
+import DayViewEventBlock from "./DayViewEventBlock";
+import DayViewEventContent from "./DayViewEventContent";
+import EventModal from "./EventModal";
+import ErrorBanner from "./ErrorBanner";
+import { retimeOccurrence } from "@/lib/actions";
+import { occurrenceKey } from "@/lib/occurrenceKey";
+import { computeDuration, minutesToTimeStr, timeStrToMinutes } from "@/lib/timeMath";
+import { EventOccurrence, EventRow } from "@/lib/types";
+
+const HOURS = Array.from({ length: 24 }, (_, i) => i);
+const SNAP_MINUTES = 15;
+const DAY_HEIGHT = 24 * 60; // px — 1px per minute
+
+interface DayViewProps {
+  occurrences: EventOccurrence[];
+}
+
+type ModalState = { type: "closed" } | { type: "edit"; event: EventRow };
+
+function formatHourLabel(hour: number): string {
+  const period = hour >= 12 ? "PM" : "AM";
+  const hour12 = hour % 12 === 0 ? 12 : hour % 12;
+  return `${hour12} ${period}`;
+}
+
+export default function DayView({ occurrences }: DayViewProps) {
+  const router = useRouter();
+  const [isPending, startTransition] = useTransition();
+  const [optimisticStart, setOptimisticStart] = useState<{ key: string; startTime: string } | null>(
+    null
+  );
+  const [error, setError] = useState<string | null>(null);
+  const [modal, setModal] = useState<ModalState>({ type: "closed" });
+  const [activeOcc, setActiveOcc] = useState<EventOccurrence | null>(null);
+  const isDraggingRef = useRef(false);
+
+  useEffect(() => {
+    if (!isPending) setOptimisticStart(null);
+  }, [isPending]);
+
+  const displayOccurrences = useMemo(() => {
+    if (!optimisticStart) return occurrences;
+    return occurrences.map((occ) => {
+      if (occurrenceKey(occ) !== optimisticStart.key || !occ.startTime) return occ;
+      const durationMinutes = occ.endTime ? computeDuration(occ.startTime, occ.endTime) : null;
+      const newStart = optimisticStart.startTime;
+      const newEnd =
+        durationMinutes != null
+          ? minutesToTimeStr(timeStrToMinutes(newStart) + durationMinutes)
+          : null;
+      return { ...occ, startTime: newStart, endTime: newEnd };
+    });
+  }, [occurrences, optimisticStart]);
+
+  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }));
+
+  function handleDragStart(e: DragStartEvent) {
+    isDraggingRef.current = true;
+    setActiveOcc((e.active.data.current?.occurrence as EventOccurrence) ?? null);
+  }
+
+  async function handleDragEnd(e: DragEndEvent) {
+    setActiveOcc(null);
+    setTimeout(() => {
+      isDraggingRef.current = false;
+    }, 0);
+
+    const occurrence = e.active.data.current?.occurrence as EventOccurrence | undefined;
+    if (!occurrence || !occurrence.startTime) return;
+
+    const deltaMinutes = Math.round(e.delta.y);
+    const snappedDelta = Math.round(deltaMinutes / SNAP_MINUTES) * SNAP_MINUTES;
+    if (snappedDelta === 0) return; // no meaningful move — no-op
+
+    const newStartMinutes = Math.max(
+      0,
+      Math.min(DAY_HEIGHT - SNAP_MINUTES, timeStrToMinutes(occurrence.startTime) + snappedDelta)
+    );
+    const newStart = minutesToTimeStr(newStartMinutes);
+    if (newStart === occurrence.startTime) return;
+
+    setOptimisticStart({ key: occurrenceKey(occurrence), startTime: newStart });
+    try {
+      await retimeOccurrence(occurrence.event, occurrence.originalDate, newStart);
+      startTransition(() => router.refresh());
+    } catch {
+      setOptimisticStart(null);
+      setError("Couldn't retime that event — it's back where it was. Please try again.");
+    }
+  }
+
+  return (
+    <>
+      {error && <ErrorBanner message={error} onDismiss={() => setError(null)} />}
+      <DndContext id="day-dnd" sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
+        <div className="flex border border-gray-200 rounded-md overflow-hidden">
+          <div className="w-14 shrink-0 border-r border-gray-200 bg-gray-50">
+            {HOURS.map((hour) => (
+              <div
+                key={hour}
+                className="text-[11px] text-gray-400 text-right pr-2 border-t border-gray-100 first:border-t-0"
+                style={{ height: 60 }}
+              >
+                {formatHourLabel(hour)}
+              </div>
+            ))}
+          </div>
+          <div className="relative flex-1">
+            {HOURS.map((hour) => (
+              <div
+                key={hour}
+                className="absolute left-0 right-0 border-t border-gray-100 first:border-t-0"
+                style={{ top: hour * 60 }}
+              />
+            ))}
+            <div style={{ height: DAY_HEIGHT }} className="relative">
+              {displayOccurrences.map((occ) => (
+                <DayViewEventBlock
+                  key={occurrenceKey(occ)}
+                  occurrence={occ}
+                  onClick={() => {
+                    if (isDraggingRef.current) return;
+                    setModal({ type: "edit", event: occ.event });
+                  }}
+                />
+              ))}
+            </div>
+          </div>
+        </div>
+        <DragOverlay>
+          {activeOcc && (
+            <div style={{ width: 220, height: 48 }}>
+              <DayViewEventContent occurrence={activeOcc} />
+            </div>
+          )}
+        </DragOverlay>
+      </DndContext>
+      {modal.type === "edit" && (
+        <EventModal
+          mode="edit"
+          event={modal.event}
+          onClose={() => setModal({ type: "closed" })}
+          onSaved={() => {
+            setModal({ type: "closed" });
+            router.refresh();
+          }}
+          onDeleted={() => {
+            setModal({ type: "closed" });
+            router.refresh();
+          }}
+        />
+      )}
+    </>
+  );
+}
