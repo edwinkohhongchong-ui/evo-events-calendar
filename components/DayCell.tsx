@@ -67,20 +67,6 @@ export default function DayCell({
         </div>
       )}
 
-      {dayData && dayData.seasons.length > 0 && (
-        <div className="flex flex-col gap-0.5">
-          {dayData.seasons.map((season) => (
-            <span
-              key={season.id}
-              className="text-[11px] leading-tight px-1 py-0.5 rounded bg-gray-100 text-gray-600 border border-gray-200 truncate"
-              title={season.name}
-            >
-              {season.name}
-            </span>
-          ))}
-        </div>
-      )}
-
       {dayData && dayData.occurrences.length > 0 && (
         <div className="flex flex-col gap-0.5">
           {dayData.occurrences.map((occ) => (

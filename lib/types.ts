@@ -46,6 +46,18 @@ export type SeasonCategory =
   | "Growth Track"
   | "Other";
 
+export type SeasonColorKey =
+  | "indigo"
+  | "teal"
+  | "rose"
+  | "amber"
+  | "sky"
+  | "purple"
+  | "emerald"
+  | "orange"
+  | "pink"
+  | "cyan";
+
 export interface SeasonRow {
   id: string;
   name: string;
@@ -53,6 +65,7 @@ export interface SeasonRow {
   start_date: string; // yyyy-MM-dd
   end_date: string; // yyyy-MM-dd
   notes: string | null;
+  color: SeasonColorKey | null; // null = use the auto-suggested color for this name
 }
 
 export type ChecklistStatus = "Not Started" | "In Progress" | "Done";
@@ -92,6 +105,7 @@ export interface SeasonFormValues {
   start_date: string;
   end_date: string;
   notes: string | null;
+  color: SeasonColorKey | null;
 }
 
 export interface ChecklistFormValues {

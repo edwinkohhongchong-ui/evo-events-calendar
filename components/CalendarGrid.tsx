@@ -1,6 +1,8 @@
 import { isSameMonth } from "date-fns";
 import DayCell from "./DayCell";
+import SeasonBarRow from "./SeasonBarRow";
 import { DayData } from "@/lib/dayIndex";
+import { SeasonSegment } from "@/lib/seasonBars";
 import { toDateStr } from "@/lib/dates";
 import { EventOccurrence } from "@/lib/types";
 
@@ -10,6 +12,7 @@ interface CalendarGridProps {
   weeks: Date[][];
   monthStart: Date;
   dayIndex: Map<string, DayData>;
+  seasonSegmentsByWeek: SeasonSegment[][];
   onDayClick: (dateStr: string) => void;
   onEventClick: (occurrence: EventOccurrence) => void;
 }
@@ -18,6 +21,7 @@ export default function CalendarGrid({
   weeks,
   monthStart,
   dayIndex,
+  seasonSegmentsByWeek,
   onDayClick,
   onEventClick,
 }: CalendarGridProps) {
@@ -34,21 +38,24 @@ export default function CalendarGrid({
         ))}
       </div>
       {weeks.map((week, weekIdx) => (
-        <div key={weekIdx} className="grid grid-cols-7">
-          {week.map((day) => {
-            const dateStr = toDateStr(day);
-            return (
-              <DayCell
-                key={dateStr}
-                day={day}
-                isCurrentMonth={isSameMonth(day, monthStart)}
-                isSunday={day.getDay() === 0}
-                dayData={dayIndex.get(dateStr)}
-                onDayClick={onDayClick}
-                onEventClick={onEventClick}
-              />
-            );
-          })}
+        <div key={weekIdx}>
+          <SeasonBarRow segments={seasonSegmentsByWeek[weekIdx] ?? []} />
+          <div className="grid grid-cols-7">
+            {week.map((day) => {
+              const dateStr = toDateStr(day);
+              return (
+                <DayCell
+                  key={dateStr}
+                  day={day}
+                  isCurrentMonth={isSameMonth(day, monthStart)}
+                  isSunday={day.getDay() === 0}
+                  dayData={dayIndex.get(dateStr)}
+                  onDayClick={onDayClick}
+                  onEventClick={onEventClick}
+                />
+              );
+            })}
+          </div>
         </div>
       ))}
     </div>

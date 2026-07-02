@@ -19,14 +19,15 @@ import ErrorBanner from "./ErrorBanner";
 import { buildDayIndex } from "@/lib/dayIndex";
 import { occurrenceKey } from "@/lib/occurrenceKey";
 import { moveOccurrence } from "@/lib/actions";
-import { EventOccurrence, EventRow, HolidayRow, SeasonRow } from "@/lib/types";
+import { SeasonSegment } from "@/lib/seasonBars";
+import { EventOccurrence, EventRow, HolidayRow } from "@/lib/types";
 
 interface CalendarBoardProps {
   weeks: Date[][];
   monthStart: Date;
   occurrences: EventOccurrence[];
   holidays: HolidayRow[];
-  seasons: SeasonRow[];
+  seasonSegmentsByWeek: SeasonSegment[][];
 }
 
 type ModalState =
@@ -39,7 +40,7 @@ export default function CalendarBoard({
   monthStart,
   occurrences,
   holidays,
-  seasons,
+  seasonSegmentsByWeek,
 }: CalendarBoardProps) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
@@ -72,8 +73,8 @@ export default function CalendarBoard({
   }, [occurrences, optimisticMove]);
 
   const dayIndex = useMemo(
-    () => buildDayIndex(weeks.flat(), displayOccurrences, holidays, seasons),
-    [weeks, displayOccurrences, holidays, seasons]
+    () => buildDayIndex(weeks.flat(), displayOccurrences, holidays),
+    [weeks, displayOccurrences, holidays]
   );
 
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }));
@@ -119,6 +120,7 @@ export default function CalendarBoard({
           weeks={weeks}
           monthStart={monthStart}
           dayIndex={dayIndex}
+          seasonSegmentsByWeek={seasonSegmentsByWeek}
           onDayClick={(date) => {
             if (isDraggingRef.current) return;
             setModal({ type: "add", date });

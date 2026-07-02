@@ -1,9 +1,10 @@
 "use client";
 
 import { useState, FormEvent } from "react";
-import { SeasonRow, SeasonCategory } from "@/lib/types";
-import { SEASON_CATEGORIES } from "@/lib/constants";
+import { SeasonRow, SeasonCategory, SeasonColorKey } from "@/lib/types";
+import { SEASON_BAR_COLORS, SEASON_CATEGORIES, SEASON_COLOR_KEYS } from "@/lib/constants";
 import { createSeason, updateSeason, deleteSeason } from "@/lib/seasonActions";
+import { suggestSeasonColor } from "@/lib/seasonColor";
 import ConfirmDialog from "./ConfirmDialog";
 
 interface SeasonModalProps {
@@ -20,9 +21,25 @@ export default function SeasonModal({ mode, season, onClose, onSaved, onDeleted 
   const [startDate, setStartDate] = useState(season?.start_date ?? "");
   const [endDate, setEndDate] = useState(season?.end_date ?? "");
   const [notes, setNotes] = useState(season?.notes ?? "");
+  const [color, setColor] = useState<SeasonColorKey>(season?.color ?? suggestSeasonColor(name));
+  // Once the user explicitly picks a swatch, stop following the name-based
+  // suggestion — an existing stored color counts as already "touched".
+  const [colorTouched, setColorTouched] = useState(!!season?.color);
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
   const [confirmDelete, setConfirmDelete] = useState(false);
+
+  function handleNameChange(value: string) {
+    setName(value);
+    if (!colorTouched) {
+      setColor(suggestSeasonColor(value));
+    }
+  }
+
+  function handleColorPick(key: SeasonColorKey) {
+    setColor(key);
+    setColorTouched(true);
+  }
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
@@ -49,6 +66,7 @@ export default function SeasonModal({ mode, season, onClose, onSaved, onDeleted 
         start_date: startDate,
         end_date: endDate,
         notes: notes.trim() || null,
+        color,
       };
       if (mode === "add") {
         await createSeason(values);
@@ -96,11 +114,30 @@ export default function SeasonModal({ mode, season, onClose, onSaved, onDeleted 
               Name
               <input
                 value={name}
-                onChange={(e) => setName(e.target.value)}
+                onChange={(e) => handleNameChange(e.target.value)}
                 className="border rounded px-2 py-1"
                 required
               />
             </label>
+            <div className="flex flex-col gap-1 text-sm">
+              Color
+              <div className="flex flex-wrap gap-2">
+                {SEASON_COLOR_KEYS.map((key) => (
+                  <button
+                    key={key}
+                    type="button"
+                    onClick={() => handleColorPick(key)}
+                    className={[
+                      "w-7 h-7 rounded-full border-2",
+                      SEASON_BAR_COLORS[key],
+                      color === key ? "ring-2 ring-offset-1 ring-navy" : "",
+                    ].join(" ")}
+                    aria-label={key}
+                    title={key}
+                  />
+                ))}
+              </div>
+            </div>
             <label className="flex flex-col gap-1 text-sm">
               Category
               <select

@@ -2,6 +2,7 @@ import { getMonthGrid } from "@/lib/calendar";
 import { getCalendarData, getMonthFocus } from "@/lib/data";
 import { expandEvents } from "@/lib/recurrence";
 import { applyOverrides } from "@/lib/overrides";
+import { computeSeasonSegments } from "@/lib/seasonBars";
 import { toDateStr } from "@/lib/dates";
 import CalendarBoard from "@/components/CalendarBoard";
 import FocusPanel from "@/components/FocusPanel";
@@ -33,6 +34,7 @@ export default async function Home({ searchParams }: HomeProps) {
   const eventsById = new Map(events.map((e) => [e.id, e]));
   const rawOccurrences = expandEvents(events, gridStart, gridEnd);
   const occurrences = applyOverrides(rawOccurrences, overrides, eventsById, gridStartStr, gridEndStr);
+  const seasonSegmentsByWeek = computeSeasonSegments(seasons, weeks, gridStart, gridEnd);
 
   return (
     <main className="max-w-6xl mx-auto p-4 sm:p-6">
@@ -42,7 +44,7 @@ export default async function Home({ searchParams }: HomeProps) {
         monthStart={monthStart}
         occurrences={occurrences}
         holidays={holidays}
-        seasons={seasons}
+        seasonSegmentsByWeek={seasonSegmentsByWeek}
       />
     </main>
   );
