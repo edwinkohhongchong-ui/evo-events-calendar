@@ -1,5 +1,5 @@
 import { supabase } from "./supabase";
-import { EventRow, HolidayRow, SeasonRow, OverrideRow } from "./types";
+import { ChecklistRow, EventRow, HolidayRow, SeasonRow, OverrideRow } from "./types";
 
 export interface CalendarData {
   events: EventRow[];
@@ -86,6 +86,54 @@ async function getSeasons(gridStartStr: string, gridEndStr: string): Promise<Sea
     return data ?? [];
   } catch (err) {
     console.error("getSeasons threw:", err);
+    return [];
+  }
+}
+
+// Holidays/Seasons/Checklist admin tables are small (a year's worth of rows
+// at most) — fetch the whole table rather than windowing by date range.
+export async function getAllHolidays(): Promise<HolidayRow[]> {
+  try {
+    const { data, error } = await supabase.from("holidays").select("*").order("holiday_date");
+    if (error) {
+      console.error("getAllHolidays failed:", error.message);
+      return [];
+    }
+    return data ?? [];
+  } catch (err) {
+    console.error("getAllHolidays threw:", err);
+    return [];
+  }
+}
+
+export async function getAllSeasons(): Promise<SeasonRow[]> {
+  try {
+    const { data, error } = await supabase.from("seasons").select("*").order("start_date");
+    if (error) {
+      console.error("getAllSeasons failed:", error.message);
+      return [];
+    }
+    return data ?? [];
+  } catch (err) {
+    console.error("getAllSeasons threw:", err);
+    return [];
+  }
+}
+
+export async function getAllChecklist(): Promise<ChecklistRow[]> {
+  try {
+    const { data, error } = await supabase
+      .from("checklist")
+      .select("*")
+      .order("category")
+      .order("item");
+    if (error) {
+      console.error("getAllChecklist failed:", error.message);
+      return [];
+    }
+    return data ?? [];
+  } catch (err) {
+    console.error("getAllChecklist threw:", err);
     return [];
   }
 }

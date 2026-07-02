@@ -15,6 +15,11 @@ export function toDateStr(date: Date): string {
   return format(date, "yyyy-MM-dd");
 }
 
+// Formats a "yyyy-MM-dd" string as e.g. "4 Jan 2026" for table display.
+export function formatDateDisplay(dateStr: string): string {
+  return format(parseDateStr(dateStr), "d MMM yyyy");
+}
+
 // Formats a bare "HH:mm:ss" (or "HH:mm") time string as e.g. "3:00 PM".
 // Deliberately does not touch Date objects — this is a string, not a moment
 // in time, so there's nothing to localize/convert.

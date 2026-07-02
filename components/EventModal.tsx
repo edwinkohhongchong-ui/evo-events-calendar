@@ -4,6 +4,7 @@ import { useState, FormEvent } from "react";
 import { EventRow, Level, Recurring } from "@/lib/types";
 import { LEVELS } from "@/lib/constants";
 import { createEvent, updateEvent, deleteEvent, EventFormValues } from "@/lib/actions";
+import ConfirmDialog from "./ConfirmDialog";
 
 interface EventModalProps {
   mode: "add" | "edit";
@@ -221,9 +222,9 @@ export default function EventModal({
             </div>
           </form>
         ) : (
-          <div className="flex flex-col gap-3">
-            <p className="text-sm text-gray-700">
-              {isRecurringSeries ? (
+          <ConfirmDialog
+            message={
+              isRecurringSeries ? (
                 <>
                   <strong className="text-red-600">
                     This will delete all occurrences of this recurring event
@@ -232,30 +233,14 @@ export default function EventModal({
                   one date. This can&apos;t be undone.
                 </>
               ) : (
-                <>
-                  Delete &ldquo;{event?.name}&rdquo;? This can&apos;t be undone.
-                </>
-              )}
-            </p>
-            {formError && <p className="text-sm text-red-600">{formError}</p>}
-            <div className="flex justify-end gap-2">
-              <button
-                type="button"
-                onClick={() => setConfirmDelete(false)}
-                className="px-3 py-1.5 text-sm rounded border border-gray-300"
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                onClick={handleDelete}
-                disabled={saving}
-                className="px-3 py-1.5 text-sm rounded bg-red-600 text-white disabled:opacity-50"
-              >
-                {saving ? "Deleting…" : "Yes, delete"}
-              </button>
-            </div>
-          </div>
+                <>Delete &ldquo;{event?.name}&rdquo;? This can&apos;t be undone.</>
+              )
+            }
+            error={formError}
+            busy={saving}
+            onCancel={() => setConfirmDelete(false)}
+            onConfirm={handleDelete}
+          />
         )}
       </div>
     </div>

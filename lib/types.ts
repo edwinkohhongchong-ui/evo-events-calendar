@@ -53,6 +53,53 @@ export interface SeasonRow {
   notes: string | null;
 }
 
+export type ChecklistStatus = "Not Started" | "In Progress" | "Done";
+
+export type TargetMonth =
+  | "Jan"
+  | "Feb"
+  | "Mar"
+  | "Apr"
+  | "May"
+  | "Jun"
+  | "Jul"
+  | "Aug"
+  | "Sep"
+  | "Oct"
+  | "Nov"
+  | "Dec";
+
+export interface ChecklistRow {
+  id: string;
+  category: string;
+  item: string;
+  status: ChecklistStatus;
+  target_month: TargetMonth | null;
+  notes: string | null;
+}
+
+export interface HolidayFormValues {
+  holiday_date: string;
+  name: string;
+  type: HolidayType;
+}
+
+export interface SeasonFormValues {
+  name: string;
+  category: SeasonCategory;
+  start_date: string;
+  end_date: string;
+  notes: string | null;
+}
+
+export interface ChecklistFormValues {
+  category: string;
+  item: string;
+  status: ChecklistStatus;
+  target_month: TargetMonth | null;
+  notes: string | null;
+}
+
 export interface OverrideRow {
   id: string;
   event_id: string;
