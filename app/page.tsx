@@ -1,9 +1,10 @@
 import { getMonthGrid } from "@/lib/calendar";
-import { getCalendarData } from "@/lib/data";
+import { getCalendarData, getMonthFocus } from "@/lib/data";
 import { expandEvents } from "@/lib/recurrence";
 import { applyOverrides } from "@/lib/overrides";
 import { toDateStr } from "@/lib/dates";
 import CalendarBoard from "@/components/CalendarBoard";
+import FocusPanel from "@/components/FocusPanel";
 
 // This is a live, mutable calendar (drag-and-drop, add/edit/delete) — every
 // render must hit Supabase fresh. Without this, Next.js's default fetch
@@ -25,16 +26,17 @@ export default async function Home({ searchParams }: HomeProps) {
   const gridStartStr = toDateStr(gridStart);
   const gridEndStr = toDateStr(gridEnd);
 
-  const { events, holidays, seasons, overrides } = await getCalendarData(
-    gridStartStr,
-    gridEndStr
-  );
+  const [{ events, holidays, seasons, overrides }, monthFocus] = await Promise.all([
+    getCalendarData(gridStartStr, gridEndStr),
+    getMonthFocus(year, month),
+  ]);
   const eventsById = new Map(events.map((e) => [e.id, e]));
   const rawOccurrences = expandEvents(events, gridStart, gridEnd);
   const occurrences = applyOverrides(rawOccurrences, overrides, eventsById, gridStartStr, gridEndStr);
 
   return (
     <main className="max-w-6xl mx-auto p-4 sm:p-6">
+      <FocusPanel key={`${year}-${month}`} year={year} month={month} monthFocus={monthFocus} />
       <CalendarBoard
         weeks={weeks}
         monthStart={monthStart}

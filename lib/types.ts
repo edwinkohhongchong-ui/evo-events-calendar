@@ -100,6 +100,21 @@ export interface ChecklistFormValues {
   notes: string | null;
 }
 
+export interface MonthFocusRow {
+  id: string;
+  year: number;
+  month: number;
+  series_focus: string | null;
+  key_theme: string | null;
+  notes: string | null;
+}
+
+export interface MonthFocusValues {
+  series_focus: string | null;
+  key_theme: string | null;
+  notes: string | null;
+}
+
 export interface OverrideRow {
   id: string;
   event_id: string;

@@ -1,5 +1,5 @@
 import { supabase } from "./supabase";
-import { ChecklistRow, EventRow, HolidayRow, SeasonRow, OverrideRow } from "./types";
+import { ChecklistRow, EventRow, HolidayRow, SeasonRow, MonthFocusRow, OverrideRow } from "./types";
 
 export interface CalendarData {
   events: EventRow[];
@@ -135,6 +135,28 @@ export async function getAllChecklist(): Promise<ChecklistRow[]> {
   } catch (err) {
     console.error("getAllChecklist threw:", err);
     return [];
+  }
+}
+
+// Returns null if no focus row exists yet for this month — that's the normal
+// case for a month nobody has filled in, not an error.
+export async function getMonthFocus(year: number, month: number): Promise<MonthFocusRow | null> {
+  try {
+    const { data, error } = await supabase
+      .from("month_focus")
+      .select("*")
+      .eq("year", year)
+      .eq("month", month)
+      .maybeSingle();
+
+    if (error) {
+      console.error("getMonthFocus failed:", error.message);
+      return null;
+    }
+    return data;
+  } catch (err) {
+    console.error("getMonthFocus threw:", err);
+    return null;
   }
 }
 
