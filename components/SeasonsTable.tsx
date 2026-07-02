@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import SeasonModal from "./SeasonModal";
 import { SeasonRow } from "@/lib/types";
@@ -8,13 +8,50 @@ import { formatDateDisplay } from "@/lib/dates";
 
 type ModalState = { type: "closed" } | { type: "add" } | { type: "edit"; season: SeasonRow };
 
+const ALL_YEARS = "All";
+
 export default function SeasonsTable({ seasons }: { seasons: SeasonRow[] }) {
   const router = useRouter();
   const [modal, setModal] = useState<ModalState>({ type: "closed" });
+  const [yearFilter, setYearFilter] = useState<string>(ALL_YEARS);
+
+  // A season can span a year boundary (e.g. "RF 2025/2026" runs Dec–Feb) —
+  // the year list/filter is based on which years a season touches at all,
+  // not just the year it starts in, so selecting 2026 still surfaces it.
+  const years = useMemo(() => {
+    const set = new Set<string>();
+    for (const season of seasons) {
+      set.add(season.start_date.slice(0, 4));
+      set.add(season.end_date.slice(0, 4));
+    }
+    return Array.from(set).sort((a, b) => b.localeCompare(a));
+  }, [seasons]);
+
+  const filtered = useMemo(() => {
+    if (yearFilter === ALL_YEARS) return seasons;
+    return seasons.filter(
+      (s) => s.start_date.slice(0, 4) <= yearFilter && s.end_date.slice(0, 4) >= yearFilter
+    );
+  }, [seasons, yearFilter]);
 
   return (
     <div>
-      <div className="flex justify-end mb-3">
+      <div className="flex items-center justify-between mb-3 gap-3 flex-wrap">
+        <label className="flex items-center gap-2 text-sm">
+          Year
+          <select
+            value={yearFilter}
+            onChange={(e) => setYearFilter(e.target.value)}
+            className="border rounded px-2 py-1"
+          >
+            <option value={ALL_YEARS}>All</option>
+            {years.map((y) => (
+              <option key={y} value={y}>
+                {y}
+              </option>
+            ))}
+          </select>
+        </label>
         <button
           onClick={() => setModal({ type: "add" })}
           className="px-3 py-1.5 text-sm rounded bg-navy text-white"
@@ -34,7 +71,7 @@ export default function SeasonsTable({ seasons }: { seasons: SeasonRow[] }) {
             </tr>
           </thead>
           <tbody>
-            {seasons.map((season) => (
+            {filtered.map((season) => (
               <tr
                 key={season.id}
                 onClick={() => setModal({ type: "edit", season })}
@@ -53,10 +90,10 @@ export default function SeasonsTable({ seasons }: { seasons: SeasonRow[] }) {
                 </td>
               </tr>
             ))}
-            {seasons.length === 0 && (
+            {filtered.length === 0 && (
               <tr>
                 <td colSpan={5} className="px-3 py-6 text-center text-gray-400">
-                  No seasons yet.
+                  No seasons{yearFilter !== ALL_YEARS ? ` for ${yearFilter}` : " yet"}.
                 </td>
               </tr>
             )}

@@ -106,6 +106,27 @@ export async function getAllHolidays(): Promise<HolidayRow[]> {
   }
 }
 
+// Used by the "Start a New Year" review to dedup against what's already
+// there — narrower than getAllHolidays since a new-year fetch only ever
+// needs one year's worth of existing rows to compare against.
+export async function getHolidaysForYear(year: number): Promise<HolidayRow[]> {
+  try {
+    const { data, error } = await supabase
+      .from("holidays")
+      .select("*")
+      .gte("holiday_date", `${year}-01-01`)
+      .lte("holiday_date", `${year}-12-31`);
+    if (error) {
+      console.error("getHolidaysForYear failed:", error.message);
+      return [];
+    }
+    return data ?? [];
+  } catch (err) {
+    console.error("getHolidaysForYear threw:", err);
+    return [];
+  }
+}
+
 export async function getAllSeasons(): Promise<SeasonRow[]> {
   try {
     const { data, error } = await supabase.from("seasons").select("*").order("start_date");

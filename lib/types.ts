@@ -39,6 +39,21 @@ export interface HolidayRow {
   type: HolidayType;
 }
 
+export type HolidayDiffBucket = "new" | "existing" | "collision";
+
+// One proposed holiday from a "Start a New Year" fetch, already classified
+// against the existing DB rows for that year — see lib/calendarific.ts.
+export interface HolidayDiffRow {
+  bucket: HolidayDiffBucket;
+  date: string; // yyyy-MM-dd, from Calendarific's date.iso
+  name: string;
+  description: string;
+  rawType: string[]; // Calendarific's own classification, shown verbatim
+  suggestedType: HolidayType;
+  isTentative: boolean; // best-effort heuristic — see lib/calendarific.ts
+  existingName: string | null; // set only for "collision" rows
+}
+
 export type SeasonCategory =
   | "Ministry Season"
   | "School Schedule"
