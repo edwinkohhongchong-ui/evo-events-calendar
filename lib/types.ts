@@ -13,7 +13,9 @@ export interface EventRow {
   id: string;
   name: string;
   event_date: string; // yyyy-MM-dd
-  event_time: string | null; // HH:mm:ss
+  event_time: string | null; // HH:mm:ss — start time
+  end_time: string | null; // HH:mm:ss
+  duration_minutes: number | null;
   level: Level;
   recurring: Recurring;
   repeat_until: string | null; // yyyy-MM-dd

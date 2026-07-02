@@ -4,6 +4,7 @@ import { useState, FormEvent } from "react";
 import { EventRow, Level, Recurring } from "@/lib/types";
 import { LEVELS } from "@/lib/constants";
 import { createEvent, updateEvent, deleteEvent, EventFormValues } from "@/lib/actions";
+import { computeDuration, computeEndTime, endsNextDay } from "@/lib/timeMath";
 import ConfirmDialog from "./ConfirmDialog";
 
 interface EventModalProps {
@@ -28,6 +29,10 @@ export default function EventModal({
   const [name, setName] = useState(event?.name ?? "");
   const [eventDate, setEventDate] = useState(event?.event_date ?? initialDate ?? "");
   const [eventTime, setEventTime] = useState(event?.event_time?.slice(0, 5) ?? "");
+  const [endTime, setEndTime] = useState(event?.end_time?.slice(0, 5) ?? "");
+  const [durationMinutes, setDurationMinutes] = useState(
+    event?.duration_minutes != null ? String(event.duration_minutes) : ""
+  );
   const [level, setLevel] = useState<Level>(event?.level ?? "Churchwide");
   const [recurring, setRecurring] = useState<Recurring>(event?.recurring ?? "None");
   const [repeatUntil, setRepeatUntil] = useState(event?.repeat_until ?? "");
@@ -37,6 +42,37 @@ export default function EventModal({
   const [confirmDelete, setConfirmDelete] = useState(false);
 
   const isRecurringSeries = mode === "edit" && !!event && event.recurring !== "None";
+  const wrapsPastMidnight = !!eventTime && !!endTime && endsNextDay(eventTime, endTime);
+
+  // Start/End/Duration stay independently editable at all times — each
+  // handler recomputes only the one derived field for that edit, and never
+  // touches whichever field the user just typed into.
+  function handleStartTimeChange(value: string) {
+    setEventTime(value);
+    if (value && durationMinutes !== "") {
+      const duration = Number(durationMinutes);
+      if (!Number.isNaN(duration)) {
+        setEndTime(computeEndTime(value, duration));
+      }
+    }
+  }
+
+  function handleDurationChange(value: string) {
+    setDurationMinutes(value);
+    if (eventTime && value !== "") {
+      const duration = Number(value);
+      if (!Number.isNaN(duration)) {
+        setEndTime(computeEndTime(eventTime, duration));
+      }
+    }
+  }
+
+  function handleEndTimeChange(value: string) {
+    setEndTime(value);
+    if (eventTime && value) {
+      setDurationMinutes(String(computeDuration(eventTime, value)));
+    }
+  }
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
@@ -56,6 +92,8 @@ export default function EventModal({
       name: name.trim(),
       event_date: eventDate,
       event_time: eventTime || null,
+      end_time: endTime || null,
+      duration_minutes: durationMinutes !== "" ? Number(durationMinutes) : null,
       level,
       recurring,
       repeat_until: recurring === "None" ? null : repeatUntil || null,
@@ -134,7 +172,31 @@ export default function EventModal({
                 <input
                   type="time"
                   value={eventTime}
-                  onChange={(e) => setEventTime(e.target.value)}
+                  onChange={(e) => handleStartTimeChange(e.target.value)}
+                  className="border rounded px-2 py-1"
+                />
+              </label>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <label className="flex flex-col gap-1 text-sm">
+                End time
+                <input
+                  type="time"
+                  value={endTime}
+                  onChange={(e) => handleEndTimeChange(e.target.value)}
+                  className="border rounded px-2 py-1"
+                />
+                {wrapsPastMidnight && (
+                  <span className="text-xs text-gray-500">(next day)</span>
+                )}
+              </label>
+              <label className="flex flex-col gap-1 text-sm">
+                Duration (min)
+                <input
+                  type="number"
+                  min={0}
+                  value={durationMinutes}
+                  onChange={(e) => handleDurationChange(e.target.value)}
                   className="border rounded px-2 py-1"
                 />
               </label>

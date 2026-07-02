@@ -45,6 +45,8 @@ export interface EventFormValues {
   name: string;
   event_date: string;
   event_time: string | null;
+  end_time: string | null;
+  duration_minutes: number | null;
   level: Level;
   recurring: Recurring;
   repeat_until: string | null;

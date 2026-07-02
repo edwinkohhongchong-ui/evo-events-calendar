@@ -32,3 +32,23 @@ export function formatEventTime(time: string | null): string | null {
   const hour12 = hour % 12 === 0 ? 12 : hour % 12;
   return `${hour12}:${minute.toString().padStart(2, "0")} ${period}`;
 }
+
+// Formats a start/end time pair as e.g. "3:00–4:30 PM" when both fall in the
+// same AM/PM period, or "11:00 PM–2:00 AM" when they don't. Falls back to
+// just the start time if there's no end time (e.g. pre-Phase-5 events).
+export function formatEventTimeRange(
+  startTime: string | null,
+  endTime: string | null
+): string | null {
+  const start = formatEventTime(startTime);
+  if (!start) return null;
+  if (!endTime) return start;
+
+  const end = formatEventTime(endTime);
+  if (!end) return start;
+
+  const startPeriod = start.slice(-2);
+  const endPeriod = end.slice(-2);
+  const startLabel = startPeriod === endPeriod ? start.slice(0, -3) : start;
+  return `${startLabel}–${end}`;
+}
