@@ -8,6 +8,21 @@ items (features/fixes) that push contains — a push with 1 item goes up by
 `1.05`). If MINOR would pass `.99`, MAJOR increments and MINOR carries the
 remainder (e.g. `1.99` + 2 items → `2.01`).
 
+## v1.08 — 2026-09-22
+
+- Added day notes: a small "+ note" toggle in every calendar day cell opens a
+  tiny editor for short freeform tags on that date (e.g. "Send a card to
+  friends" on a holiday) — shown as plain green text, not an event card. A
+  day can hold several; each is deletable on its own. New `day_notes` table
+  (migration 015).
+- Replaced the Level picker for Event-type entries with an "Event Type"
+  picker: Churchwide / Zone / TG, with Zone expanding into Youth, Poly, Uni,
+  Adults, or COW/Thirdspace. Recolored the scheme (Churchwide=red,
+  Youth=yellow, Poly=blue, Uni=purple, Adults=pink, COW/Thirdspace=green,
+  TG=orange), merged the COW and Thirdspace categories into one, and added
+  the new TG category (migration 016). Gatherings are unaffected — they keep
+  their own separate, unchanged Level dropdown and amber color.
+
 ## v1.06 — 2026-09-22
 
 - Documented the changelog/versioning process and the "always confirm before

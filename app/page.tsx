@@ -30,7 +30,11 @@ export default async function Home({ searchParams }: HomeProps) {
   const gridEndStr = toDateStr(gridEnd);
   const defaultAddDate = toDateStr(monthStart);
 
-  const [{ events, holidays, seasons, overrides, levels, exceptions }, generalComments, monthComments] =
+  const [
+    { events, holidays, seasons, overrides, levels, exceptions, dayNotes },
+    generalComments,
+    monthComments,
+  ] =
     await Promise.all([
       getCalendarData(gridStartStr, gridEndStr),
       getGeneralComments(),
@@ -71,6 +75,7 @@ export default async function Home({ searchParams }: HomeProps) {
             monthStart={monthStart}
             occurrences={occurrences}
             holidays={holidays}
+            dayNotes={dayNotes}
             seasonSegmentsByWeek={seasonSegmentsByWeek}
             levels={levels}
             defaultAddDate={defaultAddDate}

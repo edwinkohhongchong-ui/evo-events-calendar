@@ -1,6 +1,7 @@
 import { supabase } from "./supabase";
 import {
   ChecklistRow,
+  DayNoteRow,
   EventOption,
   EventRow,
   ExceptionRow,
@@ -18,6 +19,7 @@ export interface CalendarData {
   overrides: OverrideRow[];
   levels: LevelRow[];
   exceptions: ExceptionRow[];
+  dayNotes: DayNoteRow[];
 }
 
 // Fetches everything needed to render the grid for [gridStart, gridEnd]
@@ -27,16 +29,37 @@ export async function getCalendarData(
   gridStartStr: string,
   gridEndStr: string
 ): Promise<CalendarData> {
-  const [events, holidays, seasons, overrides, levels, exceptions] = await Promise.all([
+  const [events, holidays, seasons, overrides, levels, exceptions, dayNotes] = await Promise.all([
     getEvents(gridStartStr, gridEndStr),
     getHolidays(gridStartStr, gridEndStr),
     getSeasons(gridStartStr, gridEndStr),
     getOverrides(gridStartStr, gridEndStr),
     getAllLevels(),
     getExceptions(gridStartStr, gridEndStr),
+    getDayNotes(gridStartStr, gridEndStr),
   ]);
 
-  return { events, holidays, seasons, overrides, levels, exceptions };
+  return { events, holidays, seasons, overrides, levels, exceptions, dayNotes };
+}
+
+async function getDayNotes(gridStartStr: string, gridEndStr: string): Promise<DayNoteRow[]> {
+  try {
+    const { data, error } = await supabase
+      .from("day_notes")
+      .select("*")
+      .gte("note_date", gridStartStr)
+      .lte("note_date", gridEndStr)
+      .order("created_at");
+
+    if (error) {
+      console.error("getDayNotes failed:", error.message);
+      return [];
+    }
+    return data ?? [];
+  } catch (err) {
+    console.error("getDayNotes threw:", err);
+    return [];
+  }
 }
 
 async function getEvents(gridStartStr: string, gridEndStr: string): Promise<EventRow[]> {

@@ -23,13 +23,14 @@ import { SeasonSegment } from "@/lib/seasonBars";
 import { computeEventBarSegments } from "@/lib/eventBars";
 import { resolveLevelColor } from "@/lib/levelColor";
 import { LevelColorProvider } from "@/lib/levelColorContext";
-import { EventOccurrence, HolidayRow, LevelRow } from "@/lib/types";
+import { DayNoteRow, EventOccurrence, HolidayRow, LevelRow } from "@/lib/types";
 
 interface CalendarBoardProps {
   weeks: Date[][];
   monthStart: Date;
   occurrences: EventOccurrence[];
   holidays: HolidayRow[];
+  dayNotes: DayNoteRow[];
   seasonSegmentsByWeek: SeasonSegment[][];
   levels: LevelRow[];
   defaultAddDate: string;
@@ -45,6 +46,7 @@ export default function CalendarBoard({
   monthStart,
   occurrences,
   holidays,
+  dayNotes,
   seasonSegmentsByWeek,
   levels,
   defaultAddDate,
@@ -100,8 +102,8 @@ export default function CalendarBoard({
   }, [occurrences, optimisticMove, optimisticResize]);
 
   const dayIndex = useMemo(
-    () => buildDayIndex(weeks.flat(), displayOccurrences, holidays, monthStart),
-    [weeks, displayOccurrences, holidays, monthStart]
+    () => buildDayIndex(weeks.flat(), displayOccurrences, holidays, monthStart, dayNotes),
+    [weeks, displayOccurrences, holidays, monthStart, dayNotes]
   );
 
   const gridStart = weeks[0][0];

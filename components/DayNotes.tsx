@@ -1,0 +1,111 @@
+"use client";
+
+import { useState, FormEvent } from "react";
+import { useRouter } from "next/navigation";
+import { createDayNote, deleteDayNote } from "@/lib/dayNoteActions";
+import { DayNoteRow } from "@/lib/types";
+
+interface DayNotesProps {
+  dateStr: string;
+  notes: DayNoteRow[];
+}
+
+// Short freeform tags for a day — plain green text, not an event card (e.g.
+// "Send a card to friends" on a holiday). Self-contained: does its own
+// Supabase writes and router.refresh(), same pattern as NotesPanel, so
+// DayCell doesn't need to thread add/delete callbacks down.
+export default function DayNotes({ dateStr, notes }: DayNotesProps) {
+  const router = useRouter();
+  const [open, setOpen] = useState(false);
+  const [draft, setDraft] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [removingId, setRemovingId] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  async function handleAdd(e: FormEvent) {
+    e.preventDefault();
+    if (!draft.trim()) return;
+    setSaving(true);
+    setError(null);
+    try {
+      await createDayNote(dateStr, draft.trim());
+      setDraft("");
+      router.refresh();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Couldn't save that note.");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function handleRemove(id: string) {
+    setRemovingId(id);
+    setError(null);
+    try {
+      await deleteDayNote(id);
+      router.refresh();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Couldn't delete that note.");
+    } finally {
+      setRemovingId(null);
+    }
+  }
+
+  return (
+    <div onClick={(e) => e.stopPropagation()} className="flex flex-col gap-0.5">
+      {notes.map((n) => (
+        <span
+          key={n.id}
+          className="text-[11px] font-medium text-green-700 truncate"
+          title={n.content}
+        >
+          {n.content}
+        </span>
+      ))}
+
+      <button
+        type="button"
+        onClick={() => setOpen((prev) => !prev)}
+        title="Add a note to this day"
+        className="self-start text-[10px] text-gray-300 hover:text-green-700 leading-none"
+      >
+        {open ? "▾ note" : "+ note"}
+      </button>
+
+      {open && (
+        <div className="flex flex-col gap-1 border border-gray-200 rounded p-1.5 bg-white">
+          {notes.map((n) => (
+            <div key={n.id} className="flex items-start justify-between gap-1">
+              <span className="text-[11px] text-green-700 flex-1 break-words">{n.content}</span>
+              <button
+                type="button"
+                onClick={() => handleRemove(n.id)}
+                disabled={removingId === n.id}
+                title="Delete this note"
+                className="leading-none text-gray-300 hover:text-red-600 disabled:opacity-30 shrink-0"
+              >
+                ×
+              </button>
+            </div>
+          ))}
+          <form onSubmit={handleAdd} className="flex gap-1">
+            <input
+              value={draft}
+              onChange={(e) => setDraft(e.target.value)}
+              placeholder="Send a card to friends…"
+              className="border rounded px-1.5 py-0.5 text-[11px] flex-1 min-w-0"
+            />
+            <button
+              type="submit"
+              disabled={saving || !draft.trim()}
+              className="px-1.5 py-0.5 text-[11px] rounded bg-navy text-white disabled:opacity-50 shrink-0"
+            >
+              {saving ? "…" : "Add"}
+            </button>
+          </form>
+          {error && <p className="text-[10px] text-red-600">{error}</p>}
+        </div>
+      )}
+    </div>
+  );
+}

@@ -14,7 +14,7 @@ import {
 import { computeDuration, computeEndTime, endsNextDay } from "@/lib/timeMath";
 import { formatDateDisplay, formatEventTimeRange } from "@/lib/dates";
 import { PastoralFocus, applyTitlePrefix, stripTitlePrefix } from "@/lib/pastoralFocus";
-import { GATHERING_TYPES } from "@/lib/constants";
+import { CHURCHWIDE_LEVEL_NAME, GATHERING_TYPES, TG_LEVEL_NAME, ZONE_LEVEL_NAMES } from "@/lib/constants";
 import ConfirmDialog from "./ConfirmDialog";
 import RecurringScopeDialog from "./RecurringScopeDialog";
 
@@ -162,6 +162,28 @@ export default function EventModal({
     setPreacherName(value);
     if (!nameTouched) {
       setName(autoGatheringName(gatheringType, value));
+    }
+  }
+
+  // The three-way Churchwide/Zone/TG picker (Event type only — Gatherings
+  // keep their own flat Level dropdown, unchanged) is a grouping over the
+  // same underlying `level` field, not a separate one — derived from its
+  // current value rather than tracked as its own state, so there's only
+  // ever one source of truth for which Level is actually selected.
+  function topCategoryFor(levelName: string): "Churchwide" | "Zone" | "TG" {
+    if (levelName === CHURCHWIDE_LEVEL_NAME) return "Churchwide";
+    if (levelName === TG_LEVEL_NAME) return "TG";
+    return "Zone";
+  }
+
+  function handleEventTypeCategoryChange(category: "Churchwide" | "Zone" | "TG") {
+    if (category === "Churchwide") {
+      setLevel(CHURCHWIDE_LEVEL_NAME);
+    } else if (category === "TG") {
+      setLevel(TG_LEVEL_NAME);
+    } else if (!ZONE_LEVEL_NAMES.includes(level)) {
+      const firstZone = levels.find((l) => ZONE_LEVEL_NAMES.includes(l.name));
+      setLevel(firstZone?.name ?? level);
     }
   }
 
@@ -647,20 +669,58 @@ export default function EventModal({
                 />
               </label>
             </div>
-            <label className="flex flex-col gap-1 text-sm">
-              Level
-              <select
-                value={level}
-                onChange={(e) => setLevel(e.target.value as Level)}
-                className="border rounded px-2 py-1"
-              >
-                {levels.map((l) => (
-                  <option key={l.id} value={l.name}>
-                    {l.name}
-                  </option>
-                ))}
-              </select>
-            </label>
+            {eventType === "Event" ? (
+              <div className="flex flex-col gap-1 text-sm">
+                Event Type
+                <div className="flex gap-2">
+                  {(["Churchwide", "Zone", "TG"] as const).map((cat) => (
+                    <button
+                      key={cat}
+                      type="button"
+                      onClick={() => handleEventTypeCategoryChange(cat)}
+                      className={[
+                        "flex-1 px-3 py-1.5 rounded border text-sm",
+                        topCategoryFor(level) === cat
+                          ? "bg-navy text-white border-navy"
+                          : "border-gray-300 text-gray-600 hover:bg-gray-50",
+                      ].join(" ")}
+                    >
+                      {cat}
+                    </button>
+                  ))}
+                </div>
+                {topCategoryFor(level) === "Zone" && (
+                  <select
+                    value={level}
+                    onChange={(e) => setLevel(e.target.value as Level)}
+                    className="border rounded px-2 py-1"
+                  >
+                    {levels
+                      .filter((l) => ZONE_LEVEL_NAMES.includes(l.name))
+                      .map((l) => (
+                        <option key={l.id} value={l.name}>
+                          {l.name}
+                        </option>
+                      ))}
+                  </select>
+                )}
+              </div>
+            ) : (
+              <label className="flex flex-col gap-1 text-sm">
+                Level
+                <select
+                  value={level}
+                  onChange={(e) => setLevel(e.target.value as Level)}
+                  className="border rounded px-2 py-1"
+                >
+                  {levels.map((l) => (
+                    <option key={l.id} value={l.name}>
+                      {l.name}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            )}
             <div className="grid grid-cols-2 gap-3">
               <label className="flex flex-col gap-1 text-sm">
                 Recurring

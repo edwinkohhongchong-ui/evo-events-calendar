@@ -49,6 +49,10 @@ export const SEASON_COLOR_KEYS: SeasonColorKey[] = [
   "orange",
   "pink",
   "cyan",
+  "red",
+  "yellow",
+  "blue",
+  "green",
 ];
 
 export const SEASON_BAR_COLORS: Record<SeasonColorKey, string> = {
@@ -62,12 +66,26 @@ export const SEASON_BAR_COLORS: Record<SeasonColorKey, string> = {
   orange: "bg-orange-200 text-orange-900 border-orange-400",
   pink: "bg-pink-200 text-pink-900 border-pink-400",
   cyan: "bg-cyan-200 text-cyan-900 border-cyan-400",
+  red: "bg-red-200 text-red-900 border-red-400",
+  yellow: "bg-yellow-200 text-yellow-900 border-yellow-400",
+  blue: "bg-blue-200 text-blue-900 border-blue-400",
+  green: "bg-green-200 text-green-900 border-green-400",
 };
 
-// Levels (event categories) share the exact same 10-key palette as Seasons —
+// Levels (event categories) share the exact same palette as Seasons —
 // aliased under Level-specific names for readability at call sites.
 export const LEVEL_COLOR_KEYS: SeasonColorKey[] = SEASON_COLOR_KEYS;
 export const LEVEL_COLOR_CLASSES: Record<SeasonColorKey, string> = SEASON_BAR_COLORS;
+
+// The "Event Type" grouping shown in the Add/Edit Event form for Event-type
+// entries (Gatherings keep their own separate, unchanged Level picker — see
+// EventModal.tsx). Churchwide and TG are picked directly; Zone expands into
+// one of ZONE_LEVEL_NAMES. These are Level names (rows in the `levels`
+// table, migration 016) — this is a UI grouping over the existing flat
+// Level field, not a new column.
+export const CHURCHWIDE_LEVEL_NAME = "Churchwide";
+export const TG_LEVEL_NAME = "TG";
+export const ZONE_LEVEL_NAMES = ["Youth", "Poly", "Uni", "Adults", "COW/Thirdspace"];
 
 export const TARGET_MONTHS: TargetMonth[] = [
   "Jan",

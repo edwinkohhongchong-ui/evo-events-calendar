@@ -5,6 +5,7 @@ import { isToday } from "date-fns";
 import { useDroppable } from "@dnd-kit/core";
 import Link from "next/link";
 import EventCard from "./EventCard";
+import DayNotes from "./DayNotes";
 import { DayData } from "@/lib/dayIndex";
 import { toDateStr } from "@/lib/dates";
 import { occurrenceKey } from "@/lib/occurrenceKey";
@@ -77,6 +78,8 @@ export default function DayCell({
           </span>
         ))}
       </div>
+
+      <DayNotes dateStr={dateStr} notes={dayData?.dayNotes ?? []} />
 
       {visibleOccurrences.length > 0 && (
         <div className="flex flex-col gap-0.5">

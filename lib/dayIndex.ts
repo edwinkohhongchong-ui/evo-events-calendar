@@ -1,11 +1,12 @@
 import { isSameMonth } from "date-fns";
 import { parseDateStr, toDateStr } from "./dates";
-import { EventOccurrence, HolidayRow } from "./types";
+import { DayNoteRow, EventOccurrence, HolidayRow } from "./types";
 
 export interface DayData {
   dateStr: string;
   holidays: HolidayRow[];
   occurrences: EventOccurrence[];
+  dayNotes: DayNoteRow[];
 }
 
 // Builds a per-day lookup (keyed by "yyyy-MM-dd") for every day in the grid.
@@ -23,17 +24,22 @@ export function buildDayIndex(
   days: Date[],
   occurrences: EventOccurrence[],
   holidays: HolidayRow[],
-  monthStart: Date
+  monthStart: Date,
+  dayNotes: DayNoteRow[] = []
 ): Map<string, DayData> {
   const index = new Map<string, DayData>();
 
   for (const day of days) {
     const dateStr = toDateStr(day);
-    index.set(dateStr, { dateStr, holidays: [], occurrences: [] });
+    index.set(dateStr, { dateStr, holidays: [], occurrences: [], dayNotes: [] });
   }
 
   for (const holiday of holidays) {
     index.get(holiday.holiday_date)?.holidays.push(holiday);
+  }
+
+  for (const dayNote of dayNotes) {
+    index.get(dayNote.note_date)?.dayNotes.push(dayNote);
   }
 
   for (const occurrence of occurrences) {

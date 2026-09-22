@@ -59,6 +59,16 @@ export interface HolidayRow {
   type: HolidayType;
 }
 
+// A short freeform tag attached to one calendar date — shown as plain green
+// text in the day cell, not an event card. A day can have several; each is
+// its own row, deletable independently. No author tracking (unlike
+// NoteCommentRow) — meant to be quick, not a discussion log.
+export interface DayNoteRow {
+  id: string;
+  note_date: string; // yyyy-MM-dd
+  content: string;
+}
+
 export type HolidayDiffBucket = "new" | "existing" | "collision";
 
 // One proposed holiday from a "Start a New Year" fetch, already classified
@@ -107,7 +117,11 @@ export type SeasonColorKey =
   | "emerald"
   | "orange"
   | "pink"
-  | "cyan";
+  | "cyan"
+  | "red"
+  | "yellow"
+  | "blue"
+  | "green";
 
 export interface SeasonRow {
   id: string;
