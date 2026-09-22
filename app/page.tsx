@@ -1,14 +1,12 @@
 import { getMonthGrid } from "@/lib/calendar";
-import { getCalendarData, getMonthFocus, getGeneralNotes } from "@/lib/data";
+import { getCalendarData, getGeneralComments, getMonthComments } from "@/lib/data";
 import { expandEvents } from "@/lib/recurrence";
 import { applyOverrides } from "@/lib/overrides";
 import { computeSeasonSegments } from "@/lib/seasonBars";
 import { toDateStr } from "@/lib/dates";
 import CalendarBoard from "@/components/CalendarBoard";
-import FocusPanel from "@/components/FocusPanel";
 import CategoryListView from "@/components/CategoryListView";
-import GeneralNotesPanel from "@/components/GeneralNotesPanel";
-import MonthNotesPanel from "@/components/MonthNotesPanel";
+import NotesPanel from "@/components/NotesPanel";
 
 // This is a live, mutable calendar (drag-and-drop, add/edit/delete) — every
 // render must hit Supabase fresh. Without this, Next.js's default fetch
@@ -31,11 +29,11 @@ export default async function Home({ searchParams }: HomeProps) {
   const gridEndStr = toDateStr(gridEnd);
   const defaultAddDate = toDateStr(monthStart);
 
-  const [{ events, holidays, seasons, overrides, levels, exceptions }, monthFocus, generalNotes] =
+  const [{ events, holidays, seasons, overrides, levels, exceptions }, generalComments, monthComments] =
     await Promise.all([
       getCalendarData(gridStartStr, gridEndStr),
-      getMonthFocus(year, month),
-      getGeneralNotes(),
+      getGeneralComments(),
+      getMonthComments(year, month),
     ]);
   const eventsById = new Map(events.map((e) => [e.id, e]));
   const exceptionsByEventId = new Map<string, Set<string>>();
@@ -52,10 +50,15 @@ export default async function Home({ searchParams }: HomeProps) {
     <main className="max-w-[1600px] mx-auto p-4 sm:p-6">
       <div className="grid grid-cols-1 lg:grid-cols-[220px_1fr_220px] gap-4 items-start">
         <div className="order-2 lg:order-1">
-          <GeneralNotesPanel generalNotes={generalNotes} />
+          <NotesPanel
+            title="General Notes"
+            subtitle="Shown for every month."
+            placeholder="Add a note…"
+            scope="general"
+            comments={generalComments}
+          />
         </div>
         <div className="order-1 lg:order-2 min-w-0">
-          <FocusPanel key={`${year}-${month}`} year={year} month={month} monthFocus={monthFocus} />
           <CalendarBoard
             weeks={weeks}
             monthStart={monthStart}
@@ -68,7 +71,16 @@ export default async function Home({ searchParams }: HomeProps) {
           <CategoryListView occurrences={occurrences} levels={levels} defaultAddDate={defaultAddDate} />
         </div>
         <div className="order-3">
-          <MonthNotesPanel key={`${year}-${month}`} year={year} month={month} monthFocus={monthFocus} />
+          <NotesPanel
+            key={`${year}-${month}`}
+            title="Month Notes"
+            subtitle="Specific to this month only."
+            placeholder="Add a note for this month…"
+            scope="month"
+            year={year}
+            month={month}
+            comments={monthComments}
+          />
         </div>
       </div>
     </main>

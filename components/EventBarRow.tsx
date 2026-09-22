@@ -42,7 +42,11 @@ function SegmentBlock({
       title={segment.occurrence.event.name}
     >
       <button type="button" onClick={onClick} className="absolute inset-0 w-full h-full px-1.5 truncate text-left">
-        {segment.isSpanStart ? segment.occurrence.event.name : " "}
+        {/* Repeats the name at the start of every week this bar crosses
+            (startCol 0 = Monday), not just at the event's true start —
+            otherwise a long event scrolled out of view from its start date
+            is just an unlabeled colored bar further down the grid. */}
+        {segment.isSpanStart || segment.startCol === 0 ? segment.occurrence.event.name : " "}
       </button>
       {segment.isSpanEnd && (
         <div

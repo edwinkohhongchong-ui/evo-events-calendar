@@ -161,27 +161,20 @@ export interface ChecklistFormValues {
   notes: string | null;
 }
 
-export interface MonthFocusRow {
-  id: string;
-  year: number;
-  month: number;
-  series_focus: string | null;
-  key_theme: string | null;
-  notes: string | null;
-}
+// One logged note — general (left column, shown for every month) or
+// month-scoped (right column, year/month always set together). Append-only:
+// there's no edit/delete, just a running log of who said what and when. See
+// migration 011.
+export type NoteScope = "general" | "month";
 
-export interface MonthFocusValues {
-  series_focus: string | null;
-  key_theme: string | null;
-  notes: string | null;
-}
-
-// Single row, id is always "singleton" — notes shown regardless of which
-// month is being viewed (left column). See migration 009.
-export interface GeneralNotesRow {
+export interface NoteCommentRow {
   id: string;
-  content: string | null;
-  updated_at: string;
+  scope: NoteScope;
+  year: number | null;
+  month: number | null;
+  author_name: string;
+  content: string;
+  created_at: string;
 }
 
 export interface OverrideRow {

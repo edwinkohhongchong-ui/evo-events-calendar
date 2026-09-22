@@ -18,15 +18,19 @@ export default function EventCardContent({ occurrence }: { occurrence: EventOccu
   return (
     <div
       className={[
-        "text-[13px] leading-tight px-1 py-0.5 rounded border truncate",
+        "flex items-baseline gap-1 leading-tight px-1 py-0.5 rounded border",
         LEVEL_COLOR_CLASSES[colorKey],
       ].join(" ")}
-      title={event.name}
+      // Full detail on hover — the line itself only has room to prioritize
+      // the name (see PROJECT decision: time is de-emphasized, not hidden).
+      title={time ? `${time} — ${event.name}` : event.name}
     >
-      {time && <span className="font-medium">{time} </span>}
-      {event.name}
-      {nextDay && <span className="ml-1 text-[10px] opacity-70">(next day)</span>}
-      {occurrence.isOverridden && <span className="ml-1 text-[10px] opacity-70">(moved)</span>}
+      {time && <span className="text-[11px] font-medium opacity-75 shrink-0">{time}</span>}
+      <span className="text-[13px] truncate">
+        {event.name}
+        {nextDay && <span className="ml-1 text-[10px] opacity-70">(next day)</span>}
+        {occurrence.isOverridden && <span className="ml-1 text-[10px] opacity-70">(moved)</span>}
+      </span>
     </div>
   );
 }

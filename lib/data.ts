@@ -3,11 +3,10 @@ import {
   ChecklistRow,
   EventRow,
   ExceptionRow,
-  GeneralNotesRow,
   HolidayRow,
   LevelRow,
+  NoteCommentRow,
   SeasonRow,
-  MonthFocusRow,
   OverrideRow,
 } from "./types";
 
@@ -217,44 +216,42 @@ export async function getAllChecklist(): Promise<ChecklistRow[]> {
   }
 }
 
-// Returns null if no focus row exists yet for this month — that's the normal
-// case for a month nobody has filled in, not an error.
-export async function getMonthFocus(year: number, month: number): Promise<MonthFocusRow | null> {
+// Newest first — a log reads most-recent-on-top. See migration 011.
+export async function getGeneralComments(): Promise<NoteCommentRow[]> {
   try {
     const { data, error } = await supabase
-      .from("month_focus")
+      .from("note_comments")
       .select("*")
-      .eq("year", year)
-      .eq("month", month)
-      .maybeSingle();
-
+      .eq("scope", "general")
+      .order("created_at", { ascending: false });
     if (error) {
-      console.error("getMonthFocus failed:", error.message);
-      return null;
+      console.error("getGeneralComments failed:", error.message);
+      return [];
     }
-    return data;
+    return data ?? [];
   } catch (err) {
-    console.error("getMonthFocus threw:", err);
-    return null;
+    console.error("getGeneralComments threw:", err);
+    return [];
   }
 }
 
-// Always exactly one row (pre-seeded by migration 009) — falls back to a
-// null-content placeholder only if that row is somehow missing.
-export async function getGeneralNotes(): Promise<GeneralNotesRow> {
+export async function getMonthComments(year: number, month: number): Promise<NoteCommentRow[]> {
   try {
     const { data, error } = await supabase
-      .from("general_notes")
+      .from("note_comments")
       .select("*")
-      .eq("id", "singleton")
-      .maybeSingle();
+      .eq("scope", "month")
+      .eq("year", year)
+      .eq("month", month)
+      .order("created_at", { ascending: false });
     if (error) {
-      console.error("getGeneralNotes failed:", error.message);
+      console.error("getMonthComments failed:", error.message);
+      return [];
     }
-    return data ?? { id: "singleton", content: null, updated_at: new Date().toISOString() };
+    return data ?? [];
   } catch (err) {
-    console.error("getGeneralNotes threw:", err);
-    return { id: "singleton", content: null, updated_at: new Date().toISOString() };
+    console.error("getMonthComments threw:", err);
+    return [];
   }
 }
 
