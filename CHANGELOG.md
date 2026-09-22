@@ -8,6 +8,20 @@ items (features/fixes) that push contains — a push with 1 item goes up by
 `1.05`). If MINOR would pass `.99`, MAJOR increments and MINOR carries the
 remainder (e.g. `1.99` + 2 items → `2.01`).
 
+## v1.03 — 2026-09-22
+
+- Gathering event cards (month grid, day view) now show the Series and
+  Sermon Title as a second line, in the same style as the time, when
+  either is set — e.g. "Faith Series — We need to have faith!"
+- Reordered the Gathering add/edit form: Gathering Type and the fields that
+  feed the title (Series, Preacher Name, etc.) now come before Name, and
+  Name sits immediately before Date/Time. The Name field now notes it's
+  auto-filled and only needs editing if necessary.
+- Added a live Preview panel at the bottom of the Add/Edit Event form
+  (before Save) showing exactly what will be saved — title (with the Y/P/U/A
+  prefix for Events or the Gathering title for Gatherings), the Series —
+  Sermon Title line where applicable, and the time range.
+
 ## v1.00 — 2026-09-22
 
 Baseline — existing app as of this point. Detailed history before this

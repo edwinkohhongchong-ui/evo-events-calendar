@@ -165,6 +165,25 @@ export default function EventModal({
     }
   }
 
+  // What actually gets saved, shown so a mistake is caught before Save
+  // rather than after — same title-prefix logic handleSubmit uses, not a
+  // separate approximation of it.
+  function previewLines(): string[] {
+    const baseName = name.trim() || "…";
+    const titleLine = eventType === "Event" ? applyTitlePrefix(baseName, pastoralFocus) : baseName;
+    const lines = [titleLine];
+
+    if (eventType === "Gathering") {
+      const subtitle = [series.trim(), sermonTitle.trim()].filter(Boolean).join(" — ");
+      if (subtitle) lines.push(subtitle);
+    }
+
+    const timeLine = formatEventTimeRange(eventTime ? `${eventTime}:00` : null, endTime ? `${endTime}:00` : null);
+    if (timeLine) lines.push(timeLine);
+
+    return lines;
+  }
+
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
     setFormError(null);
@@ -475,15 +494,22 @@ export default function EventModal({
                 ))}
               </div>
             </div>
-            <label className="flex flex-col gap-1 text-sm">
-              Name
-              <input
-                value={name}
-                onChange={(e) => handleNameChange(e.target.value)}
-                className="border rounded px-2 py-1"
-                required
-              />
-            </label>
+            {eventType === "Gathering" && (
+              <label className="flex flex-col gap-1 text-sm">
+                Gathering Type
+                <select
+                  value={gatheringType}
+                  onChange={(e) => handleGatheringTypeChange(e.target.value as GatheringType)}
+                  className="border rounded px-2 py-1"
+                >
+                  {GATHERING_TYPES.map((t) => (
+                    <option key={t} value={t}>
+                      {t}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            )}
 
             {eventType === "Event" ? (
               <div className="flex flex-col gap-1 text-sm">
@@ -510,31 +536,12 @@ export default function EventModal({
                   ))}
                 </div>
                 <span className="text-xs text-gray-400">
-                  Adds a prefix to the saved title, e.g. Youth + Poly checked saves as
+                  Adds a prefix to the Name field below, e.g. Youth + Poly checked saves as
                   &ldquo;YP: {name || "…"}&rdquo;.
                 </span>
               </div>
             ) : (
               <div className="grid grid-cols-2 gap-3">
-                <label className="flex flex-col gap-1 text-sm col-span-2">
-                  Gathering Type
-                  <select
-                    value={gatheringType}
-                    onChange={(e) => handleGatheringTypeChange(e.target.value as GatheringType)}
-                    className="border rounded px-2 py-1"
-                  >
-                    {GATHERING_TYPES.map((t) => (
-                      <option key={t} value={t}>
-                        {t}
-                      </option>
-                    ))}
-                  </select>
-                  <span className="text-xs text-gray-400 font-normal">
-                    Auto-fills the name below (still editable) — e.g. picking this and typing
-                    &ldquo;Edwin Koh&rdquo; as Preacher Name saves as &ldquo;{gatheringType} with Edwin
-                    Koh&rdquo;.
-                  </span>
-                </label>
                 <label className="flex flex-col gap-1 text-sm">
                   Series
                   <input
@@ -569,6 +576,21 @@ export default function EventModal({
                 </label>
               </div>
             )}
+
+            <label className="flex flex-col gap-1 text-sm">
+              Name
+              <input
+                value={name}
+                onChange={(e) => handleNameChange(e.target.value)}
+                className="border rounded px-2 py-1"
+                required
+              />
+              {eventType === "Gathering" && (
+                <span className="text-xs text-gray-400 font-normal">
+                  Auto-filled from Gathering Type and Preacher Name above — edit only if necessary.
+                </span>
+              )}
+            </label>
 
             <div className="grid grid-cols-2 gap-3">
               <label className="flex flex-col gap-1 text-sm">
@@ -679,6 +701,18 @@ export default function EventModal({
                 rows={2}
               />
             </label>
+
+            <div className="border border-gray-200 rounded-md p-3 bg-gray-50 flex flex-col gap-0.5">
+              <span className="text-xs font-medium text-gray-400">Preview</span>
+              {previewLines().map((line, i) => (
+                <span
+                  key={i}
+                  className={i === 0 ? "text-sm font-semibold text-navy" : "text-xs text-gray-500"}
+                >
+                  {line}
+                </span>
+              ))}
+            </div>
 
             {formError && <p className="text-sm text-red-600">{formError}</p>}
 

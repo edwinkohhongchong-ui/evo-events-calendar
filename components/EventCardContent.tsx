@@ -14,19 +14,23 @@ export default function EventCardContent({ occurrence }: { occurrence: EventOccu
     !!occurrence.startTime &&
     !!occurrence.endTime &&
     endsNextDay(occurrence.startTime, occurrence.endTime);
+  // Series — Sermon Title, Gathering-only (both null for Type 1 Events).
+  const subtitle =
+    event.event_type === "Gathering" ? [event.series, event.sermon_title].filter(Boolean).join(" — ") : "";
 
   return (
     <div
       className={["leading-tight rounded px-1 py-0.5 border", LEVEL_COLOR_CLASSES[colorKey]].join(" ")}
       // Full detail on hover — the line itself only has room to prioritize
       // the name (see PROJECT decision: time is de-emphasized, not hidden).
-      title={time ? `${time} — ${event.name}` : event.name}
+      title={[event.name, subtitle, time].filter(Boolean).join(" — ")}
     >
       <div className="text-[13px] font-semibold truncate">
         {event.name}
         {nextDay && <span className="ml-1 text-[10px] font-normal opacity-70">(next day)</span>}
         {occurrence.isOverridden && <span className="ml-1 text-[10px] font-normal opacity-70">(moved)</span>}
       </div>
+      {subtitle && <div className="text-[11px] opacity-80 truncate">{subtitle}</div>}
       {time && <div className="text-[11px] opacity-80 truncate">{time}</div>}
     </div>
   );

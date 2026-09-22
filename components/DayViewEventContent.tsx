@@ -12,6 +12,8 @@ export default function DayViewEventContent({ occurrence }: { occurrence: EventO
     !!occurrence.startTime &&
     !!occurrence.endTime &&
     endsNextDay(occurrence.startTime, occurrence.endTime);
+  const subtitle =
+    event.event_type === "Gathering" ? [event.series, event.sermon_title].filter(Boolean).join(" — ") : "";
 
   return (
     <div
@@ -19,9 +21,10 @@ export default function DayViewEventContent({ occurrence }: { occurrence: EventO
         "h-full rounded border px-2 py-0.5 text-xs overflow-hidden",
         LEVEL_COLOR_CLASSES[colorKey],
       ].join(" ")}
-      title={event.name}
+      title={[event.name, subtitle].filter(Boolean).join(" — ")}
     >
       <div className="font-medium truncate">{event.name}</div>
+      {subtitle && <div className="truncate opacity-80">{subtitle}</div>}
       {time && (
         <div className="truncate opacity-80">
           {time}
