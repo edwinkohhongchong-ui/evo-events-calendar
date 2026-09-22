@@ -22,7 +22,7 @@ import { moveOccurrence } from "@/lib/actions";
 import { SeasonSegment } from "@/lib/seasonBars";
 import { resolveLevelColor } from "@/lib/levelColor";
 import { LevelColorProvider } from "@/lib/levelColorContext";
-import { EventOccurrence, EventRow, HolidayRow, LevelRow } from "@/lib/types";
+import { EventOccurrence, HolidayRow, LevelRow } from "@/lib/types";
 
 interface CalendarBoardProps {
   weeks: Date[][];
@@ -36,7 +36,7 @@ interface CalendarBoardProps {
 type ModalState =
   | { type: "closed" }
   | { type: "add"; date: string }
-  | { type: "edit"; event: EventRow };
+  | { type: "edit"; occurrence: EventOccurrence };
 
 export default function CalendarBoard({
   weeks,
@@ -135,7 +135,7 @@ export default function CalendarBoard({
           }}
           onEventClick={(occ) => {
             if (isDraggingRef.current) return;
-            setModal({ type: "edit", event: occ.event });
+            setModal({ type: "edit", occurrence: occ });
           }}
         />
         <DragOverlay>{activeOcc && <EventCardContent occurrence={activeOcc} />}</DragOverlay>
@@ -144,7 +144,8 @@ export default function CalendarBoard({
         <EventModal
           mode={modal.type}
           initialDate={modal.type === "add" ? modal.date : undefined}
-          event={modal.type === "edit" ? modal.event : undefined}
+          event={modal.type === "edit" ? modal.occurrence.event : undefined}
+          occurrence={modal.type === "edit" ? modal.occurrence : undefined}
           levels={levels}
           onClose={() => setModal({ type: "closed" })}
           onSaved={() => {

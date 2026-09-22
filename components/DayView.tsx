@@ -20,7 +20,7 @@ import { occurrenceKey } from "@/lib/occurrenceKey";
 import { computeDuration, minutesToTimeStr, timeStrToMinutes } from "@/lib/timeMath";
 import { resolveLevelColor } from "@/lib/levelColor";
 import { LevelColorProvider } from "@/lib/levelColorContext";
-import { EventOccurrence, EventRow, LevelRow } from "@/lib/types";
+import { EventOccurrence, LevelRow } from "@/lib/types";
 
 const HOURS = Array.from({ length: 24 }, (_, i) => i);
 const SNAP_MINUTES = 15;
@@ -31,7 +31,7 @@ interface DayViewProps {
   levels: LevelRow[];
 }
 
-type ModalState = { type: "closed" } | { type: "edit"; event: EventRow };
+type ModalState = { type: "closed" } | { type: "edit"; occurrence: EventOccurrence };
 
 function formatHourLabel(hour: number): string {
   const period = hour >= 12 ? "PM" : "AM";
@@ -140,7 +140,7 @@ export default function DayView({ occurrences, levels }: DayViewProps) {
                   occurrence={occ}
                   onClick={() => {
                     if (isDraggingRef.current) return;
-                    setModal({ type: "edit", event: occ.event });
+                    setModal({ type: "edit", occurrence: occ });
                   }}
                 />
               ))}
@@ -158,7 +158,8 @@ export default function DayView({ occurrences, levels }: DayViewProps) {
       {modal.type === "edit" && (
         <EventModal
           mode="edit"
-          event={modal.event}
+          event={modal.occurrence.event}
+          occurrence={modal.occurrence}
           levels={levels}
           onClose={() => setModal({ type: "closed" })}
           onSaved={() => {

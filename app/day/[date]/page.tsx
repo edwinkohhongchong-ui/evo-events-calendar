@@ -19,9 +19,15 @@ export default async function DayPage({ params }: DayPageProps) {
   const year = date.getFullYear();
   const month = date.getMonth() + 1;
 
-  const { events, overrides, levels } = await getCalendarData(dateStr, dateStr);
+  const { events, overrides, levels, exceptions } = await getCalendarData(dateStr, dateStr);
   const eventsById = new Map(events.map((e) => [e.id, e]));
-  const rawOccurrences = expandEvents(events, date, date);
+  const exceptionsByEventId = new Map<string, Set<string>>();
+  for (const exception of exceptions) {
+    const set = exceptionsByEventId.get(exception.event_id) ?? new Set<string>();
+    set.add(exception.original_date);
+    exceptionsByEventId.set(exception.event_id, set);
+  }
+  const rawOccurrences = expandEvents(events, date, date, exceptionsByEventId);
   const occurrences = applyOverrides(rawOccurrences, overrides, eventsById, dateStr, dateStr);
 
   const prevDateStr = toDateStr(subDays(date, 1));

@@ -166,6 +166,15 @@ export interface OverrideRow {
   created_at: string;
 }
 
+// Marks one occurrence (event_id + original_date) as excluded from a
+// recurring series' expansion — written when editing/deleting "only this
+// event" pulls an occurrence out of the series. See migration 007.
+export interface ExceptionRow {
+  id: string;
+  event_id: string;
+  original_date: string; // yyyy-MM-dd
+}
+
 // A single occurrence of an event rendered on a specific day (recurring
 // events expand into one EventOccurrence per occurrence date).
 export interface EventOccurrence {

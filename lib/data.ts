@@ -1,5 +1,14 @@
 import { supabase } from "./supabase";
-import { ChecklistRow, EventRow, HolidayRow, LevelRow, SeasonRow, MonthFocusRow, OverrideRow } from "./types";
+import {
+  ChecklistRow,
+  EventRow,
+  ExceptionRow,
+  HolidayRow,
+  LevelRow,
+  SeasonRow,
+  MonthFocusRow,
+  OverrideRow,
+} from "./types";
 
 export interface CalendarData {
   events: EventRow[];
@@ -7,6 +16,7 @@ export interface CalendarData {
   seasons: SeasonRow[];
   overrides: OverrideRow[];
   levels: LevelRow[];
+  exceptions: ExceptionRow[];
 }
 
 // Fetches everything needed to render the grid for [gridStart, gridEnd]
@@ -16,15 +26,16 @@ export async function getCalendarData(
   gridStartStr: string,
   gridEndStr: string
 ): Promise<CalendarData> {
-  const [events, holidays, seasons, overrides, levels] = await Promise.all([
+  const [events, holidays, seasons, overrides, levels, exceptions] = await Promise.all([
     getEvents(gridStartStr, gridEndStr),
     getHolidays(gridStartStr, gridEndStr),
     getSeasons(gridStartStr, gridEndStr),
     getOverrides(gridStartStr, gridEndStr),
     getAllLevels(),
+    getExceptions(gridStartStr, gridEndStr),
   ]);
 
-  return { events, holidays, seasons, overrides, levels };
+  return { events, holidays, seasons, overrides, levels, exceptions };
 }
 
 async function getEvents(gridStartStr: string, gridEndStr: string): Promise<EventRow[]> {
@@ -88,6 +99,29 @@ async function getSeasons(gridStartStr: string, gridEndStr: string): Promise<Sea
     return data ?? [];
   } catch (err) {
     console.error("getSeasons threw:", err);
+    return [];
+  }
+}
+
+// Excepted occurrences whose natural date falls in this grid range — an
+// exception's original_date is always the natural, anchor-derived date (an
+// excepted occurrence has no new_date to have been dragged elsewhere), so
+// unlike getOverrides this only needs one direction of range check.
+async function getExceptions(gridStartStr: string, gridEndStr: string): Promise<ExceptionRow[]> {
+  try {
+    const { data, error } = await supabase
+      .from("event_exceptions")
+      .select("*")
+      .gte("original_date", gridStartStr)
+      .lte("original_date", gridEndStr);
+
+    if (error) {
+      console.error("getExceptions failed:", error.message);
+      return [];
+    }
+    return data ?? [];
+  } catch (err) {
+    console.error("getExceptions threw:", err);
     return [];
   }
 }

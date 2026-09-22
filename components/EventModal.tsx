@@ -1,20 +1,37 @@
 "use client";
 
 import { useState, FormEvent } from "react";
-import { EventRow, Level, LevelRow, Recurring } from "@/lib/types";
-import { createEvent, updateEvent, deleteEvent, EventFormValues } from "@/lib/actions";
+import { EventOccurrence, EventRow, Level, LevelRow, Recurring } from "@/lib/types";
+import {
+  createEvent,
+  updateEvent,
+  deleteEvent,
+  detachOccurrence,
+  splitSeriesFromOccurrence,
+  deleteOccurrence,
+  EventFormValues,
+} from "@/lib/actions";
 import { computeDuration, computeEndTime, endsNextDay } from "@/lib/timeMath";
 import ConfirmDialog from "./ConfirmDialog";
+import RecurringScopeDialog from "./RecurringScopeDialog";
 
 interface EventModalProps {
   mode: "add" | "edit";
   initialDate?: string;
   event?: EventRow;
+  // The specific occurrence being edited — present whenever this modal was
+  // opened from a rendered occurrence (calendar, day view, category list).
+  // Pre-fills date/time from the occurrence's effective (post-override)
+  // values, and is required to resolve "only this event" vs "all future
+  // events" when the underlying event is a recurring series.
+  occurrence?: EventOccurrence;
   levels: LevelRow[];
   onClose: () => void;
   onSaved: () => void;
   onDeleted: () => void;
 }
+
+type Step = "form" | "editScope" | "deleteScope";
 
 const RECURRING_OPTIONS: Recurring[] = ["None", "Weekly", "Monthly", "Yearly"];
 
@@ -22,15 +39,18 @@ export default function EventModal({
   mode,
   initialDate,
   event,
+  occurrence,
   levels,
   onClose,
   onSaved,
   onDeleted,
 }: EventModalProps) {
   const [name, setName] = useState(event?.name ?? "");
-  const [eventDate, setEventDate] = useState(event?.event_date ?? initialDate ?? "");
-  const [eventTime, setEventTime] = useState(event?.event_time?.slice(0, 5) ?? "");
-  const [endTime, setEndTime] = useState(event?.end_time?.slice(0, 5) ?? "");
+  const [eventDate, setEventDate] = useState(occurrence?.occurrenceDate ?? event?.event_date ?? initialDate ?? "");
+  const [eventTime, setEventTime] = useState(
+    (occurrence?.startTime ?? event?.event_time)?.slice(0, 5) ?? ""
+  );
+  const [endTime, setEndTime] = useState((occurrence?.endTime ?? event?.end_time)?.slice(0, 5) ?? "");
   const [durationMinutes, setDurationMinutes] = useState(
     event?.duration_minutes != null ? String(event.duration_minutes) : ""
   );
@@ -41,8 +61,15 @@ export default function EventModal({
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const [step, setStep] = useState<Step>("form");
+  const [pendingValues, setPendingValues] = useState<EventFormValues | null>(null);
 
   const isRecurringSeries = mode === "edit" && !!event && event.recurring !== "None";
+  // Scope choices need to know which specific occurrence was clicked —
+  // without it there's nothing to resolve "only this event" against, so
+  // callers that can't supply one (there currently are none) fall back to
+  // the old whole-series-only behavior.
+  const canChooseScope = isRecurringSeries && !!occurrence;
   const wrapsPastMidnight = !!eventTime && !!endTime && endsNextDay(eventTime, endTime);
 
   // Start/End/Duration stay independently editable at all times — each
@@ -88,7 +115,6 @@ export default function EventModal({
       return;
     }
 
-    setSaving(true);
     const values: EventFormValues = {
       name: name.trim(),
       event_date: eventDate,
@@ -101,6 +127,13 @@ export default function EventModal({
       notes: notes.trim() || null,
     };
 
+    if (canChooseScope) {
+      setPendingValues(values);
+      setStep("editScope");
+      return;
+    }
+
+    setSaving(true);
     try {
       if (mode === "add") {
         await createEvent(values);
@@ -110,6 +143,44 @@ export default function EventModal({
       onSaved();
     } catch (err) {
       setFormError(err instanceof Error ? err.message : "Something went wrong saving this event.");
+      setSaving(false);
+    }
+  }
+
+  async function handleEditScope(scope: "only" | "future") {
+    if (!pendingValues || !event || !occurrence) return;
+    setSaving(true);
+    setFormError(null);
+    try {
+      if (scope === "only") {
+        await detachOccurrence(event, occurrence.originalDate, pendingValues);
+      } else {
+        await splitSeriesFromOccurrence(event, occurrence.originalDate, pendingValues);
+      }
+      onSaved();
+    } catch (err) {
+      setFormError(err instanceof Error ? err.message : "Something went wrong saving this event.");
+      setSaving(false);
+    }
+  }
+
+  function handleDeleteClick() {
+    if (canChooseScope) {
+      setStep("deleteScope");
+    } else {
+      setConfirmDelete(true);
+    }
+  }
+
+  async function handleDeleteOnlyThis() {
+    if (!event || !occurrence) return;
+    setSaving(true);
+    setFormError(null);
+    try {
+      await deleteOccurrence(event, occurrence.originalDate);
+      onDeleted();
+    } catch (err) {
+      setFormError(err instanceof Error ? err.message : "Something went wrong deleting this event.");
       setSaving(false);
     }
   }
@@ -139,14 +210,65 @@ export default function EventModal({
         <h2 className="text-lg font-semibold text-navy mb-1">
           {mode === "add" ? "Add Event" : "Edit Event"}
         </h2>
-        {isRecurringSeries && (
+        {isRecurringSeries && step === "form" && !confirmDelete && (
           <p className="text-xs text-gray-500 mb-3">
-            Editing the recurring pattern — changes apply to the whole series, not just one
-            occurrence.
+            {canChooseScope
+              ? "This is part of a recurring series — you'll be asked whether changes apply to just this event or this and future ones."
+              : "Editing the recurring pattern — changes apply to the whole series, not just one occurrence."}
           </p>
         )}
 
-        {!confirmDelete ? (
+        {confirmDelete ? (
+          <ConfirmDialog
+            message={
+              isRecurringSeries ? (
+                <>
+                  <strong className="text-red-600">
+                    This will delete all occurrences of this recurring event
+                  </strong>{" "}
+                  — the entire &ldquo;{event?.name}&rdquo; series ({event?.recurring}), not just
+                  one date. This can&apos;t be undone.
+                </>
+              ) : (
+                <>Delete &ldquo;{event?.name}&rdquo;? This can&apos;t be undone.</>
+              )
+            }
+            error={formError}
+            busy={saving}
+            onCancel={() => setConfirmDelete(false)}
+            onConfirm={handleDelete}
+          />
+        ) : step === "editScope" ? (
+          <RecurringScopeDialog
+            title={`Apply this change to just “${name}” on ${eventDate}, or to this and all future occurrences?`}
+            optionALabel="Only this event"
+            optionADescription="Pulls this one occurrence out on its own — the rest of the series is unaffected."
+            optionBLabel="This and all future events"
+            optionBDescription="Occurrences before this date keep their old values; this one and everything after gets the new ones."
+            busy={saving}
+            error={formError}
+            onCancel={() => setStep("form")}
+            onChooseA={() => handleEditScope("only")}
+            onChooseB={() => handleEditScope("future")}
+          />
+        ) : step === "deleteScope" ? (
+          <RecurringScopeDialog
+            title="Delete just this occurrence, or the whole recurring series?"
+            optionALabel="Only this event"
+            optionADescription="Removes just this occurrence — the rest of the series is unaffected."
+            optionBLabel="The whole series"
+            optionBDescription={`Deletes every occurrence of "${event?.name}" (${event?.recurring}). This can't be undone.`}
+            optionBDanger
+            busy={saving}
+            error={formError}
+            onCancel={() => setStep("form")}
+            onChooseA={handleDeleteOnlyThis}
+            onChooseB={() => {
+              setStep("form");
+              setConfirmDelete(true);
+            }}
+          />
+        ) : (
           <form onSubmit={handleSubmit} className="flex flex-col gap-3">
             <label className="flex flex-col gap-1 text-sm">
               Name
@@ -230,6 +352,11 @@ export default function EventModal({
                     </option>
                   ))}
                 </select>
+                {canChooseScope && (
+                  <span className="text-xs text-gray-400">
+                    Only used if you choose &ldquo;this and all future events&rdquo; when saving.
+                  </span>
+                )}
               </label>
               <label className="flex flex-col gap-1 text-sm">
                 Repeat until
@@ -259,7 +386,7 @@ export default function EventModal({
                 {mode === "edit" && (
                   <button
                     type="button"
-                    onClick={() => setConfirmDelete(true)}
+                    onClick={handleDeleteClick}
                     className="text-sm text-red-600 hover:underline"
                   >
                     Delete
@@ -284,26 +411,6 @@ export default function EventModal({
               </div>
             </div>
           </form>
-        ) : (
-          <ConfirmDialog
-            message={
-              isRecurringSeries ? (
-                <>
-                  <strong className="text-red-600">
-                    This will delete all occurrences of this recurring event
-                  </strong>{" "}
-                  — the entire &ldquo;{event?.name}&rdquo; series ({event?.recurring}), not just
-                  one date. This can&apos;t be undone.
-                </>
-              ) : (
-                <>Delete &ldquo;{event?.name}&rdquo;? This can&apos;t be undone.</>
-              )
-            }
-            error={formError}
-            busy={saving}
-            onCancel={() => setConfirmDelete(false)}
-            onConfirm={handleDelete}
-          />
         )}
       </div>
     </div>

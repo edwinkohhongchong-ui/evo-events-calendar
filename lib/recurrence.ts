@@ -16,10 +16,14 @@ function stepFor(recurring: Recurring): (d: Date) => Date {
 }
 
 // Expands a single event row into its occurrence(s) within [rangeStart, rangeEnd].
+// exceptionDates holds this event's own excepted original dates (see
+// event_exceptions, migration 007) — occurrences that were pulled out of the
+// series by an "only this event" edit/delete and must not be regenerated.
 export function expandEvent(
   event: EventRow,
   rangeStart: Date,
-  rangeEnd: Date
+  rangeEnd: Date,
+  exceptionDates: Set<string> = new Set()
 ): EventOccurrence[] {
   const anchor = parseDateStr(event.event_date);
 
@@ -62,14 +66,16 @@ export function expandEvent(
   const occurrences: EventOccurrence[] = [];
   while (!isAfter(cur, effectiveEnd)) {
     const dateStr = toDateStr(cur);
-    occurrences.push({
-      event,
-      occurrenceDate: dateStr,
-      originalDate: dateStr,
-      isOverridden: false,
-      startTime: event.event_time,
-      endTime: event.end_time,
-    });
+    if (!exceptionDates.has(dateStr)) {
+      occurrences.push({
+        event,
+        occurrenceDate: dateStr,
+        originalDate: dateStr,
+        isOverridden: false,
+        startTime: event.event_time,
+        endTime: event.end_time,
+      });
+    }
     cur = step(cur);
   }
   return occurrences;
@@ -78,7 +84,10 @@ export function expandEvent(
 export function expandEvents(
   events: EventRow[],
   rangeStart: Date,
-  rangeEnd: Date
+  rangeEnd: Date,
+  exceptionsByEventId: Map<string, Set<string>> = new Map()
 ): EventOccurrence[] {
-  return events.flatMap((event) => expandEvent(event, rangeStart, rangeEnd));
+  return events.flatMap((event) =>
+    expandEvent(event, rangeStart, rangeEnd, exceptionsByEventId.get(event.id))
+  );
 }

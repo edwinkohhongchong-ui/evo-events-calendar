@@ -1,6 +1,8 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
+import EventModal from "./EventModal";
 import { EventOccurrence, LevelRow } from "@/lib/types";
 import { LEVEL_COLOR_CLASSES } from "@/lib/constants";
 import { resolveLevelColor } from "@/lib/levelColor";
@@ -9,13 +11,22 @@ import { formatDateDisplay, formatEventTimeRange } from "@/lib/dates";
 interface CategoryListViewProps {
   occurrences: EventOccurrence[];
   levels: LevelRow[];
+  // Date a new event defaults to when added from here (the list has no
+  // day-cell to click, unlike the calendar) — the 1st of the viewed month.
+  defaultAddDate: string;
 }
+
+type ModalState = { type: "closed" } | { type: "add" } | { type: "edit"; occurrence: EventOccurrence };
 
 // A per-category breakdown of the same occurrences already shown on the
 // calendar grid for this month — lets a zone leader (Youth, Poly, Uni,
-// Adults, ...) scan just their own events without hunting across the grid.
-export default function CategoryListView({ occurrences, levels }: CategoryListViewProps) {
+// Adults, ...) scan and manage just their own events without hunting across
+// the grid. Add/edit/delete reuse the exact same EventModal as the calendar,
+// including the recurring-series scope prompt.
+export default function CategoryListView({ occurrences, levels, defaultAddDate }: CategoryListViewProps) {
+  const router = useRouter();
   const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
+  const [modal, setModal] = useState<ModalState>({ type: "closed" });
 
   const grouped = useMemo(() => {
     const map = new Map<string, EventOccurrence[]>();
@@ -51,7 +62,16 @@ export default function CategoryListView({ occurrences, levels }: CategoryListVi
 
   return (
     <div className="mt-6 flex flex-col gap-2">
-      <h2 className="text-lg font-semibold text-navy">Events by Category</h2>
+      <div className="flex items-center justify-between">
+        <h2 className="text-lg font-semibold text-navy">Events by Category</h2>
+        <button
+          type="button"
+          onClick={() => setModal({ type: "add" })}
+          className="px-3 py-1.5 text-sm rounded bg-navy text-white"
+        >
+          + Add Event
+        </button>
+      </div>
       {Array.from(grouped.entries()).map(([name, occs]) => {
         const level = levels.find((l) => l.name === name);
         const isCollapsed = collapsed.has(name);
@@ -80,17 +100,20 @@ export default function CategoryListView({ occurrences, levels }: CategoryListVi
                   <li className="px-3 py-2 text-sm text-gray-400">No events this month.</li>
                 )}
                 {occs.map((occ) => (
-                  <li
-                    key={`${occ.event.id}-${occ.occurrenceDate}`}
-                    className="px-3 py-2 text-sm flex items-center justify-between gap-3"
-                  >
-                    <span className="truncate">{occ.event.name}</span>
-                    <span className="text-gray-500 whitespace-nowrap text-xs">
-                      {formatDateDisplay(occ.occurrenceDate)}
-                      {formatEventTimeRange(occ.startTime, occ.endTime)
-                        ? ` · ${formatEventTimeRange(occ.startTime, occ.endTime)}`
-                        : ""}
-                    </span>
+                  <li key={`${occ.event.id}-${occ.occurrenceDate}`}>
+                    <button
+                      type="button"
+                      onClick={() => setModal({ type: "edit", occurrence: occ })}
+                      className="w-full px-3 py-2 text-sm flex items-center justify-between gap-3 text-left hover:bg-gray-50"
+                    >
+                      <span className="truncate">{occ.event.name}</span>
+                      <span className="text-gray-500 whitespace-nowrap text-xs">
+                        {formatDateDisplay(occ.occurrenceDate)}
+                        {formatEventTimeRange(occ.startTime, occ.endTime)
+                          ? ` · ${formatEventTimeRange(occ.startTime, occ.endTime)}`
+                          : ""}
+                      </span>
+                    </button>
                   </li>
                 ))}
               </ul>
@@ -98,6 +121,25 @@ export default function CategoryListView({ occurrences, levels }: CategoryListVi
           </div>
         );
       })}
+
+      {modal.type !== "closed" && (
+        <EventModal
+          mode={modal.type}
+          initialDate={modal.type === "add" ? defaultAddDate : undefined}
+          event={modal.type === "edit" ? modal.occurrence.event : undefined}
+          occurrence={modal.type === "edit" ? modal.occurrence : undefined}
+          levels={levels}
+          onClose={() => setModal({ type: "closed" })}
+          onSaved={() => {
+            setModal({ type: "closed" });
+            router.refresh();
+          }}
+          onDeleted={() => {
+            setModal({ type: "closed" });
+            router.refresh();
+          }}
+        />
+      )}
     </div>
   );
 }

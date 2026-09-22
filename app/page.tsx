@@ -28,12 +28,18 @@ export default async function Home({ searchParams }: HomeProps) {
   const gridStartStr = toDateStr(gridStart);
   const gridEndStr = toDateStr(gridEnd);
 
-  const [{ events, holidays, seasons, overrides, levels }, monthFocus] = await Promise.all([
+  const [{ events, holidays, seasons, overrides, levels, exceptions }, monthFocus] = await Promise.all([
     getCalendarData(gridStartStr, gridEndStr),
     getMonthFocus(year, month),
   ]);
   const eventsById = new Map(events.map((e) => [e.id, e]));
-  const rawOccurrences = expandEvents(events, gridStart, gridEnd);
+  const exceptionsByEventId = new Map<string, Set<string>>();
+  for (const exception of exceptions) {
+    const set = exceptionsByEventId.get(exception.event_id) ?? new Set<string>();
+    set.add(exception.original_date);
+    exceptionsByEventId.set(exception.event_id, set);
+  }
+  const rawOccurrences = expandEvents(events, gridStart, gridEnd, exceptionsByEventId);
   const occurrences = applyOverrides(rawOccurrences, overrides, eventsById, gridStartStr, gridEndStr);
   const seasonSegmentsByWeek = computeSeasonSegments(seasons, weeks, gridStart, gridEnd);
 
@@ -48,7 +54,7 @@ export default async function Home({ searchParams }: HomeProps) {
         seasonSegmentsByWeek={seasonSegmentsByWeek}
         levels={levels}
       />
-      <CategoryListView occurrences={occurrences} levels={levels} />
+      <CategoryListView occurrences={occurrences} levels={levels} defaultAddDate={toDateStr(monthStart)} />
     </main>
   );
 }
