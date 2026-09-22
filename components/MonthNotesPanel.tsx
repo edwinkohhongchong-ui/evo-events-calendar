@@ -3,6 +3,7 @@
 import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { upsertMonthFocus } from "@/lib/monthFocusActions";
+import { useAutoGrowTextarea } from "@/lib/useAutoGrowTextarea";
 import { MonthFocusRow } from "@/lib/types";
 
 interface MonthNotesPanelProps {
@@ -23,6 +24,7 @@ export default function MonthNotesPanel({ year, month, monthFocus }: MonthNotesP
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const savedRef = useRef(monthFocus?.notes ?? "");
+  const textareaRef = useAutoGrowTextarea(notes);
 
   async function handleBlur() {
     const normalized = notes.trim() || null;
@@ -49,10 +51,11 @@ export default function MonthNotesPanel({ year, month, monthFocus }: MonthNotesP
       <span className="text-xs font-medium text-gray-500">Month Notes</span>
       <p className="text-[11px] text-gray-400 -mt-1">Specific to this month only.</p>
       <textarea
+        ref={textareaRef}
         value={notes}
         onChange={(e) => setNotes(e.target.value)}
         onBlur={handleBlur}
-        className="border rounded px-2 py-1.5 text-sm flex-1 min-h-[200px] resize-none"
+        className="border rounded px-2 py-1.5 text-sm min-h-[200px] resize-none overflow-hidden"
         placeholder="Notes for this month…"
       />
       {saving && <p className="text-xs text-gray-400">Saving…</p>}

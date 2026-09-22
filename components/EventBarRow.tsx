@@ -1,11 +1,13 @@
 "use client";
 
+import { useDraggable } from "@dnd-kit/core";
 import { EventBarSegment } from "@/lib/eventBars";
 import { LEVEL_COLOR_CLASSES } from "@/lib/constants";
 import { useLevelColor } from "@/lib/levelColorContext";
+import { occurrenceKey } from "@/lib/occurrenceKey";
 import { EventOccurrence } from "@/lib/types";
 
-function SegmentButton({
+function SegmentBlock({
   segment,
   onClick,
 }: {
@@ -13,12 +15,22 @@ function SegmentButton({
   onClick: () => void;
 }) {
   const colorKey = useLevelColor(segment.occurrence.event.level);
+  // Same resize-handle mechanism as EventCard's single-day cards — only on
+  // the segment containing the event's real last day, so a bar spanning
+  // several weeks only offers one resize point, at its true end.
+  const {
+    listeners: resizeListeners,
+    setNodeRef: setResizeRef,
+    isDragging: isResizing,
+  } = useDraggable({
+    id: `resize::${occurrenceKey(segment.occurrence)}`,
+    data: { resizeOccurrence: segment.occurrence },
+  });
+
   return (
-    <button
-      type="button"
-      onClick={onClick}
+    <div
       className={[
-        "text-[11px] leading-[20px] px-1.5 truncate border text-left",
+        "relative group text-[11px] leading-[20px] border",
         LEVEL_COLOR_CLASSES[colorKey],
         segment.isSpanStart ? "rounded-l-full" : "border-l-0",
         segment.isSpanEnd ? "rounded-r-full" : "border-r-0",
@@ -29,15 +41,33 @@ function SegmentButton({
       }}
       title={segment.occurrence.event.name}
     >
-      {segment.isSpanStart ? segment.occurrence.event.name : " "}
-    </button>
+      <button type="button" onClick={onClick} className="absolute inset-0 w-full h-full px-1.5 truncate text-left">
+        {segment.isSpanStart ? segment.occurrence.event.name : " "}
+      </button>
+      {segment.isSpanEnd && (
+        <div
+          ref={setResizeRef}
+          {...resizeListeners}
+          onPointerDown={(e) => {
+            e.stopPropagation();
+            resizeListeners?.onPointerDown?.(e);
+          }}
+          title="Drag to shorten or lengthen this event"
+          className={[
+            "absolute top-0 right-0 h-full w-1.5 cursor-ew-resize bg-black/25 opacity-0 group-hover:opacity-100",
+            isResizing ? "opacity-100" : "",
+          ].join(" ")}
+        />
+      )}
+    </div>
   );
 }
 
 // Renders one week's multi-day event bars as a 7-column CSS Grid aligned
 // with the day-cell row below it — same technique as SeasonBarRow. Unlike
 // season bars, these are clickable (open the same edit modal as a normal
-// single-day card) and colored by Level via the shared color context.
+// single-day card), colored by Level via the shared color context, and
+// stay resizable via the same drag-to-resize handle single-day cards have.
 export default function EventBarRow({
   segments,
   onEventClick,
@@ -50,7 +80,7 @@ export default function EventBarRow({
   return (
     <div className="grid grid-cols-7" style={{ gridAutoRows: "20px" }}>
       {segments.map((segment) => (
-        <SegmentButton
+        <SegmentBlock
           key={`${segment.occurrence.event.id}-${segment.occurrence.originalDate}-w${segment.weekIndex}`}
           segment={segment}
           onClick={() => onEventClick(segment.occurrence)}

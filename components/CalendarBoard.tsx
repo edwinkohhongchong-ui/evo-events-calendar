@@ -137,6 +137,11 @@ export default function CalendarBoard({
       try {
         await extendOccurrenceSpan(resizeOccurrence.event, resizeOccurrence.originalDate, targetDate);
         startTransition(() => router.refresh());
+        // Open straight into editing so time/other details can be filled in
+        // right after resizing — the resized occurrence's own spanEndDate
+        // isn't reflected in the (not-yet-refreshed) occurrence object, so
+        // it's patched in here rather than waiting on the refresh to land.
+        setModal({ type: "edit", occurrence: { ...resizeOccurrence, spanEndDate: targetDate } });
       } catch {
         setOptimisticResize(null);
         setError("Couldn't resize that event — it's back where it was. Please try again.");

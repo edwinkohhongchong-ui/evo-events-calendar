@@ -3,6 +3,7 @@
 import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { updateGeneralNotes } from "@/lib/generalNotesActions";
+import { useAutoGrowTextarea } from "@/lib/useAutoGrowTextarea";
 import { GeneralNotesRow } from "@/lib/types";
 
 // Persists across every month — unlike MonthNotesPanel, this isn't keyed by
@@ -13,6 +14,7 @@ export default function GeneralNotesPanel({ generalNotes }: { generalNotes: Gene
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const savedRef = useRef(generalNotes.content ?? "");
+  const textareaRef = useAutoGrowTextarea(content);
 
   async function handleBlur() {
     if (savedRef.current === content) return;
@@ -34,10 +36,11 @@ export default function GeneralNotesPanel({ generalNotes }: { generalNotes: Gene
       <span className="text-xs font-medium text-gray-500">General Notes</span>
       <p className="text-[11px] text-gray-400 -mt-1">Shown for every month.</p>
       <textarea
+        ref={textareaRef}
         value={content}
         onChange={(e) => setContent(e.target.value)}
         onBlur={handleBlur}
-        className="border rounded px-2 py-1.5 text-sm flex-1 min-h-[200px] resize-none"
+        className="border rounded px-2 py-1.5 text-sm min-h-[200px] resize-none overflow-hidden"
         placeholder="Notes that apply regardless of month…"
       />
       {saving && <p className="text-xs text-gray-400">Saving…</p>}
