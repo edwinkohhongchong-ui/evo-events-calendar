@@ -1,8 +1,7 @@
 "use client";
 
 import { useState, FormEvent } from "react";
-import { EventRow, Level, Recurring } from "@/lib/types";
-import { LEVELS } from "@/lib/constants";
+import { EventRow, Level, LevelRow, Recurring } from "@/lib/types";
 import { createEvent, updateEvent, deleteEvent, EventFormValues } from "@/lib/actions";
 import { computeDuration, computeEndTime, endsNextDay } from "@/lib/timeMath";
 import ConfirmDialog from "./ConfirmDialog";
@@ -11,6 +10,7 @@ interface EventModalProps {
   mode: "add" | "edit";
   initialDate?: string;
   event?: EventRow;
+  levels: LevelRow[];
   onClose: () => void;
   onSaved: () => void;
   onDeleted: () => void;
@@ -22,6 +22,7 @@ export default function EventModal({
   mode,
   initialDate,
   event,
+  levels,
   onClose,
   onSaved,
   onDeleted,
@@ -33,7 +34,7 @@ export default function EventModal({
   const [durationMinutes, setDurationMinutes] = useState(
     event?.duration_minutes != null ? String(event.duration_minutes) : ""
   );
-  const [level, setLevel] = useState<Level>(event?.level ?? "Churchwide");
+  const [level, setLevel] = useState<Level>(event?.level ?? levels[0]?.name ?? "");
   const [recurring, setRecurring] = useState<Recurring>(event?.recurring ?? "None");
   const [repeatUntil, setRepeatUntil] = useState(event?.repeat_until ?? "");
   const [notes, setNotes] = useState(event?.notes ?? "");
@@ -208,9 +209,9 @@ export default function EventModal({
                 onChange={(e) => setLevel(e.target.value as Level)}
                 className="border rounded px-2 py-1"
               >
-                {LEVELS.map((l) => (
-                  <option key={l} value={l}>
-                    {l}
+                {levels.map((l) => (
+                  <option key={l.id} value={l.name}>
+                    {l.name}
                   </option>
                 ))}
               </select>

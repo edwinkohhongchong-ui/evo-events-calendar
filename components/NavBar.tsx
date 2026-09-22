@@ -8,6 +8,7 @@ const LINKS = [
   { href: "/holidays", label: "Holidays" },
   { href: "/seasons", label: "Seasons" },
   { href: "/checklist", label: "Checklist" },
+  { href: "/levels", label: "Categories" },
 ];
 
 export default function NavBar() {

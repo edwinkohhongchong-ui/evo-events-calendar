@@ -1,16 +1,6 @@
 import { SEASON_COLOR_KEYS } from "./constants";
 import { SeasonColorKey } from "./types";
-
-// Simple deterministic string hash (FNV-1a) — stable across reloads, so the
-// same season name always suggests the same color. Not random.
-function hashString(value: string): number {
-  let hash = 0x811c9dc5;
-  for (let i = 0; i < value.length; i++) {
-    hash ^= value.charCodeAt(i);
-    hash = Math.imul(hash, 0x01000193);
-  }
-  return hash >>> 0;
-}
+import { hashString } from "./colorHash";
 
 // Hashes on name, not category — two seasons in the same category (e.g.
 // "Growth Cycle 1" and "Growth Cycle 2") would otherwise suggest identical

@@ -1,11 +1,6 @@
-export type Level =
-  | "Churchwide"
-  | "Youth"
-  | "Tertiary"
-  | "Adults"
-  | "COW"
-  | "Thirdspace"
-  | "Gathering";
+// Not a fixed union — categories are managed at runtime in the `levels`
+// table (see LevelRow below), editable from the /levels admin page.
+export type Level = string;
 
 export type Recurring = "None" | "Weekly" | "Monthly" | "Yearly";
 
@@ -60,6 +55,22 @@ export type SeasonCategory =
   | "Exam Period"
   | "Growth Track"
   | "Other";
+
+// One event category ("Churchwide", "Youth", etc.) — editable in the
+// /levels admin page. `name` is the identity events.level references (see
+// events_level_fkey, migration 006), not `id`.
+export interface LevelRow {
+  id: string;
+  name: string;
+  color_key: SeasonColorKey; // shares Seasons' 10-key palette — see lib/constants.ts
+  sort_order: number;
+}
+
+export interface LevelFormValues {
+  name: string;
+  color_key: SeasonColorKey;
+  sort_order: number;
+}
 
 export type SeasonColorKey =
   | "indigo"

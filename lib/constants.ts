@@ -1,24 +1,4 @@
-import { ChecklistStatus, HolidayType, Level, SeasonCategory, SeasonColorKey, TargetMonth } from "./types";
-
-export const LEVELS: Level[] = [
-  "Churchwide",
-  "Youth",
-  "Tertiary",
-  "Adults",
-  "COW",
-  "Thirdspace",
-  "Gathering",
-];
-
-export const LEVEL_COLORS: Record<Level, string> = {
-  Churchwide: "bg-indigo-100 text-indigo-800 border-indigo-300",
-  Youth: "bg-orange-100 text-orange-800 border-orange-300",
-  Tertiary: "bg-purple-100 text-purple-800 border-purple-300",
-  Adults: "bg-teal-100 text-teal-800 border-teal-300",
-  COW: "bg-rose-100 text-rose-800 border-rose-300",
-  Thirdspace: "bg-sky-100 text-sky-800 border-sky-300",
-  Gathering: "bg-amber-100 text-amber-800 border-amber-300",
-};
+import { ChecklistStatus, HolidayType, SeasonCategory, SeasonColorKey, TargetMonth } from "./types";
 
 export const HOLIDAY_TYPES: HolidayType[] = [
   "National (SG Public Holiday)",
@@ -76,6 +56,11 @@ export const SEASON_BAR_COLORS: Record<SeasonColorKey, string> = {
   pink: "bg-pink-200 text-pink-900 border-pink-400",
   cyan: "bg-cyan-200 text-cyan-900 border-cyan-400",
 };
+
+// Levels (event categories) share the exact same 10-key palette as Seasons —
+// aliased under Level-specific names for readability at call sites.
+export const LEVEL_COLOR_KEYS: SeasonColorKey[] = SEASON_COLOR_KEYS;
+export const LEVEL_COLOR_CLASSES: Record<SeasonColorKey, string> = SEASON_BAR_COLORS;
 
 export const TARGET_MONTHS: TargetMonth[] = [
   "Jan",

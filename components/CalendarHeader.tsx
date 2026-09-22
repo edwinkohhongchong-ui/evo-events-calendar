@@ -1,12 +1,15 @@
 import Link from "next/link";
 import { format, addMonths, subMonths } from "date-fns";
-import { LEVELS, LEVEL_COLORS } from "@/lib/constants";
+import { LEVEL_COLOR_CLASSES } from "@/lib/constants";
+import { resolveLevelColor } from "@/lib/levelColor";
+import { LevelRow } from "@/lib/types";
 
 interface CalendarHeaderProps {
   monthStart: Date;
+  levels: LevelRow[];
 }
 
-export default function CalendarHeader({ monthStart }: CalendarHeaderProps) {
+export default function CalendarHeader({ monthStart, levels }: CalendarHeaderProps) {
   const prev = subMonths(monthStart, 1);
   const next = addMonths(monthStart, 1);
 
@@ -37,12 +40,15 @@ export default function CalendarHeader({ monthStart }: CalendarHeaderProps) {
       </div>
 
       <div className="flex flex-wrap gap-2">
-        {LEVELS.map((level) => (
+        {levels.map((level) => (
           <span
-            key={level}
-            className={["text-[11px] px-1.5 py-0.5 rounded border", LEVEL_COLORS[level]].join(" ")}
+            key={level.id}
+            className={[
+              "text-[11px] px-1.5 py-0.5 rounded border",
+              LEVEL_COLOR_CLASSES[resolveLevelColor(level)],
+            ].join(" ")}
           >
-            {level}
+            {level.name}
           </span>
         ))}
       </div>

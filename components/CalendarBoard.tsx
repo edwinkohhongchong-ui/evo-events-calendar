@@ -20,7 +20,9 @@ import { buildDayIndex } from "@/lib/dayIndex";
 import { occurrenceKey } from "@/lib/occurrenceKey";
 import { moveOccurrence } from "@/lib/actions";
 import { SeasonSegment } from "@/lib/seasonBars";
-import { EventOccurrence, EventRow, HolidayRow } from "@/lib/types";
+import { resolveLevelColor } from "@/lib/levelColor";
+import { LevelColorProvider } from "@/lib/levelColorContext";
+import { EventOccurrence, EventRow, HolidayRow, LevelRow } from "@/lib/types";
 
 interface CalendarBoardProps {
   weeks: Date[][];
@@ -28,6 +30,7 @@ interface CalendarBoardProps {
   occurrences: EventOccurrence[];
   holidays: HolidayRow[];
   seasonSegmentsByWeek: SeasonSegment[][];
+  levels: LevelRow[];
 }
 
 type ModalState =
@@ -41,8 +44,13 @@ export default function CalendarBoard({
   occurrences,
   holidays,
   seasonSegmentsByWeek,
+  levels,
 }: CalendarBoardProps) {
   const router = useRouter();
+  const colorMap = useMemo(
+    () => Object.fromEntries(levels.map((l) => [l.name, resolveLevelColor(l)])),
+    [levels]
+  );
   const [isPending, startTransition] = useTransition();
   const [optimisticMove, setOptimisticMove] = useState<{ key: string; newDate: string } | null>(
     null
@@ -107,7 +115,7 @@ export default function CalendarBoard({
   }
 
   return (
-    <>
+    <LevelColorProvider colorMap={colorMap}>
       {error && <ErrorBanner message={error} onDismiss={() => setError(null)} />}
       <DndContext
         id="calendar-dnd"
@@ -115,7 +123,7 @@ export default function CalendarBoard({
         onDragStart={handleDragStart}
         onDragEnd={handleDragEnd}
       >
-        <CalendarHeader monthStart={monthStart} />
+        <CalendarHeader monthStart={monthStart} levels={levels} />
         <CalendarGrid
           weeks={weeks}
           monthStart={monthStart}
@@ -137,6 +145,7 @@ export default function CalendarBoard({
           mode={modal.type}
           initialDate={modal.type === "add" ? modal.date : undefined}
           event={modal.type === "edit" ? modal.event : undefined}
+          levels={levels}
           onClose={() => setModal({ type: "closed" })}
           onSaved={() => {
             setModal({ type: "closed" });
@@ -148,6 +157,6 @@ export default function CalendarBoard({
           }}
         />
       )}
-    </>
+    </LevelColorProvider>
   );
 }

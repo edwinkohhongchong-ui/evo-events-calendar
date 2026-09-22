@@ -19,7 +19,7 @@ export default async function DayPage({ params }: DayPageProps) {
   const year = date.getFullYear();
   const month = date.getMonth() + 1;
 
-  const { events, overrides } = await getCalendarData(dateStr, dateStr);
+  const { events, overrides, levels } = await getCalendarData(dateStr, dateStr);
   const eventsById = new Map(events.map((e) => [e.id, e]));
   const rawOccurrences = expandEvents(events, date, date);
   const occurrences = applyOverrides(rawOccurrences, overrides, eventsById, dateStr, dateStr);
@@ -51,7 +51,7 @@ export default async function DayPage({ params }: DayPageProps) {
       <h1 className="text-xl font-semibold text-navy mb-4">
         {format(date, "EEEE")}, {formatDateDisplay(dateStr)}
       </h1>
-      <DayView occurrences={occurrences} />
+      <DayView occurrences={occurrences} levels={levels} />
     </main>
   );
 }

@@ -1,10 +1,12 @@
 import { EventOccurrence } from "@/lib/types";
-import { LEVEL_COLORS } from "@/lib/constants";
+import { LEVEL_COLOR_CLASSES } from "@/lib/constants";
+import { useLevelColor } from "@/lib/levelColorContext";
 import { formatEventTimeRange } from "@/lib/dates";
 import { endsNextDay } from "@/lib/timeMath";
 
 export default function DayViewEventContent({ occurrence }: { occurrence: EventOccurrence }) {
   const { event } = occurrence;
+  const colorKey = useLevelColor(event.level);
   const time = formatEventTimeRange(occurrence.startTime, occurrence.endTime);
   const nextDay =
     !!occurrence.startTime &&
@@ -13,9 +15,10 @@ export default function DayViewEventContent({ occurrence }: { occurrence: EventO
 
   return (
     <div
-      className={["h-full rounded border px-2 py-0.5 text-xs overflow-hidden", LEVEL_COLORS[event.level]].join(
-        " "
-      )}
+      className={[
+        "h-full rounded border px-2 py-0.5 text-xs overflow-hidden",
+        LEVEL_COLOR_CLASSES[colorKey],
+      ].join(" ")}
       title={event.name}
     >
       <div className="font-medium truncate">{event.name}</div>

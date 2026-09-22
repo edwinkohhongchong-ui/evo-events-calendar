@@ -18,7 +18,9 @@ import ErrorBanner from "./ErrorBanner";
 import { retimeOccurrence } from "@/lib/actions";
 import { occurrenceKey } from "@/lib/occurrenceKey";
 import { computeDuration, minutesToTimeStr, timeStrToMinutes } from "@/lib/timeMath";
-import { EventOccurrence, EventRow } from "@/lib/types";
+import { resolveLevelColor } from "@/lib/levelColor";
+import { LevelColorProvider } from "@/lib/levelColorContext";
+import { EventOccurrence, EventRow, LevelRow } from "@/lib/types";
 
 const HOURS = Array.from({ length: 24 }, (_, i) => i);
 const SNAP_MINUTES = 15;
@@ -26,6 +28,7 @@ const DAY_HEIGHT = 24 * 60; // px — 1px per minute
 
 interface DayViewProps {
   occurrences: EventOccurrence[];
+  levels: LevelRow[];
 }
 
 type ModalState = { type: "closed" } | { type: "edit"; event: EventRow };
@@ -36,8 +39,12 @@ function formatHourLabel(hour: number): string {
   return `${hour12} ${period}`;
 }
 
-export default function DayView({ occurrences }: DayViewProps) {
+export default function DayView({ occurrences, levels }: DayViewProps) {
   const router = useRouter();
+  const colorMap = useMemo(
+    () => Object.fromEntries(levels.map((l) => [l.name, resolveLevelColor(l)])),
+    [levels]
+  );
   const [isPending, startTransition] = useTransition();
   const [optimisticStart, setOptimisticStart] = useState<{ key: string; startTime: string } | null>(
     null
@@ -103,7 +110,7 @@ export default function DayView({ occurrences }: DayViewProps) {
   }
 
   return (
-    <>
+    <LevelColorProvider colorMap={colorMap}>
       {error && <ErrorBanner message={error} onDismiss={() => setError(null)} />}
       <DndContext id="day-dnd" sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
         <div className="flex border border-gray-200 rounded-md overflow-hidden">
@@ -152,6 +159,7 @@ export default function DayView({ occurrences }: DayViewProps) {
         <EventModal
           mode="edit"
           event={modal.event}
+          levels={levels}
           onClose={() => setModal({ type: "closed" })}
           onSaved={() => {
             setModal({ type: "closed" });
@@ -163,6 +171,6 @@ export default function DayView({ occurrences }: DayViewProps) {
           }}
         />
       )}
-    </>
+    </LevelColorProvider>
   );
 }

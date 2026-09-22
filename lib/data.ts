@@ -1,11 +1,12 @@
 import { supabase } from "./supabase";
-import { ChecklistRow, EventRow, HolidayRow, SeasonRow, MonthFocusRow, OverrideRow } from "./types";
+import { ChecklistRow, EventRow, HolidayRow, LevelRow, SeasonRow, MonthFocusRow, OverrideRow } from "./types";
 
 export interface CalendarData {
   events: EventRow[];
   holidays: HolidayRow[];
   seasons: SeasonRow[];
   overrides: OverrideRow[];
+  levels: LevelRow[];
 }
 
 // Fetches everything needed to render the grid for [gridStart, gridEnd]
@@ -15,14 +16,15 @@ export async function getCalendarData(
   gridStartStr: string,
   gridEndStr: string
 ): Promise<CalendarData> {
-  const [events, holidays, seasons, overrides] = await Promise.all([
+  const [events, holidays, seasons, overrides, levels] = await Promise.all([
     getEvents(gridStartStr, gridEndStr),
     getHolidays(gridStartStr, gridEndStr),
     getSeasons(gridStartStr, gridEndStr),
     getOverrides(gridStartStr, gridEndStr),
+    getAllLevels(),
   ]);
 
-  return { events, holidays, seasons, overrides };
+  return { events, holidays, seasons, overrides, levels };
 }
 
 async function getEvents(gridStartStr: string, gridEndStr: string): Promise<EventRow[]> {
@@ -137,6 +139,23 @@ export async function getAllSeasons(): Promise<SeasonRow[]> {
     return data ?? [];
   } catch (err) {
     console.error("getAllSeasons threw:", err);
+    return [];
+  }
+}
+
+// Levels are a small, rarely-changing table — fetched whole (like Holidays/
+// Seasons admin data), ordered so the legend and dropdowns render in a
+// stable, user-controlled order rather than insertion order.
+export async function getAllLevels(): Promise<LevelRow[]> {
+  try {
+    const { data, error } = await supabase.from("levels").select("*").order("sort_order");
+    if (error) {
+      console.error("getAllLevels failed:", error.message);
+      return [];
+    }
+    return data ?? [];
+  } catch (err) {
+    console.error("getAllLevels threw:", err);
     return [];
   }
 }

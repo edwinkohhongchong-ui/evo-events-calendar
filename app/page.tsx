@@ -6,6 +6,7 @@ import { computeSeasonSegments } from "@/lib/seasonBars";
 import { toDateStr } from "@/lib/dates";
 import CalendarBoard from "@/components/CalendarBoard";
 import FocusPanel from "@/components/FocusPanel";
+import CategoryListView from "@/components/CategoryListView";
 
 // This is a live, mutable calendar (drag-and-drop, add/edit/delete) — every
 // render must hit Supabase fresh. Without this, Next.js's default fetch
@@ -27,7 +28,7 @@ export default async function Home({ searchParams }: HomeProps) {
   const gridStartStr = toDateStr(gridStart);
   const gridEndStr = toDateStr(gridEnd);
 
-  const [{ events, holidays, seasons, overrides }, monthFocus] = await Promise.all([
+  const [{ events, holidays, seasons, overrides, levels }, monthFocus] = await Promise.all([
     getCalendarData(gridStartStr, gridEndStr),
     getMonthFocus(year, month),
   ]);
@@ -45,7 +46,9 @@ export default async function Home({ searchParams }: HomeProps) {
         occurrences={occurrences}
         holidays={holidays}
         seasonSegmentsByWeek={seasonSegmentsByWeek}
+        levels={levels}
       />
+      <CategoryListView occurrences={occurrences} levels={levels} />
     </main>
   );
 }
