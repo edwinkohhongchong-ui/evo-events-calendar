@@ -8,6 +8,14 @@ items (features/fixes) that push contains — a push with 1 item goes up by
 `1.05`). If MINOR would pass `.99`, MAJOR increments and MINOR carries the
 remainder (e.g. `1.99` + 2 items → `2.01`).
 
+## v1.04 — 2026-09-22
+
+- The month grid and the Events by Category list below it no longer show
+  events that fall on the leading/trailing overflow days from the previous
+  or next month — only events actually within the viewed month are shown,
+  keeping those muted overflow days visually clean. Holidays, season bars,
+  and multi-day event bars are unaffected.
+
 ## v1.03 — 2026-09-22
 
 - Gathering event cards (month grid, day view) now show the Series and

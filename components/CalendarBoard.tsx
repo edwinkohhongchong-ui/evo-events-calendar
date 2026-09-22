@@ -100,8 +100,8 @@ export default function CalendarBoard({
   }, [occurrences, optimisticMove, optimisticResize]);
 
   const dayIndex = useMemo(
-    () => buildDayIndex(weeks.flat(), displayOccurrences, holidays),
-    [weeks, displayOccurrences, holidays]
+    () => buildDayIndex(weeks.flat(), displayOccurrences, holidays, monthStart),
+    [weeks, displayOccurrences, holidays, monthStart]
   );
 
   const gridStart = weeks[0][0];

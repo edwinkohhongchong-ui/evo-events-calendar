@@ -1,9 +1,10 @@
+import { isSameMonth } from "date-fns";
 import { getMonthGrid } from "@/lib/calendar";
 import { getCalendarData, getGeneralComments, getMonthComments } from "@/lib/data";
 import { expandEvents } from "@/lib/recurrence";
 import { applyOverrides } from "@/lib/overrides";
 import { computeSeasonSegments } from "@/lib/seasonBars";
-import { toDateStr } from "@/lib/dates";
+import { parseDateStr, toDateStr } from "@/lib/dates";
 import CalendarBoard from "@/components/CalendarBoard";
 import CategoryListView from "@/components/CategoryListView";
 import NotesPanel from "@/components/NotesPanel";
@@ -45,6 +46,12 @@ export default async function Home({ searchParams }: HomeProps) {
   const rawOccurrences = expandEvents(events, gridStart, gridEnd, exceptionsByEventId);
   const occurrences = applyOverrides(rawOccurrences, overrides, eventsById, gridStartStr, gridEndStr);
   const seasonSegmentsByWeek = computeSeasonSegments(seasons, weeks, gridStart, gridEnd);
+  // CategoryListView isn't a grid — it has no muted "overflow" cells to fall
+  // back on, so occurrences from adjacent months are dropped entirely here
+  // rather than relying on a visual cue.
+  const inMonthOccurrences = occurrences.filter((occ) =>
+    isSameMonth(parseDateStr(occ.occurrenceDate), monthStart)
+  );
 
   return (
     <main className="max-w-[1600px] mx-auto p-4 sm:p-6">
@@ -68,7 +75,7 @@ export default async function Home({ searchParams }: HomeProps) {
             levels={levels}
             defaultAddDate={defaultAddDate}
           />
-          <CategoryListView occurrences={occurrences} levels={levels} defaultAddDate={defaultAddDate} />
+          <CategoryListView occurrences={inMonthOccurrences} levels={levels} defaultAddDate={defaultAddDate} />
         </div>
         <div className="order-3">
           <NotesPanel
