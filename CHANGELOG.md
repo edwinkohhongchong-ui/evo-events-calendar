@@ -8,6 +8,15 @@ items (features/fixes) that push contains — a push with 1 item goes up by
 `1.05`). If MINOR would pass `.99`, MAJOR increments and MINOR carries the
 remainder (e.g. `1.99` + 2 items → `2.01`).
 
+## v1.06 — 2026-09-22
+
+- Documented the changelog/versioning process and the "always confirm before
+  push" rule directly in `CLAUDE.md`, so it applies to any collaborator's
+  Claude Code session in this repo, not just this one.
+- The Events by Category list now shows a Gathering's Series — Sermon Title
+  as a second line under its name, matching the calendar cards, so a zone
+  leader can scan what each Gathering is about without opening it.
+
 ## v1.04 — 2026-09-22
 
 - The month grid and the Events by Category list below it no longer show

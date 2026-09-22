@@ -74,3 +74,17 @@ internal tool (not public-facing).
 2. Drag-and-drop + add/edit/delete event modals.
 3. Holidays, Seasons, Checklist table views + recurring event expansion logic.
 4. Focus panel, styling polish, deploy to Vercel.
+
+## Changelog / versioning (standing process, applies to every push)
+Every push must bump `CHANGELOG.md` first — this applies regardless of who
+(or which Claude Code session) is pushing.
+- Version format: `MAJOR.MINOR`, MINOR always 2 digits (e.g. `1.01`). Baseline
+  is `v1.00`.
+- Each push's MINOR increases by however many distinct items (features/fixes)
+  that push contains — 1 item → MINOR +1, 3 items → MINOR +3.
+- If MINOR would pass `.99`, MAJOR increments and MINOR carries the remainder
+  (e.g. `1.99` + 2 items → `2.01`).
+- Add one new entry per push at the top of `CHANGELOG.md`, dated, with a
+  bullet per item.
+- Always confirm with Edwin before running `git push` — do not push
+  unprompted, even after committing.

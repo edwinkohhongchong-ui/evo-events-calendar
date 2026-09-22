@@ -99,23 +99,38 @@ export default function CategoryListView({ occurrences, levels, defaultAddDate }
                 {occs.length === 0 && (
                   <li className="px-3 py-2 text-sm text-gray-400">No events this month.</li>
                 )}
-                {occs.map((occ) => (
-                  <li key={`${occ.event.id}-${occ.occurrenceDate}`}>
-                    <button
-                      type="button"
-                      onClick={() => setModal({ type: "edit", occurrence: occ })}
-                      className="w-full px-3 py-2 text-sm flex items-center justify-between gap-3 text-left hover:bg-gray-50"
-                    >
-                      <span className="truncate">{occ.event.name}</span>
-                      <span className="text-gray-500 whitespace-nowrap text-xs">
-                        {formatDateDisplay(occ.occurrenceDate)}
-                        {formatEventTimeRange(occ.startTime, occ.endTime)
-                          ? ` · ${formatEventTimeRange(occ.startTime, occ.endTime)}`
-                          : ""}
-                      </span>
-                    </button>
-                  </li>
-                ))}
+                {occs.map((occ) => {
+                  // Same Series — Sermon Title subtitle shown on the calendar's
+                  // Gathering cards (EventCardContent/DayViewEventContent) —
+                  // repeated here so a zone leader scanning this list doesn't
+                  // have to open each Gathering to see what it's about.
+                  const subtitle =
+                    occ.event.event_type === "Gathering"
+                      ? [occ.event.series, occ.event.sermon_title].filter(Boolean).join(" — ")
+                      : "";
+                  return (
+                    <li key={`${occ.event.id}-${occ.occurrenceDate}`}>
+                      <button
+                        type="button"
+                        onClick={() => setModal({ type: "edit", occurrence: occ })}
+                        className="w-full px-3 py-2 text-sm flex items-center justify-between gap-3 text-left hover:bg-gray-50"
+                      >
+                        <span className="min-w-0 flex flex-col">
+                          <span className="truncate">{occ.event.name}</span>
+                          {subtitle && (
+                            <span className="truncate text-xs text-gray-500">{subtitle}</span>
+                          )}
+                        </span>
+                        <span className="text-gray-500 whitespace-nowrap text-xs">
+                          {formatDateDisplay(occ.occurrenceDate)}
+                          {formatEventTimeRange(occ.startTime, occ.endTime)
+                            ? ` · ${formatEventTimeRange(occ.startTime, occ.endTime)}`
+                            : ""}
+                        </span>
+                      </button>
+                    </li>
+                  );
+                })}
               </ul>
             )}
           </div>
