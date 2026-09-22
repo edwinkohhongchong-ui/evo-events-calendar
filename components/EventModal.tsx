@@ -12,6 +12,7 @@ import {
   EventFormValues,
 } from "@/lib/actions";
 import { computeDuration, computeEndTime, endsNextDay } from "@/lib/timeMath";
+import { formatDateDisplay, formatEventTimeRange } from "@/lib/dates";
 import { PastoralFocus, applyTitlePrefix, stripTitlePrefix } from "@/lib/pastoralFocus";
 import ConfirmDialog from "./ConfirmDialog";
 import RecurringScopeDialog from "./RecurringScopeDialog";
@@ -32,7 +33,7 @@ interface EventModalProps {
   onDeleted: () => void;
 }
 
-type Step = "form" | "editScope" | "deleteScope";
+type Step = "view" | "form" | "editScope" | "deleteScope";
 
 const RECURRING_OPTIONS: Recurring[] = ["None", "Weekly", "Monthly", "Yearly"];
 
@@ -85,7 +86,11 @@ export default function EventModal({
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
   const [confirmDelete, setConfirmDelete] = useState(false);
-  const [step, setStep] = useState<Step>("form");
+  // Clicking an occurrence opens straight into a read-only "confirmed
+  // values" view — editing is a deliberate extra step (the Edit button),
+  // not the default. Adding a brand new event has nothing to view yet, so
+  // it goes straight to the form.
+  const [step, setStep] = useState<Step>(mode === "edit" ? "view" : "form");
   const [pendingValues, setPendingValues] = useState<EventFormValues | null>(null);
 
   const isRecurringSeries = mode === "edit" && !!event && event.recurring !== "None";
@@ -243,7 +248,7 @@ export default function EventModal({
         onClick={(e) => e.stopPropagation()}
       >
         <h2 className="text-lg font-semibold text-navy mb-1">
-          {mode === "add" ? "Add Event" : "Edit Event"}
+          {mode === "add" ? "Add Event" : step === "view" ? "Event Details" : "Edit Event"}
         </h2>
         {isRecurringSeries && step === "form" && !confirmDelete && (
           <p className="text-xs text-gray-500 mb-3">
@@ -273,6 +278,111 @@ export default function EventModal({
             onCancel={() => setConfirmDelete(false)}
             onConfirm={handleDelete}
           />
+        ) : step === "view" ? (
+          <div className="flex flex-col gap-3">
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="text-xs px-2 py-0.5 rounded border border-gray-300 text-gray-600">
+                {eventType}
+              </span>
+              {level && (
+                <span className="text-xs px-2 py-0.5 rounded border border-gray-300 text-gray-600">
+                  {level}
+                </span>
+              )}
+            </div>
+            <div className="text-base font-medium text-navy">{name}</div>
+            <div className="text-sm text-gray-700 flex flex-col gap-1">
+              <div>
+                {formatDateDisplay(eventDate)}
+                {endDate && endDate !== eventDate && <> – {formatDateDisplay(endDate)}</>}
+              </div>
+              {(eventTime || endTime) && (
+                <div>
+                  {formatEventTimeRange(
+                    eventTime ? `${eventTime}:00` : null,
+                    endTime ? `${endTime}:00` : null
+                  )}
+                </div>
+              )}
+              {recurring !== "None" && (
+                <div>
+                  Repeats {recurring}
+                  {repeatUntil ? ` until ${formatDateDisplay(repeatUntil)}` : ""}
+                </div>
+              )}
+            </div>
+            {eventType === "Event" &&
+              (pastoralFocus.youth || pastoralFocus.poly || pastoralFocus.uni || pastoralFocus.adults) && (
+                <div className="text-sm text-gray-700">
+                  <span className="text-gray-400">Pastoral Focus:</span>{" "}
+                  {[
+                    pastoralFocus.youth && "Youth",
+                    pastoralFocus.poly && "Poly",
+                    pastoralFocus.uni && "Uni",
+                    pastoralFocus.adults && "Adults",
+                  ]
+                    .filter(Boolean)
+                    .join(", ")}
+                </div>
+              )}
+            {eventType === "Gathering" && (series || preacherName || sermonTitle || theme) && (
+              <div className="text-sm text-gray-700 flex flex-col gap-0.5">
+                {series && (
+                  <div>
+                    <span className="text-gray-400">Series:</span> {series}
+                  </div>
+                )}
+                {preacherName && (
+                  <div>
+                    <span className="text-gray-400">Preacher:</span> {preacherName}
+                  </div>
+                )}
+                {sermonTitle && (
+                  <div>
+                    <span className="text-gray-400">Sermon:</span> {sermonTitle}
+                  </div>
+                )}
+                {theme && (
+                  <div>
+                    <span className="text-gray-400">Theme:</span> {theme}
+                  </div>
+                )}
+              </div>
+            )}
+            {notes && (
+              <div className="text-sm text-gray-700 whitespace-pre-wrap">
+                <span className="text-gray-400">Notes:</span> {notes}
+              </div>
+            )}
+
+            {formError && <p className="text-sm text-red-600">{formError}</p>}
+
+            <div className="flex items-center justify-between mt-2">
+              <button
+                type="button"
+                onClick={handleDeleteClick}
+                className="text-sm text-red-600 hover:underline"
+              >
+                Delete
+              </button>
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={onClose}
+                  className="px-3 py-1.5 text-sm rounded border border-gray-300"
+                >
+                  Close
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setStep("form")}
+                  className="px-3 py-1.5 text-sm rounded bg-navy text-white"
+                >
+                  Edit
+                </button>
+              </div>
+            </div>
+          </div>
         ) : step === "editScope" ? (
           <RecurringScopeDialog
             title={`Apply this change to just “${name}” on ${eventDate}, or to this and all future occurrences?`}
@@ -528,7 +638,7 @@ export default function EventModal({
               <div className="flex gap-2">
                 <button
                   type="button"
-                  onClick={onClose}
+                  onClick={() => (mode === "edit" ? setStep("view") : onClose())}
                   className="px-3 py-1.5 text-sm rounded border border-gray-300"
                 >
                   Cancel

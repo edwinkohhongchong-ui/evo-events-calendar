@@ -1,9 +1,9 @@
 "use client";
 
-import { useEffect, useState, FormEvent } from "react";
+import { useEffect, useMemo, useState, FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { format, parseISO } from "date-fns";
-import { createNoteComment } from "@/lib/noteCommentActions";
+import { createNoteComment, deleteNoteComment } from "@/lib/noteCommentActions";
 import { NoteCommentRow, NoteScope } from "@/lib/types";
 
 const AUTHOR_NAME_KEY = "evo-author-name";
@@ -18,11 +18,11 @@ interface NotesPanelProps {
   comments: NoteCommentRow[];
 }
 
-// A running, append-only log of comments (who wrote it, when) — replaces
-// the old single freeform textarea (per-field autosave, silently overwritten
-// by whoever typed last) with a proper log so a team can see who added
-// what. Shared between the General Notes (left) and Month Notes (right)
-// columns; scope/year/month decide which log a new comment is filed under.
+// A running, append-only log of comments (who wrote it, when), with one
+// level of threading (replies) and removal — replaces the old single
+// freeform textarea. Shared between the General Notes (left) and Month
+// Notes (right) columns; scope/year/month decide which log a new top-level
+// comment or reply is filed under.
 export default function NotesPanel({
   title,
   subtitle,
@@ -38,6 +38,9 @@ export default function NotesPanel({
   const [content, setContent] = useState("");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [replyingTo, setReplyingTo] = useState<string | null>(null);
+  const [replyDraft, setReplyDraft] = useState("");
+  const [removingId, setRemovingId] = useState<string | null>(null);
 
   useEffect(() => {
     try {
@@ -46,6 +49,27 @@ export default function NotesPanel({
       // Private-window/blocked storage — falls back to asking every time.
     }
   }, []);
+
+  // Top-level list stays in the newest-first order the server sent; each
+  // thread's own replies are shown oldest-first underneath it, like a
+  // conversation rather than a second log.
+  const { topLevel, repliesByParent } = useMemo(() => {
+    const top: NoteCommentRow[] = [];
+    const replies = new Map<string, NoteCommentRow[]>();
+    for (const c of comments) {
+      if (c.parent_id) {
+        const list = replies.get(c.parent_id) ?? [];
+        list.push(c);
+        replies.set(c.parent_id, list);
+      } else {
+        top.push(c);
+      }
+    }
+    for (const list of Array.from(replies.values())) {
+      list.sort((a, b) => a.created_at.localeCompare(b.created_at));
+    }
+    return { topLevel: top, repliesByParent: replies };
+  }, [comments]);
 
   function saveAuthorName(name: string) {
     const trimmed = name.trim();
@@ -80,22 +104,119 @@ export default function NotesPanel({
     }
   }
 
+  async function handleReplySubmit(parentId: string) {
+    if (!authorName || !replyDraft.trim()) return;
+    setSaving(true);
+    setError(null);
+    try {
+      await createNoteComment({
+        scope,
+        year: year ?? null,
+        month: month ?? null,
+        author_name: authorName,
+        content: replyDraft.trim(),
+        parent_id: parentId,
+      });
+      setReplyDraft("");
+      setReplyingTo(null);
+      router.refresh();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Something went wrong saving this reply.");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function handleRemove(id: string) {
+    if (!window.confirm("Delete this note?")) return;
+    setRemovingId(id);
+    setError(null);
+    try {
+      await deleteNoteComment(id);
+      router.refresh();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Something went wrong deleting this note.");
+    } finally {
+      setRemovingId(null);
+    }
+  }
+
+  function renderComment(c: NoteCommentRow, isReply: boolean) {
+    return (
+      <div key={c.id} className={["text-xs group", isReply ? "pl-3 border-l-2 border-gray-100" : ""].join(" ")}>
+        <div className="flex items-baseline justify-between gap-2">
+          <span className="font-medium text-navy truncate">{c.author_name}</span>
+          <div className="flex items-center gap-1.5 shrink-0">
+            <span className="text-gray-400 text-[10px] whitespace-nowrap">
+              {format(parseISO(c.created_at), "d MMM, h:mm a")}
+            </span>
+            <button
+              type="button"
+              onClick={() => handleRemove(c.id)}
+              disabled={removingId === c.id}
+              title="Delete this note"
+              className="leading-none text-gray-300 hover:text-red-600 disabled:opacity-30"
+            >
+              ×
+            </button>
+          </div>
+        </div>
+        <p className="text-gray-700 whitespace-pre-wrap break-words">{c.content}</p>
+        {!isReply && (
+          <button
+            type="button"
+            onClick={() => {
+              setReplyingTo(replyingTo === c.id ? null : c.id);
+              setReplyDraft("");
+            }}
+            className="text-[10px] text-gray-400 hover:text-navy hover:underline"
+          >
+            Reply
+          </button>
+        )}
+      </div>
+    );
+  }
+
   return (
     <div className="bg-white border border-gray-200 rounded-md p-3 flex flex-col gap-2">
       <span className="text-xs font-medium text-gray-500">{title}</span>
       <p className="text-[11px] text-gray-400 -mt-1">{subtitle}</p>
 
-      <div className="flex flex-col gap-2">
-        {comments.length === 0 && <p className="text-xs text-gray-400">No notes yet.</p>}
-        {comments.map((c) => (
-          <div key={c.id} className="text-xs border-b border-gray-100 pb-1.5">
-            <div className="flex items-baseline justify-between gap-2">
-              <span className="font-medium text-navy truncate">{c.author_name}</span>
-              <span className="text-gray-400 text-[10px] whitespace-nowrap">
-                {format(parseISO(c.created_at), "d MMM, h:mm a")}
-              </span>
-            </div>
-            <p className="text-gray-700 whitespace-pre-wrap break-words">{c.content}</p>
+      <div className="flex flex-col gap-2.5">
+        {topLevel.length === 0 && <p className="text-xs text-gray-400">No notes yet.</p>}
+        {topLevel.map((c) => (
+          <div key={c.id} className="flex flex-col gap-1.5 border-b border-gray-100 pb-2">
+            {renderComment(c, false)}
+            {(repliesByParent.get(c.id) ?? []).map((reply) => renderComment(reply, true))}
+            {replyingTo === c.id && authorName && (
+              <div className="pl-3 flex flex-col gap-1">
+                <textarea
+                  value={replyDraft}
+                  onChange={(e) => setReplyDraft(e.target.value)}
+                  placeholder={`Reply to ${c.author_name}…`}
+                  rows={2}
+                  className="border rounded px-2 py-1 text-xs resize-none"
+                />
+                <div className="self-end flex gap-1.5">
+                  <button
+                    type="button"
+                    onClick={() => setReplyingTo(null)}
+                    className="px-2 py-0.5 text-[11px] rounded border border-gray-300"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleReplySubmit(c.id)}
+                    disabled={saving || !replyDraft.trim()}
+                    className="px-2 py-0.5 text-[11px] rounded bg-navy text-white disabled:opacity-50"
+                  >
+                    {saving ? "Saving…" : "Reply"}
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         ))}
       </div>

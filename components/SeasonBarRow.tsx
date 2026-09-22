@@ -19,7 +19,7 @@ export default function SeasonBarRow({ segments }: { segments: SeasonSegment[] }
           <div
             key={`${segment.season.id}-w${segment.weekIndex}`}
             className={[
-              "text-[10px] leading-[18px] px-1.5 truncate border",
+              "text-[10px] leading-[18px] px-1.5 truncate border text-center",
               SEASON_BAR_COLORS[colorKey],
               segment.isSeasonStart ? "rounded-l-full" : "border-l-0",
               segment.isSeasonEnd ? "rounded-r-full" : "border-r-0",
@@ -30,7 +30,10 @@ export default function SeasonBarRow({ segments }: { segments: SeasonSegment[] }
             }}
             title={segment.season.name}
           >
-            {segment.isSeasonStart ? segment.season.name : " "}
+            {/* Repeats the name at the start of every week this bar crosses
+                (startCol 0 = Monday), not just the season's true start —
+                see the same fix in EventBarRow. */}
+            {segment.isSeasonStart || segment.startCol === 0 ? segment.season.name : " "}
           </div>
         );
       })}

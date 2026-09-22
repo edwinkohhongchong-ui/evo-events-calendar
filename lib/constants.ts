@@ -62,6 +62,23 @@ export const SEASON_BAR_COLORS: Record<SeasonColorKey, string> = {
 export const LEVEL_COLOR_KEYS: SeasonColorKey[] = SEASON_COLOR_KEYS;
 export const LEVEL_COLOR_CLASSES: Record<SeasonColorKey, string> = SEASON_BAR_COLORS;
 
+// Bold colored text, no background/border — used for event names in the
+// month grid (PROJECT decision: plain colored text over a dense spreadsheet-
+// style grid, not a pill/badge, matching the reference layout the calendar
+// was asked to follow).
+export const LEVEL_TEXT_CLASSES: Record<SeasonColorKey, string> = {
+  indigo: "text-indigo-700",
+  teal: "text-teal-700",
+  rose: "text-rose-700",
+  amber: "text-amber-700",
+  sky: "text-sky-700",
+  purple: "text-purple-700",
+  emerald: "text-emerald-700",
+  orange: "text-orange-700",
+  pink: "text-pink-700",
+  cyan: "text-cyan-700",
+};
+
 export const TARGET_MONTHS: TargetMonth[] = [
   "Jan",
   "Feb",

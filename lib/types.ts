@@ -175,6 +175,9 @@ export interface NoteCommentRow {
   author_name: string;
   content: string;
   created_at: string;
+  // Set only on a reply — always points at a top-level comment (one level
+  // of threading, not a reply to a reply). See migration 012.
+  parent_id: string | null;
 }
 
 export interface OverrideRow {
