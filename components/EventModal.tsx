@@ -65,6 +65,12 @@ export default function EventModal({
   const [sermonTitle, setSermonTitle] = useState(event?.sermon_title ?? "");
   const [theme, setTheme] = useState(event?.theme ?? "");
   const [eventDate, setEventDate] = useState(occurrence?.occurrenceDate ?? event?.event_date ?? initialDate ?? "");
+  // Blank means single-day. Pre-filled from the occurrence's effective span
+  // (post drag-to-resize), falling back to the base event's own end_date.
+  const [endDate, setEndDate] = useState(() => {
+    const effective = occurrence?.spanEndDate ?? event?.end_date ?? "";
+    return effective && effective !== (occurrence?.occurrenceDate ?? event?.event_date) ? effective : "";
+  });
   const [eventTime, setEventTime] = useState(
     (occurrence?.startTime ?? event?.event_time)?.slice(0, 5) ?? ""
   );
@@ -137,6 +143,7 @@ export default function EventModal({
     const values: EventFormValues = {
       name: eventType === "Event" ? applyTitlePrefix(baseName, pastoralFocus) : baseName,
       event_date: eventDate,
+      end_date: endDate && endDate !== eventDate ? endDate : null,
       event_time: eventTime || null,
       end_time: endTime || null,
       duration_minutes: durationMinutes !== "" ? Number(durationMinutes) : null,
@@ -415,6 +422,16 @@ export default function EventModal({
                 />
               </label>
             </div>
+            <label className="flex flex-col gap-1 text-sm">
+              End Date <span className="text-gray-400 font-normal">(optional — makes this a multi-day event)</span>
+              <input
+                type="date"
+                value={endDate}
+                onChange={(e) => setEndDate(e.target.value)}
+                min={eventDate || undefined}
+                className="border rounded px-2 py-1"
+              />
+            </label>
             <div className="grid grid-cols-2 gap-3">
               <label className="flex flex-col gap-1 text-sm">
                 End time

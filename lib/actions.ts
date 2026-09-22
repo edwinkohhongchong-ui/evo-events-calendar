@@ -1,21 +1,24 @@
-import { subDays } from "date-fns";
+import { addDays, subDays } from "date-fns";
 import { supabase } from "./supabase";
 import { computeEndTime, timeStrToMinutes } from "./timeMath";
 import { parseDateStr, toDateStr } from "./dates";
+import { computeSpanDays } from "./eventSpan";
 import { EventRow, EventType, Level, Recurring } from "./types";
 
-// Moves a single occurrence to newDate. Never touches new_time — the upsert
-// below only ever sends event_id/original_date/new_date, so PostgREST's
-// merge-duplicates upsert leaves an existing new_time (set by a day-view
-// retime) untouched on conflict.
+// Moves a single occurrence to newDate. Never touches new_time/new_end_date —
+// the upsert below only ever sends event_id/original_date/new_date, so
+// PostgREST's merge-duplicates upsert leaves an existing new_time (set by a
+// day-view retime) or new_end_date (set by the resize handle) untouched on
+// conflict.
 //
 // - Non-recurring: updates the event row's event_date directly.
 // - Recurring: writes an event_overrides row instead of touching the base
 //   event, keyed by originalDate (the natural, anchor-derived date) so
 //   dragging the same occurrence again updates this same override row.
-//   The row is only deleted when BOTH date and time are back to natural —
-//   dragging the date back while a time override still exists must keep
-//   the row (just with new_date reset), not destroy the time override too.
+//   The row is only deleted when date, time, AND span are all back to
+//   natural — dragging the date back while a time or span override still
+//   exists must keep the row (just with new_date reset), not destroy those
+//   other overrides too.
 export async function moveOccurrence(
   event: EventRow,
   originalDate: string,
@@ -32,15 +35,16 @@ export async function moveOccurrence(
 
   const { data: existing, error: fetchError } = await supabase
     .from("event_overrides")
-    .select("id, new_time")
+    .select("id, new_time, new_end_date")
     .eq("event_id", event.id)
     .eq("original_date", originalDate)
     .maybeSingle();
   if (fetchError) throw new Error(fetchError.message);
 
   const hasTimeOverride = existing?.new_time != null;
+  const hasSpanOverride = existing?.new_end_date != null;
 
-  if (newDate === originalDate && !hasTimeOverride) {
+  if (newDate === originalDate && !hasTimeOverride && !hasSpanOverride) {
     if (existing) {
       const { error } = await supabase.from("event_overrides").delete().eq("id", existing.id);
       if (error) throw new Error(error.message);
@@ -87,20 +91,21 @@ export async function retimeOccurrence(
 
   const { data: existing, error: fetchError } = await supabase
     .from("event_overrides")
-    .select("id, new_date")
+    .select("id, new_date, new_end_date")
     .eq("event_id", event.id)
     .eq("original_date", originalDate)
     .maybeSingle();
   if (fetchError) throw new Error(fetchError.message);
 
   const dateIsNatural = !existing || existing.new_date === originalDate;
+  const spanIsNatural = !existing || existing.new_end_date == null;
   // Compare by minute value, not string equality — event.event_time is
   // stored as "HH:mm:ss" but computed drag times are "HH:mm", so a strict
   // string comparison would never match even when genuinely back to natural.
   const timeIsNatural =
     event.event_time != null && timeStrToMinutes(newTime) === timeStrToMinutes(event.event_time);
 
-  if (timeIsNatural && dateIsNatural) {
+  if (timeIsNatural && dateIsNatural && spanIsNatural) {
     if (existing) {
       const { error } = await supabase.from("event_overrides").delete().eq("id", existing.id);
       if (error) throw new Error(error.message);
@@ -129,6 +134,7 @@ export async function retimeOccurrence(
 export interface EventFormValues {
   name: string;
   event_date: string;
+  end_date: string | null;
   event_time: string | null;
   end_time: string | null;
   duration_minutes: number | null;
@@ -250,6 +256,69 @@ export async function splitSeriesFromOccurrence(
     .eq("event_id", event.id)
     .gt("original_date", originalDate);
   if (exceptionMigrateError) throw new Error(exceptionMigrateError.message);
+}
+
+// Drag-to-resize handle: extends/shrinks a single occurrence's span to end
+// on newEndDate. Mirrors retimeOccurrence's shape closely (date is never
+// touched here — that's moveOccurrence's job), with the natural span end
+// computed from the series' template spanDays rather than a stored field.
+//
+// - Non-recurring: updates the base row's end_date directly (null when
+//   back to single-day, matching how a null end_date is always read).
+// - Recurring: writes/updates event_overrides.new_end_date, preserving
+//   whatever new_date/new_time already exist on that row.
+export async function extendOccurrenceSpan(
+  event: EventRow,
+  originalDate: string,
+  newEndDate: string
+): Promise<void> {
+  if (event.recurring === "None") {
+    const { error } = await supabase
+      .from("events")
+      .update({ end_date: newEndDate === event.event_date ? null : newEndDate })
+      .eq("id", event.id);
+    if (error) throw new Error(error.message);
+    return;
+  }
+
+  const naturalEndDate = toDateStr(addDays(parseDateStr(originalDate), computeSpanDays(event)));
+
+  const { data: existing, error: fetchError } = await supabase
+    .from("event_overrides")
+    .select("id, new_date, new_time")
+    .eq("event_id", event.id)
+    .eq("original_date", originalDate)
+    .maybeSingle();
+  if (fetchError) throw new Error(fetchError.message);
+
+  const dateIsNatural = !existing || existing.new_date === originalDate;
+  const timeIsNatural = !existing || existing.new_time == null;
+  const spanIsNatural = newEndDate === naturalEndDate;
+
+  if (spanIsNatural && dateIsNatural && timeIsNatural) {
+    if (existing) {
+      const { error } = await supabase.from("event_overrides").delete().eq("id", existing.id);
+      if (error) throw new Error(error.message);
+    }
+    return;
+  }
+
+  if (existing) {
+    const { error } = await supabase
+      .from("event_overrides")
+      .update({ new_end_date: spanIsNatural ? null : newEndDate })
+      .eq("id", existing.id);
+    if (error) throw new Error(error.message);
+    return;
+  }
+
+  const { error } = await supabase.from("event_overrides").insert({
+    event_id: event.id,
+    original_date: originalDate,
+    new_date: originalDate,
+    new_end_date: newEndDate,
+  });
+  if (error) throw new Error(error.message);
 }
 
 // "Only this event" delete: excepts the occurrence so the series stops

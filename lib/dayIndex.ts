@@ -27,6 +27,9 @@ export function buildDayIndex(
   }
 
   for (const occurrence of occurrences) {
+    // Multi-day occurrences render as spanning bars instead (see
+    // lib/eventBars.ts), not per-day cards.
+    if (occurrence.spanEndDate !== occurrence.occurrenceDate) continue;
     index.get(occurrence.occurrenceDate)?.occurrences.push(occurrence);
   }
 

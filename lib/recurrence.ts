@@ -1,5 +1,6 @@
-import { addWeeks, addMonths, addYears, isBefore, isAfter } from "date-fns";
+import { addDays, addWeeks, addMonths, addYears, isBefore, isAfter } from "date-fns";
 import { parseDateStr, toDateStr } from "./dates";
+import { computeSpanDays } from "./eventSpan";
 import { EventRow, EventOccurrence, Recurring } from "./types";
 
 function stepFor(recurring: Recurring): (d: Date) => Date {
@@ -26,9 +27,14 @@ export function expandEvent(
   exceptionDates: Set<string> = new Set()
 ): EventOccurrence[] {
   const anchor = parseDateStr(event.event_date);
+  const spanDays = computeSpanDays(event);
 
   if (event.recurring === "None") {
-    if (!isBefore(anchor, rangeStart) && !isAfter(anchor, rangeEnd)) {
+    const spanEnd = spanDays > 0 ? addDays(anchor, spanDays) : anchor;
+    // Overlap check, not just "does the start date fall in range" — a
+    // multi-day event that started before rangeStart can still be ongoing
+    // when rangeStart begins.
+    if (!isAfter(anchor, rangeEnd) && !isBefore(spanEnd, rangeStart)) {
       return [
         {
           event,
@@ -37,6 +43,7 @@ export function expandEvent(
           isOverridden: false,
           startTime: event.event_time,
           endTime: event.end_time,
+          spanEndDate: toDateStr(spanEnd),
         },
       ];
     }
@@ -57,9 +64,16 @@ export function expandEvent(
   // rangeStart — starting the walk at an arbitrary grid boundary would
   // misalign Monthly/Yearly patterns (e.g. a "15th of every month" event
   // would drift off-pattern if we counted from rangeStart instead of the
-  // real anchor date).
+  // real anchor date). Stops advancing once this occurrence's *span* would
+  // reach rangeStart, not just its start date, so a multi-day occurrence
+  // beginning just before rangeStart isn't skipped.
+  //
+  // KNOWN LIMITATION: a per-occurrence span override (new_end_date, applied
+  // later in lib/overrides.ts) isn't visible here — only the series'
+  // template spanDays is. An occurrence individually resized past a grid
+  // boundary this walk already skipped won't appear. Not handled this phase.
   let cur = anchor;
-  while (isBefore(cur, rangeStart)) {
+  while (isBefore(addDays(cur, spanDays), rangeStart)) {
     cur = step(cur);
   }
 
@@ -74,6 +88,7 @@ export function expandEvent(
         isOverridden: false,
         startTime: event.event_time,
         endTime: event.end_time,
+        spanEndDate: toDateStr(addDays(cur, spanDays)),
       });
     }
     cur = step(cur);

@@ -13,6 +13,7 @@ export interface EventRow {
   id: string;
   name: string;
   event_date: string; // yyyy-MM-dd
+  end_date: string | null; // yyyy-MM-dd — null means single-day (same as event_date)
   event_time: string | null; // HH:mm:ss — start time
   end_time: string | null; // HH:mm:ss
   duration_minutes: number | null;
@@ -189,6 +190,7 @@ export interface OverrideRow {
   original_date: string; // yyyy-MM-dd — the natural, anchor-derived occurrence date
   new_date: string; // yyyy-MM-dd — the effective date, always set even on a time-only override
   new_time: string | null; // HH:mm:ss — null means no time override, use the base event's event_time
+  new_end_date: string | null; // yyyy-MM-dd — null means no span override, use the natural span
   created_at: string;
 }
 
@@ -218,4 +220,9 @@ export interface EventOccurrence {
   // reflected everywhere the occurrence is shown (month view and day view).
   startTime: string | null;
   endTime: string | null;
+  // Effective last day this occurrence spans, always concrete — equal to
+  // occurrenceDate for a single-day occurrence. Rendering code checks
+  // spanEndDate !== occurrenceDate to decide "single-day card" vs "multi-day
+  // bar" (see lib/eventBars.ts, lib/dayIndex.ts).
+  spanEndDate: string;
 }

@@ -42,12 +42,16 @@ export async function getCalendarData(
 async function getEvents(gridStartStr: string, gridEndStr: string): Promise<EventRow[]> {
   try {
     const [oneOff, recurring] = await Promise.all([
+      // Overlap check, not just "does the start date fall in range" — a
+      // multi-day event that started before gridStart can still be ongoing
+      // when the grid begins. end_date is null for single-day events, so
+      // the null branch falls back to event_date as its own end.
       supabase
         .from("events")
         .select("*")
         .eq("recurring", "None")
-        .gte("event_date", gridStartStr)
-        .lte("event_date", gridEndStr),
+        .lte("event_date", gridEndStr)
+        .or(`end_date.gte.${gridStartStr},and(end_date.is.null,event_date.gte.${gridStartStr})`),
       supabase
         .from("events")
         .select("*")

@@ -1,11 +1,19 @@
+import { differenceInCalendarDays, addDays } from "date-fns";
 import { EventRow, EventOccurrence, OverrideRow } from "./types";
 import { computeEndTime } from "./timeMath";
+import { parseDateStr, toDateStr } from "./dates";
 
-// Applies an override's date/time deviation on top of an already-expanded
-// occurrence. new_date is always applied (it's always concrete — see
-// PROJECT decision on migration 005). new_time, when set, also recomputes
-// the effective end time from the base event's duration_minutes, so a
-// retimed occurrence keeps its original length.
+// Applies an override's date/time/span deviation on top of an already-
+// expanded occurrence. new_date is always applied (it's always concrete —
+// see PROJECT decision on migration 005). new_time, when set, also
+// recomputes the effective end time from the base event's duration_minutes,
+// so a retimed occurrence keeps its original length.
+//
+// Span end date: a plain date-move (new_date changed, no new_end_date) also
+// shifts the span end by the same number of days, so moving an already
+// multi-day occurrence preserves its length — matching how dragging a card
+// preserves duration elsewhere. An explicit new_end_date (from the
+// drag-to-resize handle) overrides that and wins outright.
 function applyOverrideToOccurrence(occ: EventOccurrence, override: OverrideRow): EventOccurrence {
   const startTime = override.new_time ?? occ.event.event_time;
   const endTime =
@@ -15,19 +23,25 @@ function applyOverrideToOccurrence(occ: EventOccurrence, override: OverrideRow):
         : null
       : occ.event.end_time;
 
+  const dateShiftDays = differenceInCalendarDays(
+    parseDateStr(override.new_date),
+    parseDateStr(occ.originalDate)
+  );
+  const shiftedSpanEndDate = toDateStr(addDays(parseDateStr(occ.spanEndDate), dateShiftDays));
+
   return {
     ...occ,
     occurrenceDate: override.new_date,
     startTime,
     endTime,
     isOverridden: true,
+    spanEndDate: override.new_end_date ?? shiftedSpanEndDate,
   };
 }
 
 // Applies event_overrides on top of naturally-expanded occurrences. An
-// override can shift an occurrence's date, its time, or both — see PROJECT
-// decision: no per-occurrence field edits or cancellation beyond date/time
-// in this phase.
+// override can shift an occurrence's date, its time, its span, or any
+// combination.
 export function applyOverrides(
   occurrences: EventOccurrence[],
   overrides: OverrideRow[],
@@ -80,6 +94,7 @@ export function applyOverrides(
           isOverridden: false,
           startTime: baseEvent.event_time,
           endTime: baseEvent.end_time,
+          spanEndDate: baseEvent.end_date ?? override.original_date,
         },
         override
       )
