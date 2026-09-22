@@ -8,6 +8,14 @@ items (features/fixes) that push contains — a push with 1 item goes up by
 `1.05`). If MINOR would pass `.99`, MAJOR increments and MINOR carries the
 remainder (e.g. `1.99` + 2 items → `2.01`).
 
+## v1.09 — 2026-09-22
+
+- Updated `ONBOARDING.md` with everything built since the last handover (the
+  versioning process, the Gathering preview/subtitle work, the overflow-day
+  fix, day notes, and the Churchwide/Zone/TG event type colors) so a
+  collaborator's Claude Code session has current context, not the v1.00-era
+  snapshot it had before.
+
 ## v1.08 — 2026-09-22
 
 - Added day notes: a small "+ note" toggle in every calendar day cell opens a

@@ -75,6 +75,39 @@ In rough chronological order:
    exists / Possible conflict), and never writes to the database until a
    human explicitly approves — this was a deliberate design choice, treat any
    future automated-write feature with the same level of caution
+10. Editable event categories (`levels` table, `/levels` admin page) with
+    auto-suggested colors, per-occurrence edit/delete scope for recurring
+    events, comment-style General/Month Notes (replies + removal), multi-day
+    drag-to-resize, calendar export (ICS/PDF/DOCX), Gathering templates and
+    checklist-to-calendar linking
+11. **Versioning/changelog process** — every push now bumps `CHANGELOG.md`
+    first (`MAJOR.MINOR`, MINOR +1 per distinct item in that push). The full
+    rule is documented in `CLAUDE.md` under "Changelog / versioning" so it
+    applies in any Claude Code session on this repo, not just one person's.
+    **Follow this on your pushes too** — check `CHANGELOG.md`'s current
+    version before committing.
+12. Gathering events now show a Series — Sermon Title subtitle on cards
+    (calendar, day view, and the "Events by Category" list); the Add/Edit
+    Event form was reordered (Gathering Type before Name) and gained a live
+    Preview panel showing exactly what will be saved, before Save
+13. The month grid and "Events by Category" list no longer show events from
+    the muted leading/trailing overflow days (dates from the adjacent month
+    shown to fill out week rows)
+14. **Day notes** — a "+ note" toggle in every day cell opens a tiny inline
+    editor for short freeform tags on that date (e.g. "Send a card to
+    friends" on a holiday), shown as plain green text, not an event card.
+    New `day_notes` table.
+15. **Event Type regrouping for Events** — the Level picker for Event-type
+    entries (not Gatherings) is now a Churchwide / Zone / TG picker, with
+    Zone expanding into Youth / Poly / Uni / Adults / COW-Thirdspace. Colors:
+    Churchwide=red, Youth=yellow, Poly=blue, Uni=purple, Adults=pink,
+    COW/Thirdspace=green, TG=orange. COW and Thirdspace were merged into one
+    category; TG (TEVO Groups) is new. Gatherings are untouched — separate
+    flow, still amber. The color palette (`SeasonColorKey`, shared between
+    Levels and Seasons) grew from 10 to 14 keys to fit this.
+
+As of this handover, the app is at **CHANGELOG.md v1.08** — check that file's
+top entry for the exact current version and what's in it.
 
 ## Key design decisions worth knowing before changing things
 - **No day-crossing logic anywhere** — an event ending "after midnight" just
@@ -88,6 +121,18 @@ In rough chronological order:
   known, accepted v1 tradeoff (see passcode gate note above), not an oversight.
 - **The passcode gate is a deterrent, not access control.** Don't treat it as
   real security when reasoning about what's safe to build next.
+- **The Churchwide/Zone/TG "Event Type" picker is a UI grouping over the
+  existing `level` field, not a new column** — Zone's sub-options (Youth,
+  Poly, Uni, Adults, COW/Thirdspace) are just `levels` rows, same as
+  Churchwide/TG/Gathering. See `ZONE_LEVEL_NAMES` /
+  `CHURCHWIDE_LEVEL_NAME` / `TG_LEVEL_NAME` in `lib/constants.ts` and
+  `topCategoryFor()` in `EventModal.tsx` before changing this.
+- **Migrations are numbered SQL files at the repo root**
+  (`supabase_migration_0NN_*.sql`), run manually by whoever owns the shared
+  Supabase project (Edwin) — there's no migration runner. Since the database
+  is shared (not per-developer), you generally won't need to run these
+  yourself; just know they exist if a feature you're building needs a schema
+  change; next number is 017.
 
 ## Working with Claude Code on this project
 This project was built almost entirely through conversational, phase-by-phase
