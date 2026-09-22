@@ -2,7 +2,7 @@ import { subDays } from "date-fns";
 import { supabase } from "./supabase";
 import { computeEndTime, timeStrToMinutes } from "./timeMath";
 import { parseDateStr, toDateStr } from "./dates";
-import { EventRow, Level, Recurring } from "./types";
+import { EventRow, EventType, Level, Recurring } from "./types";
 
 // Moves a single occurrence to newDate. Never touches new_time — the upsert
 // below only ever sends event_id/original_date/new_date, so PostgREST's
@@ -136,6 +136,15 @@ export interface EventFormValues {
   recurring: Recurring;
   repeat_until: string | null;
   notes: string | null;
+  event_type: EventType;
+  pastoral_youth: boolean;
+  pastoral_poly: boolean;
+  pastoral_uni: boolean;
+  pastoral_adults: boolean;
+  series: string | null;
+  preacher_name: string | null;
+  sermon_title: string | null;
+  theme: string | null;
 }
 
 export async function createEvent(values: EventFormValues): Promise<void> {

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, FormEvent } from "react";
-import { EventOccurrence, EventRow, Level, LevelRow, Recurring } from "@/lib/types";
+import { EventOccurrence, EventRow, EventType, Level, LevelRow, Recurring } from "@/lib/types";
 import {
   createEvent,
   updateEvent,
@@ -12,6 +12,7 @@ import {
   EventFormValues,
 } from "@/lib/actions";
 import { computeDuration, computeEndTime, endsNextDay } from "@/lib/timeMath";
+import { PastoralFocus, applyTitlePrefix, stripTitlePrefix } from "@/lib/pastoralFocus";
 import ConfirmDialog from "./ConfirmDialog";
 import RecurringScopeDialog from "./RecurringScopeDialog";
 
@@ -45,7 +46,24 @@ export default function EventModal({
   onSaved,
   onDeleted,
 }: EventModalProps) {
-  const [name, setName] = useState(event?.name ?? "");
+  const [eventType, setEventType] = useState<EventType>(event?.event_type ?? "Event");
+  // The Name field always holds the bare title, never the Y/P/U/A prefix —
+  // an existing prefix (baked into event.name at save time, see handleSubmit)
+  // is stripped back off here so editing doesn't require the user to touch
+  // the prefix text directly.
+  const [name, setName] = useState(() =>
+    event && event.event_type === "Event" ? stripTitlePrefix(event.name) : event?.name ?? ""
+  );
+  const [pastoralFocus, setPastoralFocus] = useState<PastoralFocus>({
+    youth: event?.pastoral_youth ?? false,
+    poly: event?.pastoral_poly ?? false,
+    uni: event?.pastoral_uni ?? false,
+    adults: event?.pastoral_adults ?? false,
+  });
+  const [series, setSeries] = useState(event?.series ?? "");
+  const [preacherName, setPreacherName] = useState(event?.preacher_name ?? "");
+  const [sermonTitle, setSermonTitle] = useState(event?.sermon_title ?? "");
+  const [theme, setTheme] = useState(event?.theme ?? "");
   const [eventDate, setEventDate] = useState(occurrence?.occurrenceDate ?? event?.event_date ?? initialDate ?? "");
   const [eventTime, setEventTime] = useState(
     (occurrence?.startTime ?? event?.event_time)?.slice(0, 5) ?? ""
@@ -115,8 +133,9 @@ export default function EventModal({
       return;
     }
 
+    const baseName = name.trim();
     const values: EventFormValues = {
-      name: name.trim(),
+      name: eventType === "Event" ? applyTitlePrefix(baseName, pastoralFocus) : baseName,
       event_date: eventDate,
       event_time: eventTime || null,
       end_time: endTime || null,
@@ -125,6 +144,15 @@ export default function EventModal({
       recurring,
       repeat_until: recurring === "None" ? null : repeatUntil || null,
       notes: notes.trim() || null,
+      event_type: eventType,
+      pastoral_youth: eventType === "Event" && pastoralFocus.youth,
+      pastoral_poly: eventType === "Event" && pastoralFocus.poly,
+      pastoral_uni: eventType === "Event" && pastoralFocus.uni,
+      pastoral_adults: eventType === "Event" && pastoralFocus.adults,
+      series: eventType === "Gathering" ? series.trim() || null : null,
+      preacher_name: eventType === "Gathering" ? preacherName.trim() || null : null,
+      sermon_title: eventType === "Gathering" ? sermonTitle.trim() || null : null,
+      theme: eventType === "Gathering" ? theme.trim() || null : null,
     };
 
     if (canChooseScope) {
@@ -270,6 +298,26 @@ export default function EventModal({
           />
         ) : (
           <form onSubmit={handleSubmit} className="flex flex-col gap-3">
+            <div className="flex flex-col gap-1 text-sm">
+              Type
+              <div className="flex gap-2">
+                {(["Event", "Gathering"] as EventType[]).map((t) => (
+                  <button
+                    key={t}
+                    type="button"
+                    onClick={() => setEventType(t)}
+                    className={[
+                      "flex-1 px-3 py-1.5 rounded border text-sm",
+                      eventType === t
+                        ? "bg-navy text-white border-navy"
+                        : "border-gray-300 text-gray-600 hover:bg-gray-50",
+                    ].join(" ")}
+                  >
+                    {t}
+                  </button>
+                ))}
+              </div>
+            </div>
             <label className="flex flex-col gap-1 text-sm">
               Name
               <input
@@ -279,6 +327,73 @@ export default function EventModal({
                 required
               />
             </label>
+
+            {eventType === "Event" ? (
+              <div className="flex flex-col gap-1 text-sm">
+                Pastoral Focus
+                <div className="flex flex-wrap gap-3">
+                  {(
+                    [
+                      ["youth", "Youth"],
+                      ["poly", "Poly"],
+                      ["uni", "Uni"],
+                      ["adults", "Adults"],
+                    ] as Array<[keyof PastoralFocus, string]>
+                  ).map(([key, label]) => (
+                    <label key={key} className="flex items-center gap-1.5 text-sm font-normal">
+                      <input
+                        type="checkbox"
+                        checked={pastoralFocus[key]}
+                        onChange={(e) =>
+                          setPastoralFocus((prev) => ({ ...prev, [key]: e.target.checked }))
+                        }
+                      />
+                      {label}
+                    </label>
+                  ))}
+                </div>
+                <span className="text-xs text-gray-400">
+                  Adds a prefix to the saved title, e.g. Youth + Poly checked saves as
+                  &ldquo;YP: {name || "…"}&rdquo;.
+                </span>
+              </div>
+            ) : (
+              <div className="grid grid-cols-2 gap-3">
+                <label className="flex flex-col gap-1 text-sm">
+                  Series
+                  <input
+                    value={series}
+                    onChange={(e) => setSeries(e.target.value)}
+                    className="border rounded px-2 py-1"
+                  />
+                </label>
+                <label className="flex flex-col gap-1 text-sm">
+                  Preacher Name
+                  <input
+                    value={preacherName}
+                    onChange={(e) => setPreacherName(e.target.value)}
+                    className="border rounded px-2 py-1"
+                  />
+                </label>
+                <label className="flex flex-col gap-1 text-sm">
+                  Sermon Title
+                  <input
+                    value={sermonTitle}
+                    onChange={(e) => setSermonTitle(e.target.value)}
+                    className="border rounded px-2 py-1"
+                  />
+                </label>
+                <label className="flex flex-col gap-1 text-sm">
+                  Theme
+                  <input
+                    value={theme}
+                    onChange={(e) => setTheme(e.target.value)}
+                    className="border rounded px-2 py-1"
+                  />
+                </label>
+              </div>
+            )}
+
             <div className="grid grid-cols-2 gap-3">
               <label className="flex flex-col gap-1 text-sm">
                 Date

@@ -4,6 +4,11 @@ export type Level = string;
 
 export type Recurring = "None" | "Weekly" | "Monthly" | "Yearly";
 
+// "Event": anything general (TG outing, Churchwide event, ...) — can carry a
+// Pastoral Focus (see pastoral_* below). "Gathering": Sunday service, with
+// its own series/preacher/sermon/theme fields. See migration 008.
+export type EventType = "Event" | "Gathering";
+
 export interface EventRow {
   id: string;
   name: string;
@@ -16,6 +21,19 @@ export interface EventRow {
   repeat_until: string | null; // yyyy-MM-dd
   notes: string | null;
   created_at: string;
+  event_type: EventType;
+  // Pastoral Focus — independent booleans (not single-select), drive the
+  // Y/P/U/A title prefix on Type 1 "Event" entries. Deliberately separate
+  // from `level`, which stays single-select for the color legend/grouping.
+  pastoral_youth: boolean;
+  pastoral_poly: boolean;
+  pastoral_uni: boolean;
+  pastoral_adults: boolean;
+  // Gathering-only fields — null when event_type is "Event".
+  series: string | null;
+  preacher_name: string | null;
+  sermon_title: string | null;
+  theme: string | null;
 }
 
 export type HolidayType =
@@ -155,6 +173,14 @@ export interface MonthFocusValues {
   series_focus: string | null;
   key_theme: string | null;
   notes: string | null;
+}
+
+// Single row, id is always "singleton" — notes shown regardless of which
+// month is being viewed (left column). See migration 009.
+export interface GeneralNotesRow {
+  id: string;
+  content: string | null;
+  updated_at: string;
 }
 
 export interface OverrideRow {

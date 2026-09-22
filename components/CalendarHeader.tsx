@@ -7,9 +7,10 @@ import { LevelRow } from "@/lib/types";
 interface CalendarHeaderProps {
   monthStart: Date;
   levels: LevelRow[];
+  onAddClick: () => void;
 }
 
-export default function CalendarHeader({ monthStart, levels }: CalendarHeaderProps) {
+export default function CalendarHeader({ monthStart, levels, onAddClick }: CalendarHeaderProps) {
   const prev = subMonths(monthStart, 1);
   const next = addMonths(monthStart, 1);
 
@@ -36,6 +37,13 @@ export default function CalendarHeader({ monthStart, levels }: CalendarHeaderPro
           >
             Next →
           </Link>
+          <button
+            type="button"
+            onClick={onAddClick}
+            className="px-2.5 py-1 rounded bg-navy text-white"
+          >
+            + Add Event
+          </button>
         </div>
       </div>
 

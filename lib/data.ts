@@ -3,6 +3,7 @@ import {
   ChecklistRow,
   EventRow,
   ExceptionRow,
+  GeneralNotesRow,
   HolidayRow,
   LevelRow,
   SeasonRow,
@@ -231,6 +232,25 @@ export async function getMonthFocus(year: number, month: number): Promise<MonthF
   } catch (err) {
     console.error("getMonthFocus threw:", err);
     return null;
+  }
+}
+
+// Always exactly one row (pre-seeded by migration 009) — falls back to a
+// null-content placeholder only if that row is somehow missing.
+export async function getGeneralNotes(): Promise<GeneralNotesRow> {
+  try {
+    const { data, error } = await supabase
+      .from("general_notes")
+      .select("*")
+      .eq("id", "singleton")
+      .maybeSingle();
+    if (error) {
+      console.error("getGeneralNotes failed:", error.message);
+    }
+    return data ?? { id: "singleton", content: null, updated_at: new Date().toISOString() };
+  } catch (err) {
+    console.error("getGeneralNotes threw:", err);
+    return { id: "singleton", content: null, updated_at: new Date().toISOString() };
   }
 }
 

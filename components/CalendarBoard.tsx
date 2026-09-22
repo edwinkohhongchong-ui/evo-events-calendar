@@ -31,6 +31,7 @@ interface CalendarBoardProps {
   holidays: HolidayRow[];
   seasonSegmentsByWeek: SeasonSegment[][];
   levels: LevelRow[];
+  defaultAddDate: string;
 }
 
 type ModalState =
@@ -45,6 +46,7 @@ export default function CalendarBoard({
   holidays,
   seasonSegmentsByWeek,
   levels,
+  defaultAddDate,
 }: CalendarBoardProps) {
   const router = useRouter();
   const colorMap = useMemo(
@@ -123,7 +125,11 @@ export default function CalendarBoard({
         onDragStart={handleDragStart}
         onDragEnd={handleDragEnd}
       >
-        <CalendarHeader monthStart={monthStart} levels={levels} />
+        <CalendarHeader
+          monthStart={monthStart}
+          levels={levels}
+          onAddClick={() => setModal({ type: "add", date: defaultAddDate })}
+        />
         <CalendarGrid
           weeks={weeks}
           monthStart={monthStart}
