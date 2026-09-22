@@ -1,8 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { Suspense, useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { HolidayDiffRow, HolidayType } from "@/lib/types";
 import { HOLIDAY_TYPES } from "@/lib/constants";
 import { createHoliday } from "@/lib/holidayActions";
@@ -42,9 +42,21 @@ function toReviewRow(row: HolidayDiffRow, index: number): ReviewRow {
 }
 
 export default function NewYearPage() {
+  return (
+    <Suspense fallback={null}>
+      <NewYearPageInner />
+    </Suspense>
+  );
+}
+
+function NewYearPageInner() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const nextYear = new Date().getFullYear() + 1;
-  const [year, setYear] = useState(nextYear);
+  // ?year= comes from the Holidays page's "Update Calendar" button (checks
+  // the current year); typing a URL directly, or the default, checks next
+  // year instead — same underlying fetch-and-review flow either way.
+  const [year, setYear] = useState(Number(searchParams.get("year")) || nextYear);
   const [phase, setPhase] = useState<Phase>({ kind: "form" });
 
   async function handleFetch() {

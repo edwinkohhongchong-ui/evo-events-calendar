@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, FormEvent } from "react";
-import { EventOccurrence, EventRow, EventType, Level, LevelRow, Recurring } from "@/lib/types";
+import { EventOccurrence, EventRow, EventType, GatheringType, Level, LevelRow, Recurring } from "@/lib/types";
 import {
   createEvent,
   updateEvent,
@@ -14,6 +14,7 @@ import {
 import { computeDuration, computeEndTime, endsNextDay } from "@/lib/timeMath";
 import { formatDateDisplay, formatEventTimeRange } from "@/lib/dates";
 import { PastoralFocus, applyTitlePrefix, stripTitlePrefix } from "@/lib/pastoralFocus";
+import { GATHERING_TYPES } from "@/lib/constants";
 import ConfirmDialog from "./ConfirmDialog";
 import RecurringScopeDialog from "./RecurringScopeDialog";
 
@@ -55,12 +56,20 @@ export default function EventModal({
   const [name, setName] = useState(() =>
     event && event.event_type === "Event" ? stripTitlePrefix(event.name) : event?.name ?? ""
   );
+  // Once the user types into Name directly, stop overwriting it when
+  // Gathering Type or Preacher Name change — an existing event's name
+  // counts as already "touched" (never overridden just by opening the
+  // form). Mirrors the same pattern used for Season/Level color suggestion.
+  const [nameTouched, setNameTouched] = useState(!!event);
   const [pastoralFocus, setPastoralFocus] = useState<PastoralFocus>({
     youth: event?.pastoral_youth ?? false,
     poly: event?.pastoral_poly ?? false,
     uni: event?.pastoral_uni ?? false,
     adults: event?.pastoral_adults ?? false,
   });
+  const [gatheringType, setGatheringType] = useState<GatheringType>(
+    event?.gathering_type ?? GATHERING_TYPES[0]
+  );
   const [series, setSeries] = useState(event?.series ?? "");
   const [preacherName, setPreacherName] = useState(event?.preacher_name ?? "");
   const [sermonTitle, setSermonTitle] = useState(event?.sermon_title ?? "");
@@ -131,6 +140,31 @@ export default function EventModal({
     }
   }
 
+  function handleNameChange(value: string) {
+    setName(value);
+    setNameTouched(true);
+  }
+
+  // "Gathering with Edwin Koh" — Gathering Type alone if no preacher is set
+  // yet. Only auto-applied while the user hasn't typed into Name directly.
+  function autoGatheringName(type: GatheringType, preacher: string): string {
+    return preacher.trim() ? `${type} with ${preacher.trim()}` : type;
+  }
+
+  function handleGatheringTypeChange(type: GatheringType) {
+    setGatheringType(type);
+    if (!nameTouched) {
+      setName(autoGatheringName(type, preacherName));
+    }
+  }
+
+  function handlePreacherNameChange(value: string) {
+    setPreacherName(value);
+    if (!nameTouched) {
+      setName(autoGatheringName(gatheringType, value));
+    }
+  }
+
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
     setFormError(null);
@@ -161,6 +195,7 @@ export default function EventModal({
       pastoral_poly: eventType === "Event" && pastoralFocus.poly,
       pastoral_uni: eventType === "Event" && pastoralFocus.uni,
       pastoral_adults: eventType === "Event" && pastoralFocus.adults,
+      gathering_type: eventType === "Gathering" ? gatheringType : null,
       series: eventType === "Gathering" ? series.trim() || null : null,
       preacher_name: eventType === "Gathering" ? preacherName.trim() || null : null,
       sermon_title: eventType === "Gathering" ? sermonTitle.trim() || null : null,
@@ -422,7 +457,12 @@ export default function EventModal({
                   <button
                     key={t}
                     type="button"
-                    onClick={() => setEventType(t)}
+                    onClick={() => {
+                      setEventType(t);
+                      if (t === "Gathering" && !nameTouched) {
+                        setName(autoGatheringName(gatheringType, preacherName));
+                      }
+                    }}
                     className={[
                       "flex-1 px-3 py-1.5 rounded border text-sm",
                       eventType === t
@@ -439,7 +479,7 @@ export default function EventModal({
               Name
               <input
                 value={name}
-                onChange={(e) => setName(e.target.value)}
+                onChange={(e) => handleNameChange(e.target.value)}
                 className="border rounded px-2 py-1"
                 required
               />
@@ -476,6 +516,25 @@ export default function EventModal({
               </div>
             ) : (
               <div className="grid grid-cols-2 gap-3">
+                <label className="flex flex-col gap-1 text-sm col-span-2">
+                  Gathering Type
+                  <select
+                    value={gatheringType}
+                    onChange={(e) => handleGatheringTypeChange(e.target.value as GatheringType)}
+                    className="border rounded px-2 py-1"
+                  >
+                    {GATHERING_TYPES.map((t) => (
+                      <option key={t} value={t}>
+                        {t}
+                      </option>
+                    ))}
+                  </select>
+                  <span className="text-xs text-gray-400 font-normal">
+                    Auto-fills the name below (still editable) — e.g. picking this and typing
+                    &ldquo;Edwin Koh&rdquo; as Preacher Name saves as &ldquo;{gatheringType} with Edwin
+                    Koh&rdquo;.
+                  </span>
+                </label>
                 <label className="flex flex-col gap-1 text-sm">
                   Series
                   <input
@@ -488,7 +547,7 @@ export default function EventModal({
                   Preacher Name
                   <input
                     value={preacherName}
-                    onChange={(e) => setPreacherName(e.target.value)}
+                    onChange={(e) => handlePreacherNameChange(e.target.value)}
                     className="border rounded px-2 py-1"
                   />
                 </label>

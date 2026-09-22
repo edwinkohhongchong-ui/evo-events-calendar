@@ -1,8 +1,9 @@
 "use client";
 
 import { useState, FormEvent } from "react";
-import { ChecklistRow, ChecklistStatus, TargetMonth } from "@/lib/types";
+import { ChecklistRow, ChecklistStatus, EventOption, TargetMonth } from "@/lib/types";
 import { CHECKLIST_STATUSES, TARGET_MONTHS } from "@/lib/constants";
+import { formatDateDisplay } from "@/lib/dates";
 import {
   createChecklistItem,
   updateChecklistItem,
@@ -13,16 +14,19 @@ import ConfirmDialog from "./ConfirmDialog";
 interface ChecklistModalProps {
   mode: "add" | "edit";
   item?: ChecklistRow;
+  eventOptions: EventOption[];
   onClose: () => void;
   onSaved: () => void;
   onDeleted: () => void;
 }
 
 const NO_MONTH = "";
+const NO_LINK = "";
 
 export default function ChecklistModal({
   mode,
   item,
+  eventOptions,
   onClose,
   onSaved,
   onDeleted,
@@ -31,6 +35,7 @@ export default function ChecklistModal({
   const [itemText, setItemText] = useState(item?.item ?? "");
   const [status, setStatus] = useState<ChecklistStatus>(item?.status ?? "Not Started");
   const [targetMonth, setTargetMonth] = useState<string>(item?.target_month ?? NO_MONTH);
+  const [linkedEventId, setLinkedEventId] = useState<string>(item?.linked_event_id ?? NO_LINK);
   const [notes, setNotes] = useState(item?.notes ?? "");
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
@@ -57,6 +62,7 @@ export default function ChecklistModal({
         status,
         target_month: (targetMonth || null) as TargetMonth | null,
         notes: notes.trim() || null,
+        linked_event_id: linkedEventId || null,
       };
       if (mode === "add") {
         await createChecklistItem(values);
@@ -151,6 +157,24 @@ export default function ChecklistModal({
                 </select>
               </label>
             </div>
+            <label className="flex flex-col gap-1 text-sm">
+              Linked event
+              <select
+                value={linkedEventId}
+                onChange={(e) => setLinkedEventId(e.target.value)}
+                className="border rounded px-2 py-1"
+              >
+                <option value={NO_LINK}>— Not linked —</option>
+                {eventOptions.map((opt) => (
+                  <option key={opt.id} value={opt.id}>
+                    {formatDateDisplay(opt.event_date)} — {opt.name}
+                  </option>
+                ))}
+              </select>
+              <span className="text-xs text-gray-400 font-normal">
+                Used by &ldquo;Check Calendar&rdquo; to confirm this is actually scheduled.
+              </span>
+            </label>
             <label className="flex flex-col gap-1 text-sm">
               Notes
               <textarea

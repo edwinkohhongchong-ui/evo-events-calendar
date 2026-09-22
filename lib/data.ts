@@ -1,6 +1,7 @@
 import { supabase } from "./supabase";
 import {
   ChecklistRow,
+  EventOption,
   EventRow,
   ExceptionRow,
   HolidayRow,
@@ -212,6 +213,24 @@ export async function getAllChecklist(): Promise<ChecklistRow[]> {
     return data ?? [];
   } catch (err) {
     console.error("getAllChecklist threw:", err);
+    return [];
+  }
+}
+
+// Slim event list for the checklist's "Link to event" picker.
+export async function getEventOptions(): Promise<EventOption[]> {
+  try {
+    const { data, error } = await supabase
+      .from("events")
+      .select("id, name, event_date")
+      .order("event_date");
+    if (error) {
+      console.error("getEventOptions failed:", error.message);
+      return [];
+    }
+    return data ?? [];
+  } catch (err) {
+    console.error("getEventOptions threw:", err);
     return [];
   }
 }

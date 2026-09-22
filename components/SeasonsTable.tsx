@@ -1,8 +1,9 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, MouseEvent } from "react";
 import { useRouter } from "next/navigation";
 import SeasonModal from "./SeasonModal";
+import { deleteSeason } from "@/lib/seasonActions";
 import { SeasonRow } from "@/lib/types";
 import { formatDateDisplay } from "@/lib/dates";
 
@@ -14,6 +15,21 @@ export default function SeasonsTable({ seasons }: { seasons: SeasonRow[] }) {
   const router = useRouter();
   const [modal, setModal] = useState<ModalState>({ type: "closed" });
   const [yearFilter, setYearFilter] = useState<string>(ALL_YEARS);
+  const [removingId, setRemovingId] = useState<string | null>(null);
+
+  async function handleRemove(e: MouseEvent, season: SeasonRow) {
+    e.stopPropagation();
+    if (!window.confirm(`Delete "${season.name}"?`)) return;
+    setRemovingId(season.id);
+    try {
+      await deleteSeason(season.id);
+      router.refresh();
+    } catch (err) {
+      window.alert(err instanceof Error ? err.message : "Something went wrong deleting this season.");
+    } finally {
+      setRemovingId(null);
+    }
+  }
 
   // A season can span a year boundary (e.g. "RF 2025/2026" runs Dec–Feb) —
   // the year list/filter is based on which years a season touches at all,
@@ -68,6 +84,7 @@ export default function SeasonsTable({ seasons }: { seasons: SeasonRow[] }) {
               <th className="px-3 py-2">Start</th>
               <th className="px-3 py-2">End</th>
               <th className="px-3 py-2">Notes</th>
+              <th className="px-3 py-2 w-8"></th>
             </tr>
           </thead>
           <tbody>
@@ -88,11 +105,22 @@ export default function SeasonsTable({ seasons }: { seasons: SeasonRow[] }) {
                 <td className="px-3 py-2 text-gray-500 max-w-[200px] truncate">
                   {season.notes}
                 </td>
+                <td className="px-3 py-2">
+                  <button
+                    type="button"
+                    onClick={(e) => handleRemove(e, season)}
+                    disabled={removingId === season.id}
+                    title={`Remove "${season.name}"`}
+                    className="text-gray-300 hover:text-red-600 disabled:opacity-30 leading-none"
+                  >
+                    ×
+                  </button>
+                </td>
               </tr>
             ))}
             {filtered.length === 0 && (
               <tr>
-                <td colSpan={5} className="px-3 py-6 text-center text-gray-400">
+                <td colSpan={6} className="px-3 py-6 text-center text-gray-400">
                   No seasons{yearFilter !== ALL_YEARS ? ` for ${yearFilter}` : " yet"}.
                 </td>
               </tr>

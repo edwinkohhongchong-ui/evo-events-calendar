@@ -1,9 +1,10 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, MouseEvent } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import HolidayModal from "./HolidayModal";
+import { deleteHoliday } from "@/lib/holidayActions";
 import { HolidayRow } from "@/lib/types";
 import { formatDateDisplay } from "@/lib/dates";
 
@@ -15,6 +16,21 @@ export default function HolidaysTable({ holidays }: { holidays: HolidayRow[] }) 
   const router = useRouter();
   const [modal, setModal] = useState<ModalState>({ type: "closed" });
   const [yearFilter, setYearFilter] = useState<string>(ALL_YEARS);
+  const [removingId, setRemovingId] = useState<string | null>(null);
+
+  async function handleRemove(e: MouseEvent, holiday: HolidayRow) {
+    e.stopPropagation();
+    if (!window.confirm(`Delete "${holiday.name}"?`)) return;
+    setRemovingId(holiday.id);
+    try {
+      await deleteHoliday(holiday.id);
+      router.refresh();
+    } catch (err) {
+      window.alert(err instanceof Error ? err.message : "Something went wrong deleting this holiday.");
+    } finally {
+      setRemovingId(null);
+    }
+  }
 
   const years = useMemo(
     () =>
@@ -49,6 +65,13 @@ export default function HolidaysTable({ holidays }: { holidays: HolidayRow[] }) 
         </label>
         <div className="flex gap-2">
           <Link
+            href={`/holidays/new-year?year=${new Date().getFullYear()}`}
+            className="px-3 py-1.5 text-sm rounded border border-navy text-navy"
+            title="Re-checks Singapore public holidays for the current year via Calendarific — shows any missing ones for your approval, doesn't touch what's already here"
+          >
+            Update Calendar
+          </Link>
+          <Link
             href="/holidays/new-year"
             className="px-3 py-1.5 text-sm rounded border border-navy text-navy"
           >
@@ -69,6 +92,7 @@ export default function HolidaysTable({ holidays }: { holidays: HolidayRow[] }) 
               <th className="px-3 py-2">Date</th>
               <th className="px-3 py-2">Name</th>
               <th className="px-3 py-2">Type</th>
+              <th className="px-3 py-2 w-8"></th>
             </tr>
           </thead>
           <tbody>
@@ -83,11 +107,22 @@ export default function HolidaysTable({ holidays }: { holidays: HolidayRow[] }) 
                 </td>
                 <td className="px-3 py-2">{holiday.name}</td>
                 <td className="px-3 py-2 text-gray-600">{holiday.type}</td>
+                <td className="px-3 py-2">
+                  <button
+                    type="button"
+                    onClick={(e) => handleRemove(e, holiday)}
+                    disabled={removingId === holiday.id}
+                    title={`Remove "${holiday.name}"`}
+                    className="text-gray-300 hover:text-red-600 disabled:opacity-30 leading-none"
+                  >
+                    ×
+                  </button>
+                </td>
               </tr>
             ))}
             {filtered.length === 0 && (
               <tr>
-                <td colSpan={3} className="px-3 py-6 text-center text-gray-400">
+                <td colSpan={4} className="px-3 py-6 text-center text-gray-400">
                   No holidays{yearFilter !== ALL_YEARS ? ` for ${yearFilter}` : " yet"}.
                 </td>
               </tr>

@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import ChecklistModal from "./ChecklistModal";
 import ErrorBanner from "./ErrorBanner";
-import { ChecklistRow, ChecklistStatus } from "@/lib/types";
+import { ChecklistRow, ChecklistStatus, EventOption } from "@/lib/types";
 import { CHECKLIST_STATUSES, STATUS_COLORS, TARGET_MONTHS } from "@/lib/constants";
 import { updateChecklistStatus } from "@/lib/checklistActions";
 
@@ -12,12 +12,19 @@ type ModalState = { type: "closed" } | { type: "add" } | { type: "edit"; item: C
 
 const ALL_MONTHS = "All";
 
-export default function ChecklistTable({ checklist }: { checklist: ChecklistRow[] }) {
+export default function ChecklistTable({
+  checklist,
+  eventOptions,
+}: {
+  checklist: ChecklistRow[];
+  eventOptions: EventOption[];
+}) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [modal, setModal] = useState<ModalState>({ type: "closed" });
   const [monthFilter, setMonthFilter] = useState<string>(ALL_MONTHS);
   const [error, setError] = useState<string | null>(null);
+  const [checking, setChecking] = useState(false);
   const [statusOverride, setStatusOverride] = useState<{ id: string; status: ChecklistStatus } | null>(
     null
   );
@@ -50,6 +57,31 @@ export default function ChecklistTable({ checklist }: { checklist: ChecklistRow[
     }
   }
 
+  // Reconciles status against each item's linked event — Done when linked,
+  // Not Started when not. The link itself already goes back to null the
+  // moment its event is deleted (ON DELETE SET NULL, migration 014), so
+  // this is a plain read of current state, not a fresh scan against the
+  // calendar each time.
+  async function handleCheckCalendar() {
+    setChecking(true);
+    setError(null);
+    try {
+      const toUpdate = checklist.filter((row) => {
+        const expected: ChecklistStatus = row.linked_event_id ? "Done" : "Not Started";
+        return row.status !== expected && (row.linked_event_id || row.status === "Done");
+      });
+      for (const row of toUpdate) {
+        const expected: ChecklistStatus = row.linked_event_id ? "Done" : "Not Started";
+        await updateChecklistStatus(row.id, expected);
+      }
+      router.refresh();
+    } catch {
+      setError("Couldn't finish checking the calendar. Please try again.");
+    } finally {
+      setChecking(false);
+    }
+  }
+
   return (
     <div>
       {error && <ErrorBanner message={error} onDismiss={() => setError(null)} />}
@@ -70,12 +102,22 @@ export default function ChecklistTable({ checklist }: { checklist: ChecklistRow[
             ))}
           </select>
         </label>
-        <button
-          onClick={() => setModal({ type: "add" })}
-          className="px-3 py-1.5 text-sm rounded bg-navy text-white"
-        >
-          Add Item
-        </button>
+        <div className="flex gap-2">
+          <button
+            onClick={handleCheckCalendar}
+            disabled={checking}
+            title="Marks each linked item Done, and reverts to Not Started if its link is gone"
+            className="px-3 py-1.5 text-sm rounded border border-navy text-navy disabled:opacity-50"
+          >
+            {checking ? "Checking…" : "Check Calendar"}
+          </button>
+          <button
+            onClick={() => setModal({ type: "add" })}
+            className="px-3 py-1.5 text-sm rounded bg-navy text-white"
+          >
+            Add Item
+          </button>
+        </div>
       </div>
       <div className="border border-gray-200 rounded-md overflow-hidden overflow-x-auto">
         <table className="w-full text-sm whitespace-nowrap">
@@ -132,6 +174,7 @@ export default function ChecklistTable({ checklist }: { checklist: ChecklistRow[
         <ChecklistModal
           mode={modal.type}
           item={modal.type === "edit" ? modal.item : undefined}
+          eventOptions={eventOptions}
           onClose={() => setModal({ type: "closed" })}
           onSaved={() => {
             setModal({ type: "closed" });

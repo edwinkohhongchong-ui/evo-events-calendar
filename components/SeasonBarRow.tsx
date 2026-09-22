@@ -19,7 +19,7 @@ export default function SeasonBarRow({ segments }: { segments: SeasonSegment[] }
           <div
             key={`${segment.season.id}-w${segment.weekIndex}`}
             className={[
-              "text-[10px] leading-[18px] px-1.5 truncate border text-center",
+              "text-[10px] leading-[18px] px-1.5 truncate border",
               SEASON_BAR_COLORS[colorKey],
               segment.isSeasonStart ? "rounded-l-full" : "border-l-0",
               segment.isSeasonEnd ? "rounded-r-full" : "border-r-0",

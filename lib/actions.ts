@@ -3,7 +3,7 @@ import { supabase } from "./supabase";
 import { computeEndTime, timeStrToMinutes } from "./timeMath";
 import { parseDateStr, toDateStr } from "./dates";
 import { computeSpanDays } from "./eventSpan";
-import { EventRow, EventType, Level, Recurring } from "./types";
+import { EventRow, EventType, GatheringType, Level, Recurring } from "./types";
 
 // Moves a single occurrence to newDate. Never touches new_time/new_end_date —
 // the upsert below only ever sends event_id/original_date/new_date, so
@@ -147,6 +147,7 @@ export interface EventFormValues {
   pastoral_poly: boolean;
   pastoral_uni: boolean;
   pastoral_adults: boolean;
+  gathering_type: GatheringType | null;
   series: string | null;
   preacher_name: string | null;
   sermon_title: string | null;

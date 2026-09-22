@@ -9,6 +9,11 @@ export type Recurring = "None" | "Weekly" | "Monthly" | "Yearly";
 // its own series/preacher/sermon/theme fields. See migration 008.
 export type EventType = "Event" | "Gathering";
 
+// Only meaningful when event_type is "Gathering" — drives the auto-title
+// template in the Add/Edit form (e.g. "Gathering with Edwin Koh"). See
+// migration 013.
+export type GatheringType = "Gathering" | "YTH Gathering" | "+EVO YTH Big Day" | "Easter/XMAS";
+
 export interface EventRow {
   id: string;
   name: string;
@@ -31,6 +36,7 @@ export interface EventRow {
   pastoral_uni: boolean;
   pastoral_adults: boolean;
   // Gathering-only fields — null when event_type is "Event".
+  gathering_type: GatheringType | null;
   series: string | null;
   preacher_name: string | null;
   sermon_title: string | null;
@@ -136,6 +142,18 @@ export interface ChecklistRow {
   status: ChecklistStatus;
   target_month: TargetMonth | null;
   notes: string | null;
+  // Set via the "Link to event" picker — ON DELETE SET NULL means this goes
+  // back to null automatically if the linked event is deleted. "Check
+  // Calendar" reconciles status against this (see migration 014).
+  linked_event_id: string | null;
+}
+
+// Slim shape for the "Link to event" picker — just enough to identify an
+// event in a dropdown, not the full row.
+export interface EventOption {
+  id: string;
+  name: string;
+  event_date: string;
 }
 
 export interface HolidayFormValues {
@@ -159,6 +177,7 @@ export interface ChecklistFormValues {
   status: ChecklistStatus;
   target_month: TargetMonth | null;
   notes: string | null;
+  linked_event_id: string | null;
 }
 
 // One logged note — general (left column, shown for every month) or
