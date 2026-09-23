@@ -5,6 +5,7 @@ import { SeasonRow, SeasonCategory, SeasonColorKey } from "@/lib/types";
 import { SEASON_BAR_COLORS, SEASON_CATEGORIES, SEASON_COLOR_KEYS } from "@/lib/constants";
 import { createSeason, updateSeason, deleteSeason } from "@/lib/seasonActions";
 import { suggestSeasonColor } from "@/lib/seasonColor";
+import { useUndo } from "@/lib/undo/UndoProvider";
 import ConfirmDialog from "./ConfirmDialog";
 
 interface SeasonModalProps {
@@ -16,6 +17,7 @@ interface SeasonModalProps {
 }
 
 export default function SeasonModal({ mode, season, onClose, onSaved, onDeleted }: SeasonModalProps) {
+  const { record } = useUndo();
   const [name, setName] = useState(season?.name ?? "");
   const [category, setCategory] = useState<SeasonCategory>(season?.category ?? SEASON_CATEGORIES[0]);
   const [startDate, setStartDate] = useState(season?.start_date ?? "");
@@ -69,9 +71,11 @@ export default function SeasonModal({ mode, season, onClose, onSaved, onDeleted 
         color,
       };
       if (mode === "add") {
-        await createSeason(values);
+        const affected = await createSeason(values);
+        record(`Add season "${values.name}"`, affected);
       } else if (season) {
-        await updateSeason(season.id, values);
+        const affected = await updateSeason(season.id, values);
+        record(`Edit season "${values.name}"`, affected);
       }
       onSaved();
     } catch (err) {
@@ -85,7 +89,8 @@ export default function SeasonModal({ mode, season, onClose, onSaved, onDeleted 
     setSaving(true);
     setFormError(null);
     try {
-      await deleteSeason(season.id);
+      const affected = await deleteSeason(season.id);
+      record(`Delete season "${season.name}"`, affected);
       onDeleted();
     } catch (err) {
       setFormError(
@@ -101,7 +106,7 @@ export default function SeasonModal({ mode, season, onClose, onSaved, onDeleted 
       onClick={onClose}
     >
       <div
-        className="bg-white rounded-lg shadow-lg w-full max-w-md p-5"
+        className="bg-white rounded-lg shadow-lg w-full max-w-md p-5 max-h-[90vh] overflow-y-auto"
         onClick={(e) => e.stopPropagation()}
       >
         <h2 className="text-lg font-semibold text-navy mb-3">
@@ -218,7 +223,7 @@ export default function SeasonModal({ mode, season, onClose, onSaved, onDeleted 
           </form>
         ) : (
           <ConfirmDialog
-            message={<>Delete &ldquo;{season?.name}&rdquo;? This can&apos;t be undone.</>}
+            message={<>Delete &ldquo;{season?.name}&rdquo;?</>}
             error={formError}
             busy={saving}
             onCancel={() => setConfirmDelete(false)}

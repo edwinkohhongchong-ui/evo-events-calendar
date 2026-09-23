@@ -3,6 +3,8 @@
 import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useUndo } from "@/lib/undo/UndoProvider";
+import ErrorBanner from "./ErrorBanner";
 
 const LINKS = [
   { href: "/", label: "Calendar" },
@@ -15,13 +17,35 @@ const LINKS = [
 export default function NavBar() {
   const pathname = usePathname();
   const [exportOpen, setExportOpen] = useState(false);
+  const { undo, redo, canUndo, canRedo, undoLabel, redoLabel, isBusy, error, dismissError } = useUndo();
 
   if (pathname === "/login") return null;
 
   return (
     <nav className="bg-navy text-white">
+      {error && <ErrorBanner message={error} onDismiss={dismissError} />}
       <div className="max-w-6xl mx-auto px-4 sm:px-6 flex items-center h-12 gap-3">
         <span className="font-semibold text-sm whitespace-nowrap shrink-0">+EVO Events</span>
+        <div className="flex items-center gap-0.5 shrink-0">
+          <button
+            type="button"
+            onClick={undo}
+            disabled={!canUndo || isBusy}
+            title={undoLabel ? `Undo: ${undoLabel} (Cmd/Ctrl+Z)` : "Nothing to undo"}
+            className="px-2 py-1.5 text-sm rounded hover:bg-white/10 disabled:opacity-30 disabled:hover:bg-transparent"
+          >
+            ↶
+          </button>
+          <button
+            type="button"
+            onClick={redo}
+            disabled={!canRedo || isBusy}
+            title={redoLabel ? `Redo: ${redoLabel} (Cmd/Ctrl+Shift+Z)` : "Nothing to redo"}
+            className="px-2 py-1.5 text-sm rounded hover:bg-white/10 disabled:opacity-30 disabled:hover:bg-transparent"
+          >
+            ↷
+          </button>
+        </div>
         {/* Scrolls horizontally instead of wrapping/overflowing the page at
             narrow widths — see PROJECT decision: NavBar is in-scope for the
             mobile pass, the calendar grid it sits above is not. */}

@@ -23,6 +23,8 @@ import { SeasonSegment } from "@/lib/seasonBars";
 import { computeEventBarSegments } from "@/lib/eventBars";
 import { resolveLevelColor } from "@/lib/levelColor";
 import { LevelColorProvider } from "@/lib/levelColorContext";
+import { useEventFilter } from "@/lib/eventFilterContext";
+import { useUndo } from "@/lib/undo/UndoProvider";
 import { DayNoteRow, EventOccurrence, HolidayRow, LevelRow } from "@/lib/types";
 
 interface CalendarBoardProps {
@@ -52,6 +54,8 @@ export default function CalendarBoard({
   defaultAddDate,
 }: CalendarBoardProps) {
   const router = useRouter();
+  const { isVisible } = useEventFilter();
+  const { record } = useUndo();
   const colorMap = useMemo(
     () => Object.fromEntries(levels.map((l) => [l.name, resolveLevelColor(l)])),
     [levels]
@@ -98,8 +102,8 @@ export default function CalendarBoard({
           : occ
       );
     }
-    return next;
-  }, [occurrences, optimisticMove, optimisticResize]);
+    return next.filter((occ) => isVisible(occ.event.level));
+  }, [occurrences, optimisticMove, optimisticResize, isVisible]);
 
   const dayIndex = useMemo(
     () => buildDayIndex(weeks.flat(), displayOccurrences, holidays, monthStart, dayNotes),
@@ -137,7 +141,12 @@ export default function CalendarBoard({
       if (targetDate < resizeOccurrence.occurrenceDate) return; // can't resize to before the start
       setOptimisticResize({ key: occurrenceKey(resizeOccurrence), newEndDate: targetDate });
       try {
-        await extendOccurrenceSpan(resizeOccurrence.event, resizeOccurrence.originalDate, targetDate);
+        const affected = await extendOccurrenceSpan(
+          resizeOccurrence.event,
+          resizeOccurrence.originalDate,
+          targetDate
+        );
+        record(`Resize "${resizeOccurrence.event.name}"`, affected);
         startTransition(() => router.refresh());
         // Open straight into editing so time/other details can be filled in
         // right after resizing — the resized occurrence's own spanEndDate
@@ -157,7 +166,8 @@ export default function CalendarBoard({
 
     setOptimisticMove({ key: occurrenceKey(occurrence), newDate: targetDate });
     try {
-      await moveOccurrence(occurrence.event, occurrence.originalDate, targetDate);
+      const affected = await moveOccurrence(occurrence.event, occurrence.originalDate, targetDate);
+      record(`Move "${occurrence.event.name}"`, affected);
       startTransition(() => router.refresh());
     } catch {
       setOptimisticMove(null);

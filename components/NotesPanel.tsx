@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState, FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { format, parseISO } from "date-fns";
 import { createNoteComment, deleteNoteComment } from "@/lib/noteCommentActions";
+import { useUndo } from "@/lib/undo/UndoProvider";
 import { NoteCommentRow, NoteScope } from "@/lib/types";
 
 const AUTHOR_NAME_KEY = "evo-author-name";
@@ -33,6 +34,7 @@ export default function NotesPanel({
   comments,
 }: NotesPanelProps) {
   const router = useRouter();
+  const { record } = useUndo();
   const [authorName, setAuthorNameState] = useState<string | null>(null);
   const [nameDraft, setNameDraft] = useState("");
   const [content, setContent] = useState("");
@@ -88,13 +90,14 @@ export default function NotesPanel({
     setSaving(true);
     setError(null);
     try {
-      await createNoteComment({
+      const affected = await createNoteComment({
         scope,
         year: year ?? null,
         month: month ?? null,
         author_name: authorName,
         content: content.trim(),
       });
+      record("Add note", affected);
       setContent("");
       router.refresh();
     } catch (err) {
@@ -109,7 +112,7 @@ export default function NotesPanel({
     setSaving(true);
     setError(null);
     try {
-      await createNoteComment({
+      const affected = await createNoteComment({
         scope,
         year: year ?? null,
         month: month ?? null,
@@ -117,6 +120,7 @@ export default function NotesPanel({
         content: replyDraft.trim(),
         parent_id: parentId,
       });
+      record("Add reply", affected);
       setReplyDraft("");
       setReplyingTo(null);
       router.refresh();
@@ -132,7 +136,8 @@ export default function NotesPanel({
     setRemovingId(id);
     setError(null);
     try {
-      await deleteNoteComment(id);
+      const affected = await deleteNoteComment(id);
+      record("Delete note", affected);
       router.refresh();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Something went wrong deleting this note.");

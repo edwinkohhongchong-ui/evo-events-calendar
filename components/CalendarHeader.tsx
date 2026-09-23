@@ -7,8 +7,10 @@ import { format, addMonths, subMonths } from "date-fns";
 import { LEVEL_COLOR_CLASSES } from "@/lib/constants";
 import { resolveLevelColor } from "@/lib/levelColor";
 import { deleteLevel } from "@/lib/levelActions";
+import { useUndo } from "@/lib/undo/UndoProvider";
 import { LevelRow } from "@/lib/types";
 import LevelModal from "./LevelModal";
+import LevelFilterBar from "./LevelFilterBar";
 
 interface CalendarHeaderProps {
   monthStart: Date;
@@ -20,6 +22,7 @@ type LevelModalState = { type: "closed" } | { type: "add" } | { type: "edit"; le
 
 export default function CalendarHeader({ monthStart, levels, onAddClick }: CalendarHeaderProps) {
   const router = useRouter();
+  const { record } = useUndo();
   const prev = subMonths(monthStart, 1);
   const next = addMonths(monthStart, 1);
   const [levelModal, setLevelModal] = useState<LevelModalState>({ type: "closed" });
@@ -32,7 +35,8 @@ export default function CalendarHeader({ monthStart, levels, onAddClick }: Calen
     setRemovingId(level.id);
     setRemoveError(null);
     try {
-      await deleteLevel(level.id);
+      const affected = await deleteLevel(level.id);
+      record(`Delete category "${level.name}"`, affected);
       router.refresh();
     } catch (err) {
       setRemoveError(
@@ -116,6 +120,8 @@ export default function CalendarHeader({ monthStart, levels, onAddClick }: Calen
         ))}
       </div>
       {removeError && <p className="text-xs text-red-600">{removeError}</p>}
+
+      <LevelFilterBar levels={levels} />
 
       {levelModal.type !== "closed" && (
         <LevelModal

@@ -7,6 +7,8 @@ import ErrorBanner from "./ErrorBanner";
 import { ChecklistRow, ChecklistStatus, EventOption } from "@/lib/types";
 import { CHECKLIST_STATUSES, STATUS_COLORS, TARGET_MONTHS } from "@/lib/constants";
 import { updateChecklistStatus } from "@/lib/checklistActions";
+import { useUndo } from "@/lib/undo/UndoProvider";
+import { AffectedRow } from "@/lib/undo/types";
 
 type ModalState = { type: "closed" } | { type: "add" } | { type: "edit"; item: ChecklistRow };
 
@@ -20,6 +22,7 @@ export default function ChecklistTable({
   eventOptions: EventOption[];
 }) {
   const router = useRouter();
+  const { record } = useUndo();
   const [isPending, startTransition] = useTransition();
   const [modal, setModal] = useState<ModalState>({ type: "closed" });
   const [monthFilter, setMonthFilter] = useState<string>(ALL_MONTHS);
@@ -49,7 +52,8 @@ export default function ChecklistTable({
   async function handleStatusChange(row: ChecklistRow, status: ChecklistStatus) {
     setStatusOverride({ id: row.id, status });
     try {
-      await updateChecklistStatus(row.id, status);
+      const affected = await updateChecklistStatus(row.id, status);
+      record(`Set "${row.item}" to ${status}`, affected);
       startTransition(() => router.refresh());
     } catch {
       setStatusOverride(null);
@@ -70,10 +74,12 @@ export default function ChecklistTable({
         const expected: ChecklistStatus = row.linked_event_id ? "Done" : "Not Started";
         return row.status !== expected && (row.linked_event_id || row.status === "Done");
       });
+      const affected: AffectedRow[] = [];
       for (const row of toUpdate) {
         const expected: ChecklistStatus = row.linked_event_id ? "Done" : "Not Started";
-        await updateChecklistStatus(row.id, expected);
+        affected.push(...(await updateChecklistStatus(row.id, expected)));
       }
+      if (affected.length > 0) record("Check Calendar", affected);
       router.refresh();
     } catch {
       setError("Couldn't finish checking the calendar. Please try again.");

@@ -5,6 +5,7 @@ import { LevelRow, SeasonColorKey } from "@/lib/types";
 import { LEVEL_COLOR_CLASSES, LEVEL_COLOR_KEYS } from "@/lib/constants";
 import { createLevel, updateLevel, deleteLevel } from "@/lib/levelActions";
 import { suggestLevelColor } from "@/lib/levelColor";
+import { useUndo } from "@/lib/undo/UndoProvider";
 import ConfirmDialog from "./ConfirmDialog";
 
 interface LevelModalProps {
@@ -24,6 +25,7 @@ export default function LevelModal({
   onSaved,
   onDeleted,
 }: LevelModalProps) {
+  const { record } = useUndo();
   const [name, setName] = useState(level?.name ?? "");
   const [colorKey, setColorKey] = useState<SeasonColorKey>(level?.color_key ?? suggestLevelColor(name));
   // Once the user explicitly picks a swatch, stop following the name-based
@@ -63,9 +65,11 @@ export default function LevelModal({
         sort_order: Number(sortOrder) || 0,
       };
       if (mode === "add") {
-        await createLevel(values);
+        const affected = await createLevel(values);
+        record(`Add category "${values.name}"`, affected);
       } else if (level) {
-        await updateLevel(level.id, values);
+        const affected = await updateLevel(level.id, values);
+        record(`Edit category "${values.name}"`, affected);
       }
       onSaved();
     } catch (err) {
@@ -79,7 +83,8 @@ export default function LevelModal({
     setSaving(true);
     setFormError(null);
     try {
-      await deleteLevel(level.id);
+      const affected = await deleteLevel(level.id);
+      record(`Delete category "${level.name}"`, affected);
       onDeleted();
     } catch (err) {
       setFormError(
@@ -102,7 +107,7 @@ export default function LevelModal({
       onClick={onClose}
     >
       <div
-        className="bg-white rounded-lg shadow-lg w-full max-w-md p-5"
+        className="bg-white rounded-lg shadow-lg w-full max-w-md p-5 max-h-[90vh] overflow-y-auto"
         onClick={(e) => e.stopPropagation()}
       >
         <h2 className="text-lg font-semibold text-navy mb-3">
@@ -183,7 +188,7 @@ export default function LevelModal({
           </form>
         ) : (
           <ConfirmDialog
-            message={<>Delete &ldquo;{level?.name}&rdquo;? This can&apos;t be undone.</>}
+            message={<>Delete &ldquo;{level?.name}&rdquo;?</>}
             error={formError}
             busy={saving}
             onCancel={() => setConfirmDelete(false)}

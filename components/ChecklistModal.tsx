@@ -9,6 +9,7 @@ import {
   updateChecklistItem,
   deleteChecklistItem,
 } from "@/lib/checklistActions";
+import { useUndo } from "@/lib/undo/UndoProvider";
 import ConfirmDialog from "./ConfirmDialog";
 
 interface ChecklistModalProps {
@@ -31,6 +32,7 @@ export default function ChecklistModal({
   onSaved,
   onDeleted,
 }: ChecklistModalProps) {
+  const { record } = useUndo();
   const [category, setCategory] = useState(item?.category ?? "");
   const [itemText, setItemText] = useState(item?.item ?? "");
   const [status, setStatus] = useState<ChecklistStatus>(item?.status ?? "Not Started");
@@ -65,9 +67,11 @@ export default function ChecklistModal({
         linked_event_id: linkedEventId || null,
       };
       if (mode === "add") {
-        await createChecklistItem(values);
+        const affected = await createChecklistItem(values);
+        record(`Add checklist item "${values.item}"`, affected);
       } else if (item) {
-        await updateChecklistItem(item.id, values);
+        const affected = await updateChecklistItem(item.id, values);
+        record(`Edit checklist item "${values.item}"`, affected);
       }
       onSaved();
     } catch (err) {
@@ -83,7 +87,8 @@ export default function ChecklistModal({
     setSaving(true);
     setFormError(null);
     try {
-      await deleteChecklistItem(item.id);
+      const affected = await deleteChecklistItem(item.id);
+      record(`Delete checklist item "${item.item}"`, affected);
       onDeleted();
     } catch (err) {
       setFormError(
@@ -99,7 +104,7 @@ export default function ChecklistModal({
       onClick={onClose}
     >
       <div
-        className="bg-white rounded-lg shadow-lg w-full max-w-md p-5"
+        className="bg-white rounded-lg shadow-lg w-full max-w-md p-5 max-h-[90vh] overflow-y-auto"
         onClick={(e) => e.stopPropagation()}
       >
         <h2 className="text-lg font-semibold text-navy mb-3">
@@ -219,7 +224,7 @@ export default function ChecklistModal({
           </form>
         ) : (
           <ConfirmDialog
-            message={<>Delete &ldquo;{item?.item}&rdquo;? This can&apos;t be undone.</>}
+            message={<>Delete &ldquo;{item?.item}&rdquo;?</>}
             error={formError}
             busy={saving}
             onCancel={() => setConfirmDelete(false)}

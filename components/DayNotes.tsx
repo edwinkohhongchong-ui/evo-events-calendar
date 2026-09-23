@@ -3,6 +3,7 @@
 import { useState, FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { createDayNote, deleteDayNote } from "@/lib/dayNoteActions";
+import { useUndo } from "@/lib/undo/UndoProvider";
 import { DayNoteRow } from "@/lib/types";
 
 interface DayNotesProps {
@@ -16,6 +17,7 @@ interface DayNotesProps {
 // DayCell doesn't need to thread add/delete callbacks down.
 export default function DayNotes({ dateStr, notes }: DayNotesProps) {
   const router = useRouter();
+  const { record } = useUndo();
   const [open, setOpen] = useState(false);
   const [draft, setDraft] = useState("");
   const [saving, setSaving] = useState(false);
@@ -28,7 +30,8 @@ export default function DayNotes({ dateStr, notes }: DayNotesProps) {
     setSaving(true);
     setError(null);
     try {
-      await createDayNote(dateStr, draft.trim());
+      const affected = await createDayNote(dateStr, draft.trim());
+      record(`Add note "${draft.trim()}"`, affected);
       setDraft("");
       router.refresh();
     } catch (err) {
@@ -39,10 +42,12 @@ export default function DayNotes({ dateStr, notes }: DayNotesProps) {
   }
 
   async function handleRemove(id: string) {
+    const note = notes.find((n) => n.id === id);
     setRemovingId(id);
     setError(null);
     try {
-      await deleteDayNote(id);
+      const affected = await deleteDayNote(id);
+      record(note ? `Delete note "${note.content}"` : "Delete note", affected);
       router.refresh();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Couldn't delete that note.");

@@ -20,7 +20,10 @@ import { occurrenceKey } from "@/lib/occurrenceKey";
 import { computeDuration, minutesToTimeStr, timeStrToMinutes } from "@/lib/timeMath";
 import { resolveLevelColor } from "@/lib/levelColor";
 import { LevelColorProvider } from "@/lib/levelColorContext";
+import { useEventFilter } from "@/lib/eventFilterContext";
+import { useUndo } from "@/lib/undo/UndoProvider";
 import { EventOccurrence, LevelRow } from "@/lib/types";
+import LevelFilterBar from "./LevelFilterBar";
 
 const HOURS = Array.from({ length: 24 }, (_, i) => i);
 const SNAP_MINUTES = 15;
@@ -41,6 +44,8 @@ function formatHourLabel(hour: number): string {
 
 export default function DayView({ occurrences, levels }: DayViewProps) {
   const router = useRouter();
+  const { isVisible } = useEventFilter();
+  const { record } = useUndo();
   const colorMap = useMemo(
     () => Object.fromEntries(levels.map((l) => [l.name, resolveLevelColor(l)])),
     [levels]
@@ -59,18 +64,21 @@ export default function DayView({ occurrences, levels }: DayViewProps) {
   }, [isPending]);
 
   const displayOccurrences = useMemo(() => {
-    if (!optimisticStart) return occurrences;
-    return occurrences.map((occ) => {
-      if (occurrenceKey(occ) !== optimisticStart.key || !occ.startTime) return occ;
-      const durationMinutes = occ.endTime ? computeDuration(occ.startTime, occ.endTime) : null;
-      const newStart = optimisticStart.startTime;
-      const newEnd =
-        durationMinutes != null
-          ? minutesToTimeStr(timeStrToMinutes(newStart) + durationMinutes)
-          : null;
-      return { ...occ, startTime: newStart, endTime: newEnd };
-    });
-  }, [occurrences, optimisticStart]);
+    let next = occurrences;
+    if (optimisticStart) {
+      next = next.map((occ) => {
+        if (occurrenceKey(occ) !== optimisticStart.key || !occ.startTime) return occ;
+        const durationMinutes = occ.endTime ? computeDuration(occ.startTime, occ.endTime) : null;
+        const newStart = optimisticStart.startTime;
+        const newEnd =
+          durationMinutes != null
+            ? minutesToTimeStr(timeStrToMinutes(newStart) + durationMinutes)
+            : null;
+        return { ...occ, startTime: newStart, endTime: newEnd };
+      });
+    }
+    return next.filter((occ) => isVisible(occ.event.level));
+  }, [occurrences, optimisticStart, isVisible]);
 
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }));
 
@@ -101,7 +109,8 @@ export default function DayView({ occurrences, levels }: DayViewProps) {
 
     setOptimisticStart({ key: occurrenceKey(occurrence), startTime: newStart });
     try {
-      await retimeOccurrence(occurrence.event, occurrence.originalDate, newStart);
+      const affected = await retimeOccurrence(occurrence.event, occurrence.originalDate, newStart);
+      record(`Retime "${occurrence.event.name}"`, affected);
       startTransition(() => router.refresh());
     } catch {
       setOptimisticStart(null);
@@ -112,6 +121,9 @@ export default function DayView({ occurrences, levels }: DayViewProps) {
   return (
     <LevelColorProvider colorMap={colorMap}>
       {error && <ErrorBanner message={error} onDismiss={() => setError(null)} />}
+      <div className="mb-3">
+        <LevelFilterBar levels={levels} />
+      </div>
       <DndContext id="day-dnd" sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
         <div className="flex border border-gray-200 rounded-md overflow-hidden">
           <div className="w-14 shrink-0 border-r border-gray-200 bg-gray-50">
