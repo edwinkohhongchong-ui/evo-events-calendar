@@ -26,24 +26,24 @@ export default function NavBar() {
       {error && <ErrorBanner message={error} onDismiss={dismissError} />}
       <div className="max-w-6xl mx-auto px-4 sm:px-6 flex items-center h-12 gap-3">
         <span className="font-semibold text-sm whitespace-nowrap shrink-0">+EVO Events</span>
-        <div className="flex items-center gap-0.5 shrink-0">
+        <div className="flex items-center gap-1.5 shrink-0">
           <button
             type="button"
             onClick={undo}
             disabled={!canUndo || isBusy}
             title={undoLabel ? `Undo: ${undoLabel} (Cmd/Ctrl+Z)` : "Nothing to undo"}
-            className="px-2 py-1.5 text-sm rounded hover:bg-white/10 disabled:opacity-30 disabled:hover:bg-transparent"
+            className="px-2.5 py-1 text-sm rounded border border-white/30 hover:bg-white/10 whitespace-nowrap disabled:opacity-30 disabled:hover:bg-transparent"
           >
-            ↶
+            ↶ Undo
           </button>
           <button
             type="button"
             onClick={redo}
             disabled={!canRedo || isBusy}
             title={redoLabel ? `Redo: ${redoLabel} (Cmd/Ctrl+Shift+Z)` : "Nothing to redo"}
-            className="px-2 py-1.5 text-sm rounded hover:bg-white/10 disabled:opacity-30 disabled:hover:bg-transparent"
+            className="px-2.5 py-1 text-sm rounded border border-white/30 hover:bg-white/10 whitespace-nowrap disabled:opacity-30 disabled:hover:bg-transparent"
           >
-            ↷
+            Redo ↷
           </button>
         </div>
         {/* Scrolls horizontally instead of wrapping/overflowing the page at

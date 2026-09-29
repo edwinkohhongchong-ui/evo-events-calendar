@@ -8,6 +8,12 @@ items (features/fixes) that push contains — a push with 1 item goes up by
 `1.05`). If MINOR would pass `.99`, MAJOR increments and MINOR carries the
 remainder (e.g. `1.99` + 2 items → `2.01`).
 
+## v1.13 — 2026-09-29
+
+- Restyled the Undo/Redo nav bar buttons to match the visual weight of
+  Prev/Next/Today — bordered buttons with text labels ("↶ Undo" / "Redo ↷")
+  instead of bare icon-only ghost buttons, so they read as clearly clickable.
+
 ## v1.12 — 2026-09-23
 
 - Added undo/redo, covering every mutation in the app — events (add, edit,
