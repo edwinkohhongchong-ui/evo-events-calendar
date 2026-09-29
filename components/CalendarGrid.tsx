@@ -6,7 +6,7 @@ import { DayData } from "@/lib/dayIndex";
 import { SeasonSegment } from "@/lib/seasonBars";
 import { EventBarSegment } from "@/lib/eventBars";
 import { toDateStr } from "@/lib/dates";
-import { EventOccurrence } from "@/lib/types";
+import { EventOccurrence, HolidayRow, SeasonRow } from "@/lib/types";
 
 const WEEKDAY_LABELS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 
@@ -18,6 +18,8 @@ interface CalendarGridProps {
   eventSegmentsByWeek: EventBarSegment[][];
   onDayClick: (dateStr: string) => void;
   onEventClick: (occurrence: EventOccurrence) => void;
+  onHolidayClick: (holiday: HolidayRow) => void;
+  onSeasonClick: (season: SeasonRow) => void;
 }
 
 export default function CalendarGrid({
@@ -28,6 +30,8 @@ export default function CalendarGrid({
   eventSegmentsByWeek,
   onDayClick,
   onEventClick,
+  onHolidayClick,
+  onSeasonClick,
 }: CalendarGridProps) {
   return (
     <div className="border border-gray-200 rounded-md overflow-hidden">
@@ -43,7 +47,7 @@ export default function CalendarGrid({
       </div>
       {weeks.map((week, weekIdx) => (
         <div key={weekIdx}>
-          <SeasonBarRow segments={seasonSegmentsByWeek[weekIdx] ?? []} />
+          <SeasonBarRow segments={seasonSegmentsByWeek[weekIdx] ?? []} onSeasonClick={onSeasonClick} />
           <EventBarRow segments={eventSegmentsByWeek[weekIdx] ?? []} onEventClick={onEventClick} />
           <div className="grid grid-cols-7">
             {week.map((day) => {
@@ -57,6 +61,7 @@ export default function CalendarGrid({
                   dayData={dayIndex.get(dateStr)}
                   onDayClick={onDayClick}
                   onEventClick={onEventClick}
+                  onHolidayClick={onHolidayClick}
                 />
               );
             })}

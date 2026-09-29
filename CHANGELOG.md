@@ -8,6 +8,13 @@ items (features/fixes) that push contains — a push with 1 item goes up by
 `1.05`). If MINOR would pass `.99`, MAJOR increments and MINOR carries the
 remainder (e.g. `1.99` + 2 items → `2.01`).
 
+## v1.10 — 2026-09-29
+
+- Holiday badges and Season bars on the month grid are now clickable — each
+  opens the same Edit/Delete modal previously only reachable from the
+  Holidays/Seasons admin tables, so both can be managed directly from the
+  calendar.
+
 ## v1.09 — 2026-09-22
 
 - Updated `ONBOARDING.md` with everything built since the last handover (the

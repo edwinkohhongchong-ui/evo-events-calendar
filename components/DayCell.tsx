@@ -9,7 +9,7 @@ import DayNotes from "./DayNotes";
 import { DayData } from "@/lib/dayIndex";
 import { toDateStr } from "@/lib/dates";
 import { occurrenceKey } from "@/lib/occurrenceKey";
-import { EventOccurrence } from "@/lib/types";
+import { EventOccurrence, HolidayRow } from "@/lib/types";
 
 interface DayCellProps {
   day: Date;
@@ -18,6 +18,7 @@ interface DayCellProps {
   dayData: DayData | undefined;
   onDayClick: (dateStr: string) => void;
   onEventClick: (occurrence: EventOccurrence) => void;
+  onHolidayClick: (holiday: HolidayRow) => void;
 }
 
 // Comfortably fits this many events before offering a "+N more" toggle —
@@ -34,6 +35,7 @@ export default function DayCell({
   dayData,
   onDayClick,
   onEventClick,
+  onHolidayClick,
 }: DayCellProps) {
   const dateStr = toDateStr(day);
   const dayNumber = day.getDate();
@@ -69,13 +71,18 @@ export default function DayCell({
           {dayNumber}
         </Link>
         {dayData?.holidays.map((holiday) => (
-          <span
+          <button
             key={holiday.id}
-            className="text-[11px] font-medium text-red-600 truncate"
-            title={holiday.name}
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              onHolidayClick(holiday);
+            }}
+            className="text-[11px] font-medium text-red-600 truncate hover:underline"
+            title={`Edit "${holiday.name}"`}
           >
             {holiday.name}
-          </span>
+          </button>
         ))}
       </div>
 

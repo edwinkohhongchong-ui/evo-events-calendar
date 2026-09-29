@@ -1,6 +1,12 @@
 import { SeasonSegment } from "@/lib/seasonBars";
 import { resolveSeasonColor } from "@/lib/seasonColor";
 import { SEASON_BAR_COLORS } from "@/lib/constants";
+import { SeasonRow } from "@/lib/types";
+
+interface SeasonBarRowProps {
+  segments: SeasonSegment[];
+  onSeasonClick: (season: SeasonRow) => void;
+}
 
 // Renders one week's season bars as a 7-column CSS Grid aligned with the
 // day-cell row below it — no pixel measurement needed, grid-column/grid-row
@@ -8,7 +14,7 @@ import { SEASON_BAR_COLORS } from "@/lib/constants";
 // width. Lanes with no active segment this week are left as blank implicit
 // rows (via gridAutoRows) rather than compacted, so a season occupying a
 // lower lane doesn't visually jump up in weeks where a higher lane is empty.
-export default function SeasonBarRow({ segments }: { segments: SeasonSegment[] }) {
+export default function SeasonBarRow({ segments, onSeasonClick }: SeasonBarRowProps) {
   if (segments.length === 0) return null;
 
   return (
@@ -16,10 +22,15 @@ export default function SeasonBarRow({ segments }: { segments: SeasonSegment[] }
       {segments.map((segment) => {
         const colorKey = resolveSeasonColor(segment.season);
         return (
-          <div
+          <button
             key={`${segment.season.id}-w${segment.weekIndex}`}
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              onSeasonClick(segment.season);
+            }}
             className={[
-              "text-[10px] leading-[18px] px-1.5 truncate border",
+              "text-[10px] leading-[18px] px-1.5 truncate border text-left hover:brightness-95",
               SEASON_BAR_COLORS[colorKey],
               segment.isSeasonStart ? "rounded-l-full" : "border-l-0",
               segment.isSeasonEnd ? "rounded-r-full" : "border-r-0",
@@ -28,13 +39,16 @@ export default function SeasonBarRow({ segments }: { segments: SeasonSegment[] }
               gridColumn: `${segment.startCol + 1} / ${segment.endCol + 2}`,
               gridRow: segment.laneIndex + 1,
             }}
-            title={segment.season.name}
+            title={`Edit "${segment.season.name}"`}
           >
             {/* Repeats the name at the start of every week this bar crosses
                 (startCol 0 = Monday), not just the season's true start —
-                see the same fix in EventBarRow. */}
+                see the same fix in EventBarRow. Non-breaking space (not a
+                plain " ") on the empty-label branch — JSX/Tailwind can
+                collapse a plain-space-only text node, which would shrink
+                the bar's clickable row to zero height. */}
             {segment.isSeasonStart || segment.startCol === 0 ? segment.season.name : " "}
-          </div>
+          </button>
         );
       })}
     </div>

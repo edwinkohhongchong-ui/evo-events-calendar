@@ -15,6 +15,8 @@ import CalendarHeader from "./CalendarHeader";
 import CalendarGrid from "./CalendarGrid";
 import EventCardContent from "./EventCardContent";
 import EventModal from "./EventModal";
+import HolidayModal from "./HolidayModal";
+import SeasonModal from "./SeasonModal";
 import ErrorBanner from "./ErrorBanner";
 import { buildDayIndex } from "@/lib/dayIndex";
 import { occurrenceKey } from "@/lib/occurrenceKey";
@@ -23,7 +25,7 @@ import { SeasonSegment } from "@/lib/seasonBars";
 import { computeEventBarSegments } from "@/lib/eventBars";
 import { resolveLevelColor } from "@/lib/levelColor";
 import { LevelColorProvider } from "@/lib/levelColorContext";
-import { DayNoteRow, EventOccurrence, HolidayRow, LevelRow } from "@/lib/types";
+import { DayNoteRow, EventOccurrence, HolidayRow, LevelRow, SeasonRow } from "@/lib/types";
 
 interface CalendarBoardProps {
   weeks: Date[][];
@@ -40,6 +42,9 @@ type ModalState =
   | { type: "closed" }
   | { type: "add"; date: string }
   | { type: "edit"; occurrence: EventOccurrence };
+
+type HolidayModalState = { type: "closed" } | { type: "edit"; holiday: HolidayRow };
+type SeasonModalState = { type: "closed" } | { type: "edit"; season: SeasonRow };
 
 export default function CalendarBoard({
   weeks,
@@ -65,6 +70,8 @@ export default function CalendarBoard({
   );
   const [error, setError] = useState<string | null>(null);
   const [modal, setModal] = useState<ModalState>({ type: "closed" });
+  const [holidayModal, setHolidayModal] = useState<HolidayModalState>({ type: "closed" });
+  const [seasonModal, setSeasonModal] = useState<SeasonModalState>({ type: "closed" });
   const [activeOcc, setActiveOcc] = useState<EventOccurrence | null>(null);
 
   // Suppresses the "ghost click" that browsers fire on the drop target right
@@ -193,6 +200,8 @@ export default function CalendarBoard({
             if (isDraggingRef.current) return;
             setModal({ type: "edit", occurrence: occ });
           }}
+          onHolidayClick={(holiday) => setHolidayModal({ type: "edit", holiday })}
+          onSeasonClick={(season) => setSeasonModal({ type: "edit", season })}
         />
         <DragOverlay>{activeOcc && <EventCardContent occurrence={activeOcc} />}</DragOverlay>
       </DndContext>
@@ -210,6 +219,36 @@ export default function CalendarBoard({
           }}
           onDeleted={() => {
             setModal({ type: "closed" });
+            router.refresh();
+          }}
+        />
+      )}
+      {holidayModal.type !== "closed" && (
+        <HolidayModal
+          mode="edit"
+          holiday={holidayModal.holiday}
+          onClose={() => setHolidayModal({ type: "closed" })}
+          onSaved={() => {
+            setHolidayModal({ type: "closed" });
+            router.refresh();
+          }}
+          onDeleted={() => {
+            setHolidayModal({ type: "closed" });
+            router.refresh();
+          }}
+        />
+      )}
+      {seasonModal.type !== "closed" && (
+        <SeasonModal
+          mode="edit"
+          season={seasonModal.season}
+          onClose={() => setSeasonModal({ type: "closed" })}
+          onSaved={() => {
+            setSeasonModal({ type: "closed" });
+            router.refresh();
+          }}
+          onDeleted={() => {
+            setSeasonModal({ type: "closed" });
             router.refresh();
           }}
         />
