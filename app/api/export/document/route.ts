@@ -23,6 +23,20 @@ export async function POST(request: NextRequest) {
 
   const { format, startDate, endDate, levels } = body;
 
+  // Guard against a date-shaped but calendrically invalid string (e.g.
+  // "2026-09-31" — September has only 30 days). parseDateStr (date-fns
+  // parseISO) returns an Invalid Date for these rather than throwing, and
+  // that Invalid Date previously propagated all the way into
+  // formatDateDisplay (lib/dates.ts), where date-fns' format() throws
+  // "RangeError: Invalid time value" — an unhandled exception that Next
+  // turns into a bare 500 with no JSON body, which ExportForm.tsx then
+  // surfaces as the generic "Something went wrong generating the document."
+  // Catching it here, before any recurrence expansion or rendering work,
+  // turns that crash into a clean, specific 400.
+  if (Number.isNaN(parseDateStr(startDate).getTime()) || Number.isNaN(parseDateStr(endDate).getTime())) {
+    return NextResponse.json({ error: "Invalid date range." }, { status: 400 });
+  }
+
   const { events, overrides, exceptions } = await getCalendarData(startDate, endDate);
   const eventsById = new Map(events.map((e) => [e.id, e]));
   const exceptionsByEventId = new Map<string, Set<string>>();

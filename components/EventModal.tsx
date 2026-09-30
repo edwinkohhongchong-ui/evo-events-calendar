@@ -93,6 +93,7 @@ export default function EventModal({
     event?.duration_minutes != null ? String(event.duration_minutes) : ""
   );
   const [level, setLevel] = useState<Level>(event?.level ?? levels[0]?.name ?? "");
+  const [location, setLocation] = useState(event?.location ?? "");
   const [recurring, setRecurring] = useState<Recurring>(event?.recurring ?? "None");
   const [repeatUntil, setRepeatUntil] = useState(event?.repeat_until ?? "");
   const [notes, setNotes] = useState(event?.notes ?? "");
@@ -232,6 +233,7 @@ export default function EventModal({
       end_time: endTime || null,
       duration_minutes: durationMinutes !== "" ? Number(durationMinutes) : null,
       level,
+      location: location.trim() || null,
       recurring,
       repeat_until: recurring === "None" ? null : repeatUntil || null,
       notes: notes.trim() || null,
@@ -396,6 +398,7 @@ export default function EventModal({
                   {repeatUntil ? ` until ${formatDateDisplay(repeatUntil)}` : ""}
                 </div>
               )}
+              {location && <div>📍 {location}</div>}
             </div>
             {eventType === "Event" &&
               (pastoralFocus.youth || pastoralFocus.poly || pastoralFocus.uni || pastoralFocus.adults) && (
@@ -735,6 +738,15 @@ export default function EventModal({
                 </select>
               </label>
             )}
+            <label className="flex flex-col gap-1 text-sm">
+              Location <span className="text-gray-400 font-normal">(optional)</span>
+              <input
+                value={location}
+                onChange={(e) => setLocation(e.target.value)}
+                placeholder="Main Hall"
+                className="border rounded px-2 py-1"
+              />
+            </label>
             <div className="grid grid-cols-2 gap-3">
               <label className="flex flex-col gap-1 text-sm">
                 Recurring

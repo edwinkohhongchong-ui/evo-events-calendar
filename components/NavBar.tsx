@@ -20,7 +20,19 @@ export default function NavBar() {
   const pathname = usePathname();
   const isEditor = useIsEditor();
   const [exportOpen, setExportOpen] = useState(false);
-  const { undo, redo, canUndo, canRedo, undoLabel, redoLabel, isBusy, error, dismissError } = useUndo();
+  const {
+    undo,
+    redo,
+    canUndo,
+    canRedo,
+    undoLabel,
+    redoLabel,
+    isBusy,
+    error,
+    dismissError,
+    lastAction,
+    dismissLastAction,
+  } = useUndo();
 
   if (pathname === "/login") return null;
 
@@ -32,6 +44,20 @@ export default function NavBar() {
   return (
     <nav className="bg-navy text-white">
       {error && <ErrorBanner message={error} onDismiss={dismissError} />}
+      {lastAction && (
+        <div className="bg-emerald-50 text-emerald-800 text-xs px-4 py-1.5 flex items-center justify-between gap-2 border-b border-emerald-200">
+          <span>
+            {lastAction.kind === "undo" ? "↶ Undid" : "↷ Redid"}: {lastAction.label}
+          </span>
+          <button
+            type="button"
+            onClick={dismissLastAction}
+            className="text-emerald-600 hover:text-emerald-900 leading-none"
+          >
+            ×
+          </button>
+        </div>
+      )}
       <div className="max-w-6xl mx-auto px-4 sm:px-6 flex items-center h-12 gap-3">
         <span className="font-semibold text-sm whitespace-nowrap shrink-0">+EVO Events</span>
         {isEditor && (

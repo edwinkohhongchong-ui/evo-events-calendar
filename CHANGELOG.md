@@ -8,6 +8,32 @@ items (features/fixes) that push contains — a push with 1 item goes up by
 `1.05`). If MINOR would pass `.99`, MAJOR increments and MINOR carries the
 remainder (e.g. `1.99` + 2 items → `2.01`).
 
+## v1.26 — 2026-09-30
+
+- Fixed PDF export returning "Something went wrong generating the
+  document." — a calendrically-invalid date (e.g. a stray `2026-09-31`)
+  slipped through unvalidated and crashed date formatting deep in the
+  render; the export route now rejects an invalid date range with a clear
+  400 instead of a bare, unhelpful 500.
+- Fixed Word (.docx) export column widths — the table had no fixed column
+  widths, so Word/LibreOffice recomputed them from content and squished the
+  layout; columns are now fixed-width in the same Date/Time/Event/Category
+  proportions as the PDF export.
+- Reworked "Checklist Templates" on the Reminders page: it's now a visible,
+  open-by-default section right there (previously a collapsed section on
+  the Checklist page, easy to miss), and deliberately NOT linked to the real
+  Checklist tab/table — selecting a template for an event in the picker
+  pre-loads its lines straight into the drafted message only. Each event
+  with a template selected shows a × to clear it.
+- Events now have an optional Location field (Add/Edit Event form) — shown
+  alongside time in the Reminders event picker and in drafted messages, so
+  a leader planning e-invites/logistics has where as well as when. New
+  `events.location` column (migration 019).
+- Undo/Redo now shows a brief on-screen confirmation of what it just did
+  (e.g. "↶ Undid: Delete holiday 'Teachers' Day'"), instead of only a hover
+  tooltip beforehand — auto-dismisses after a few seconds, dismissable
+  immediately via its own ×.
+
 ## v1.21 — 2026-09-30
 
 - Added Checklist Templates: save a reusable set of checklist items (e.g.

@@ -5,6 +5,11 @@ import { useRouter } from "next/navigation";
 import { restoreSnapshot } from "./restore";
 import { AffectedRow, UndoableAction } from "./types";
 
+interface LastAction {
+  kind: "undo" | "redo";
+  label: string;
+}
+
 interface UndoContextValue {
   record: (label: string, affected: AffectedRow[]) => void;
   undo: () => void;
@@ -16,9 +21,17 @@ interface UndoContextValue {
   isBusy: boolean;
   error: string | null;
   dismissError: () => void;
+  // Brief on-screen confirmation of what an undo/redo just did — the nav
+  // bar's title tooltip on the buttons only describes what's *about* to
+  // happen (before the click), which isn't visible after the fact. This
+  // auto-clears itself; see NavBar.tsx for where it's rendered.
+  lastAction: LastAction | null;
+  dismissLastAction: () => void;
 }
 
 const UndoContext = createContext<UndoContextValue | null>(null);
+
+const LAST_ACTION_DISPLAY_MS = 4000;
 
 // Session-only history (not persisted across a page reload) shared across
 // every screen — mounted once at the root layout so undoing an action taken
@@ -33,6 +46,8 @@ export function UndoProvider({ children }: { children: ReactNode }) {
   const futureRef = useRef<UndoableAction[]>([]);
   const isBusyRef = useRef(false);
   const errorRef = useRef<string | null>(null);
+  const lastActionRef = useRef<LastAction | null>(null);
+  const lastActionTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [, forceRender] = useReducer((x: number) => x + 1, 0);
   const router = useRouter();
 
@@ -42,6 +57,21 @@ export function UndoProvider({ children }: { children: ReactNode }) {
     futureRef.current = [];
     forceRender();
   }, []);
+
+  const dismissLastAction = useCallback(() => {
+    if (lastActionTimerRef.current) clearTimeout(lastActionTimerRef.current);
+    lastActionRef.current = null;
+    forceRender();
+  }, []);
+
+  function showLastAction(kind: "undo" | "redo", label: string) {
+    if (lastActionTimerRef.current) clearTimeout(lastActionTimerRef.current);
+    lastActionRef.current = { kind, label };
+    lastActionTimerRef.current = setTimeout(() => {
+      lastActionRef.current = null;
+      forceRender();
+    }, LAST_ACTION_DISPLAY_MS);
+  }
 
   const undo = useCallback(() => {
     if (isBusyRef.current || pastRef.current.length === 0) return;
@@ -53,6 +83,7 @@ export function UndoProvider({ children }: { children: ReactNode }) {
     restoreSnapshot(entry.affected, "before")
       .then(() => {
         futureRef.current = [...futureRef.current, entry];
+        showLastAction("undo", entry.label);
         router.refresh();
       })
       .catch((err) => {
@@ -76,6 +107,7 @@ export function UndoProvider({ children }: { children: ReactNode }) {
     restoreSnapshot(entry.affected, "after")
       .then(() => {
         pastRef.current = [...pastRef.current, entry];
+        showLastAction("redo", entry.label);
         router.refresh();
       })
       .catch((err) => {
@@ -104,6 +136,12 @@ export function UndoProvider({ children }: { children: ReactNode }) {
     return () => window.removeEventListener("keydown", onKeyDown);
   }, [undo, redo]);
 
+  useEffect(() => {
+    return () => {
+      if (lastActionTimerRef.current) clearTimeout(lastActionTimerRef.current);
+    };
+  }, []);
+
   const dismissError = useCallback(() => {
     errorRef.current = null;
     forceRender();
@@ -120,6 +158,8 @@ export function UndoProvider({ children }: { children: ReactNode }) {
     isBusy: isBusyRef.current,
     error: errorRef.current,
     dismissError,
+    lastAction: lastActionRef.current,
+    dismissLastAction,
   };
 
   return <UndoContext.Provider value={value}>{children}</UndoContext.Provider>;

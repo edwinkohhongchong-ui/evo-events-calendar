@@ -12,10 +12,12 @@ type ModalState =
   | { type: "add" }
   | { type: "edit"; template: ChecklistTemplateWithItems };
 
-// Reusable checklist "playbooks" (e.g. "Big Event Prep") that can be applied
-// to any event in one click from the Reminders page's event picker — see
-// RemindersForm.tsx. Managed here, right alongside the checklist items they
-// expand into.
+// Reusable checklist "playbooks" (e.g. "Big Event Prep") you can select for
+// any event in the picker below to pre-load its lines straight into the
+// drafted message — see RemindersForm.tsx. Deliberately NOT linked to the
+// real Checklist tab/table (lib/checklistActions.ts, the "linked_event_id"
+// system used for "Check Calendar") — this is message-composition content
+// only, kept separate on purpose per explicit user feedback.
 export default function ChecklistTemplatesSection({
   templates,
 }: {
@@ -24,7 +26,7 @@ export default function ChecklistTemplatesSection({
   const router = useRouter();
   const { record } = useUndo();
   const [modal, setModal] = useState<ModalState>({ type: "closed" });
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useState(true);
   const [removingId, setRemovingId] = useState<string | null>(null);
 
   async function handleRemove(template: ChecklistTemplateWithItems) {
@@ -54,7 +56,8 @@ export default function ChecklistTemplatesSection({
       {open && (
         <div className="p-3 flex flex-col gap-2">
           <p className="text-xs text-gray-500 -mt-1">
-            Reusable checklists you can apply to any event in one click from the Reminders page.
+            Reusable checklist text for drafted messages only — separate from the real Checklist
+            tab. Select one per event below to pre-load its lines into the message.
           </p>
           {templates.map((t) => (
             <div

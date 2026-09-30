@@ -4,21 +4,17 @@ import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { useUndo } from "@/lib/undo/UndoProvider";
 import { deleteReminderTemplate } from "@/lib/reminderTemplateActions";
-import { applyChecklistTemplate } from "@/lib/checklistTemplateActions";
-import { ChecklistTemplateWithItems, EventOption, ReminderTemplateRow } from "@/lib/types";
+import { ChecklistTemplateWithItems, ReminderTemplateRow } from "@/lib/types";
 import { ReminderPickerEvent } from "@/lib/data";
-import { toDateStr, formatDateDisplay } from "@/lib/dates";
+import { toDateStr, formatDateDisplay, formatEventTimeRange } from "@/lib/dates";
 import ReminderTemplateModal from "./ReminderTemplateModal";
-import ChecklistModal from "./ChecklistModal";
 
 interface RemindersFormProps {
   templates: ReminderTemplateRow[];
-  eventOptions: EventOption[];
   checklistTemplates: ChecklistTemplateWithItems[];
 }
 
 type TemplateModalState = { type: "closed" } | { type: "add" } | { type: "edit"; template: ReminderTemplateRow };
-type ChecklistModalState = { type: "closed" } | { type: "add"; eventId: string };
 
 function addDays(date: Date, days: number): Date {
   const next = new Date(date);
@@ -26,23 +22,48 @@ function addDays(date: Date, days: number): Date {
   return next;
 }
 
-// Same layout as the recommended preview shown when this feature was
-// designed: intro text, then each selected event with either its linked
-// checklist to-dos or a warning that none are tracked yet — the message is
-// meant to be self-contained so nobody has to open the app to see what's
-// needed for a flagged event.
-function buildMessage(introText: string, events: ReminderPickerEvent[], selected: Set<string>): string {
+// Expands a checklist template's items by their repeat_count into plain
+// text lines (e.g. a weekly check-in ×4 becomes 4 separately numbered
+// lines) — message-composition only, no relation to the real `checklist`
+// table.
+function expandChecklistTemplate(template: ChecklistTemplateWithItems): string[] {
+  const lines: string[] = [];
+  for (const item of template.items) {
+    const count = item.repeat_count ?? 1;
+    for (let i = 1; i <= count; i++) {
+      lines.push(count > 1 ? `${item.item} — Week ${i} of ${count}` : item.item);
+    }
+  }
+  return lines;
+}
+
+// Same layout as originally designed: intro text, then each selected event
+// with its time/location and, if a checklist template was chosen for it,
+// that template's lines underneath — so the Telegram message is
+// self-contained without anyone needing to open the app.
+function buildMessage(
+  introText: string,
+  events: ReminderPickerEvent[],
+  selected: Set<string>,
+  eventTemplates: Record<string, string>,
+  checklistTemplates: ChecklistTemplateWithItems[]
+): string {
   const lines: string[] = [];
   if (introText.trim()) lines.push(introText.trim(), "");
 
   for (const ev of events) {
     if (!selected.has(ev.occurrenceKey)) continue;
-    lines.push(`${ev.flagged ? "⭐ " : ""}${ev.name} — ${formatDateDisplay(ev.date)}`);
-    if (ev.checklistItems.length === 0) {
-      lines.push("  ⚠ No prep checklist linked yet");
-    } else {
-      for (const item of ev.checklistItems) {
-        lines.push(`  ☐ ${item.item} (${item.status})`);
+    const timeRange = formatEventTimeRange(ev.startTime, ev.endTime);
+    const details = [formatDateDisplay(ev.date), timeRange, ev.location ? `📍 ${ev.location}` : null]
+      .filter(Boolean)
+      .join(" · ");
+    lines.push(`${ev.flagged ? "⭐ " : ""}${ev.name} — ${details}`);
+
+    const templateId = eventTemplates[ev.occurrenceKey];
+    const template = templateId ? checklistTemplates.find((t) => t.id === templateId) : undefined;
+    if (template) {
+      for (const line of expandChecklistTemplate(template)) {
+        lines.push(`  ☐ ${line}`);
       }
     }
     lines.push("");
@@ -50,10 +71,9 @@ function buildMessage(introText: string, events: ReminderPickerEvent[], selected
   return lines.join("\n").trim();
 }
 
-export default function RemindersForm({ templates, eventOptions, checklistTemplates }: RemindersFormProps) {
+export default function RemindersForm({ templates, checklistTemplates }: RemindersFormProps) {
   const router = useRouter();
   const { record } = useUndo();
-  const [applyingTemplateFor, setApplyingTemplateFor] = useState<string | null>(null);
   const [selectedId, setSelectedId] = useState("");
   const [handle, setHandle] = useState("");
   const [introText, setIntroText] = useState("");
@@ -62,10 +82,13 @@ export default function RemindersForm({ templates, eventOptions, checklistTempla
   const [messageTouched, setMessageTouched] = useState(false);
   const [pickerEvents, setPickerEvents] = useState<ReminderPickerEvent[]>([]);
   const [selectedKeys, setSelectedKeys] = useState<Set<string>>(new Set());
+  // Which checklist template (message-only) is chosen per event occurrence —
+  // deliberately separate from the real Checklist table, per explicit
+  // feedback that the two shouldn't be linked.
+  const [eventTemplates, setEventTemplates] = useState<Record<string, string>>({});
   const [loadingEvents, setLoadingEvents] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [templateModal, setTemplateModal] = useState<TemplateModalState>({ type: "closed" });
-  const [checklistModal, setChecklistModal] = useState<ChecklistModalState>({ type: "closed" });
   const [removingId, setRemovingId] = useState<string | null>(null);
 
   const fetchEvents = useCallback(async (days: number) => {
@@ -80,6 +103,7 @@ export default function RemindersForm({ templates, eventOptions, checklistTempla
       const events: ReminderPickerEvent[] = data.events;
       setPickerEvents(events);
       setSelectedKeys(new Set(events.filter((e) => e.flagged).map((e) => e.occurrenceKey)));
+      setEventTemplates({});
     } catch (err) {
       setError(err instanceof Error ? err.message : "Couldn't load upcoming events.");
       setPickerEvents([]);
@@ -101,8 +125,8 @@ export default function RemindersForm({ templates, eventOptions, checklistTempla
   // edits the textarea, so their edits are never silently clobbered.
   useEffect(() => {
     if (messageTouched) return;
-    setMessage(buildMessage(introText, pickerEvents, selectedKeys));
-  }, [introText, pickerEvents, selectedKeys, messageTouched]);
+    setMessage(buildMessage(introText, pickerEvents, selectedKeys, eventTemplates, checklistTemplates));
+  }, [introText, pickerEvents, selectedKeys, eventTemplates, checklistTemplates, messageTouched]);
 
   function applyTemplate(id: string) {
     setSelectedId(id);
@@ -128,6 +152,15 @@ export default function RemindersForm({ templates, eventOptions, checklistTempla
     });
   }
 
+  function setEventTemplate(occurrenceKey: string, templateId: string) {
+    setEventTemplates((prev) => {
+      const next = { ...prev };
+      if (templateId) next[occurrenceKey] = templateId;
+      else delete next[occurrenceKey];
+      return next;
+    });
+  }
+
   function handleLookaheadChange(days: number) {
     setLookaheadDays(days);
     fetchEvents(days);
@@ -135,23 +168,7 @@ export default function RemindersForm({ templates, eventOptions, checklistTempla
 
   function resetMessage() {
     setMessageTouched(false);
-    setMessage(buildMessage(introText, pickerEvents, selectedKeys));
-  }
-
-  async function handleApplyChecklistTemplate(eventId: string, templateId: string) {
-    if (!templateId) return;
-    setApplyingTemplateFor(eventId);
-    setError(null);
-    try {
-      const affected = await applyChecklistTemplate(eventId, templateId);
-      const template = checklistTemplates.find((t) => t.id === templateId);
-      record(`Apply checklist template "${template?.name ?? "template"}"`, affected);
-      await fetchEvents(lookaheadDays);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Couldn't apply that template.");
-    } finally {
-      setApplyingTemplateFor(null);
-    }
+    setMessage(buildMessage(introText, pickerEvents, selectedKeys, eventTemplates, checklistTemplates));
   }
 
   function openInTelegram() {
@@ -196,7 +213,7 @@ export default function RemindersForm({ templates, eventOptions, checklistTempla
 
         <div className="grid grid-cols-2 gap-3">
           <label className="flex flex-col gap-1 text-sm">
-            Template
+            Reminder template
             <select
               value={selectedId}
               onChange={(e) => applyTemplate(e.target.value)}
@@ -254,64 +271,70 @@ export default function RemindersForm({ templates, eventOptions, checklistTempla
             {pickerEvents.length === 0 && !loadingEvents && (
               <p className="px-3 py-4 text-sm text-gray-400 text-center">No events in this period.</p>
             )}
-            {pickerEvents.map((ev) => (
-              <div key={ev.occurrenceKey} className="px-3 py-2 flex flex-col gap-1">
-                <label className="flex items-start gap-2 text-sm cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={selectedKeys.has(ev.occurrenceKey)}
-                    onChange={() => toggleEvent(ev.occurrenceKey)}
-                    className="mt-0.5"
-                  />
-                  <span className="flex-1">
-                    {ev.flagged && <span title="Flagged as important">⭐ </span>}
-                    {ev.name}
-                    <span className="text-gray-400"> — {formatDateDisplay(ev.date)}</span>
-                  </span>
-                </label>
-                {selectedKeys.has(ev.occurrenceKey) && (
-                  <div className="pl-6 flex flex-col gap-1">
-                    {ev.checklistItems.length === 0 ? (
-                      <span className="text-xs text-amber-600">⚠ No prep checklist linked yet</span>
-                    ) : (
-                      ev.checklistItems.map((item) => (
-                        <div key={item.id} className="text-xs text-gray-600">
-                          ☐ {item.item} <span className="text-gray-400">({item.status})</span>
-                        </div>
-                      ))
-                    )}
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <select
-                        value=""
-                        disabled={applyingTemplateFor === ev.eventId}
-                        onChange={(e) => {
-                          const templateId = e.target.value;
-                          e.target.value = "";
-                          if (templateId) handleApplyChecklistTemplate(ev.eventId, templateId);
-                        }}
-                        className="border rounded px-1.5 py-0.5 text-xs disabled:opacity-50"
-                      >
-                        <option value="">
-                          {applyingTemplateFor === ev.eventId ? "Applying…" : "Apply a template…"}
-                        </option>
-                        {checklistTemplates.map((t) => (
-                          <option key={t.id} value={t.id}>
-                            {t.name}
-                          </option>
-                        ))}
-                      </select>
-                      <button
-                        type="button"
-                        onClick={() => setChecklistModal({ type: "add", eventId: ev.eventId })}
-                        className="text-xs text-navy hover:underline"
-                      >
-                        + Add one item
-                      </button>
+            {pickerEvents.map((ev) => {
+              const timeRange = formatEventTimeRange(ev.startTime, ev.endTime);
+              const chosenTemplateId = eventTemplates[ev.occurrenceKey] ?? "";
+              return (
+                <div key={ev.occurrenceKey} className="px-3 py-2 flex flex-col gap-1">
+                  <label className="flex items-start gap-2 text-sm cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={selectedKeys.has(ev.occurrenceKey)}
+                      onChange={() => toggleEvent(ev.occurrenceKey)}
+                      className="mt-0.5"
+                    />
+                    <span className="flex-1">
+                      {ev.flagged && <span title="Flagged as important">⭐ </span>}
+                      {ev.name}
+                      <span className="text-gray-400">
+                        {" "}
+                        — {formatDateDisplay(ev.date)}
+                        {timeRange ? ` · ${timeRange}` : ""}
+                        {ev.location ? ` · 📍 ${ev.location}` : ""}
+                      </span>
+                    </span>
+                  </label>
+                  {selectedKeys.has(ev.occurrenceKey) && (
+                    <div className="pl-6 flex flex-col gap-1">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <select
+                          value={chosenTemplateId}
+                          onChange={(e) => setEventTemplate(ev.occurrenceKey, e.target.value)}
+                          className="border rounded px-1.5 py-0.5 text-xs"
+                        >
+                          <option value="">No checklist template</option>
+                          {checklistTemplates.map((t) => (
+                            <option key={t.id} value={t.id}>
+                              {t.name}
+                            </option>
+                          ))}
+                        </select>
+                        {chosenTemplateId && (
+                          <button
+                            type="button"
+                            onClick={() => setEventTemplate(ev.occurrenceKey, "")}
+                            title="Remove this checklist template from the message"
+                            className="text-gray-300 hover:text-red-600 leading-none"
+                          >
+                            ×
+                          </button>
+                        )}
+                      </div>
+                      {chosenTemplateId &&
+                        (() => {
+                          const template = checklistTemplates.find((t) => t.id === chosenTemplateId);
+                          if (!template) return null;
+                          return expandChecklistTemplate(template).map((line, i) => (
+                            <div key={i} className="text-xs text-gray-600">
+                              ☐ {line}
+                            </div>
+                          ));
+                        })()}
                     </div>
-                  </div>
-                )}
-              </div>
-            ))}
+                  )}
+                </div>
+              );
+            })}
           </div>
         </div>
 
@@ -348,7 +371,7 @@ export default function RemindersForm({ templates, eventOptions, checklistTempla
 
       <div className="flex flex-col gap-2">
         <div className="flex items-center justify-between">
-          <h2 className="text-base font-semibold text-navy">Saved templates</h2>
+          <h2 className="text-base font-semibold text-navy">Saved reminder templates</h2>
           <button
             type="button"
             onClick={() => setTemplateModal({ type: "add" })}
@@ -418,20 +441,6 @@ export default function RemindersForm({ templates, eventOptions, checklistTempla
             setTemplateModal({ type: "closed" });
             router.refresh();
           }}
-        />
-      )}
-
-      {checklistModal.type !== "closed" && (
-        <ChecklistModal
-          mode="add"
-          eventOptions={eventOptions}
-          defaultLinkedEventId={checklistModal.eventId}
-          onClose={() => setChecklistModal({ type: "closed" })}
-          onSaved={() => {
-            setChecklistModal({ type: "closed" });
-            fetchEvents(lookaheadDays);
-          }}
-          onDeleted={() => setChecklistModal({ type: "closed" })}
         />
       )}
     </div>

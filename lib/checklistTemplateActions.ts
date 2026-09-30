@@ -84,36 +84,3 @@ export async function deleteChecklistTemplate(id: string): Promise<AffectedRow[]
   if (before) affected.push({ table: "checklist_templates", id, before, after: null });
   return affected;
 }
-
-// Applies a saved template to one event — expands each item by its
-// repeat_count into that many `checklist` rows (numbered "— Week N of M"
-// when repeated), all linked to the event so they show up everywhere a
-// linked checklist item already does (Checklist tab, Reminders picker).
-export async function applyChecklistTemplate(eventId: string, templateId: string): Promise<AffectedRow[]> {
-  const { data: items, error } = await supabase
-    .from("checklist_template_items")
-    .select("*")
-    .eq("template_id", templateId)
-    .order("sort_order");
-  if (error) throw new Error(error.message);
-
-  const rows: Record<string, unknown>[] = [];
-  for (const templateItem of items ?? []) {
-    const count = templateItem.repeat_count ?? 1;
-    for (let i = 1; i <= count; i++) {
-      rows.push({
-        category: "Event Prep",
-        item: count > 1 ? `${templateItem.item} — Week ${i} of ${count}` : templateItem.item,
-        status: "Not Started",
-        target_month: null,
-        notes: null,
-        linked_event_id: eventId,
-      });
-    }
-  }
-  if (rows.length === 0) return [];
-
-  const { data: inserted, error: insertErr } = await supabase.from("checklist").insert(rows).select();
-  if (insertErr) throw new Error(insertErr.message);
-  return (inserted ?? []).map((row) => ({ table: "checklist" as const, id: row.id, before: null, after: row }));
-}

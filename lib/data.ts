@@ -62,26 +62,28 @@ export interface ReminderPickerEvent {
   eventId: string;
   name: string;
   date: string;
+  startTime: string | null;
+  endTime: string | null;
+  location: string | null;
   flagged: boolean;
-  checklistItems: { id: string; item: string; status: string }[];
 }
 
 // Upcoming events in [startStr, endStr] for the Reminders page's event
 // picker — same recurrence expansion + override application as the
-// calendar grid, so this never lists something the calendar wouldn't. Each
-// occurrence carries whether it's "flagged" (Churchwide, or a Gathering
-// Type that always needs prep collateral) and any Checklist items already
-// linked to its base event, so a leader drafting a reminder can see at a
-// glance whether prep is tracked yet.
+// calendar grid, so this never lists something the calendar wouldn't.
+// "flagged" (Churchwide, or a Gathering Type that always needs prep
+// collateral) just pre-checks the box in the picker; it's a message-drafting
+// convenience only, deliberately independent of the real Checklist tab/table
+// (checklist_templates apply text straight into the drafted message, see
+// RemindersForm.tsx, not real `checklist` rows).
 export async function getUpcomingEventsForReminders(
   startStr: string,
   endStr: string
 ): Promise<ReminderPickerEvent[]> {
-  const [events, overrides, exceptions, checklist] = await Promise.all([
+  const [events, overrides, exceptions] = await Promise.all([
     getEvents(startStr, endStr),
     getOverrides(startStr, endStr),
     getExceptions(startStr, endStr),
-    getAllChecklist(),
   ]);
 
   const eventsById = new Map(events.map((e) => [e.id, e]));
@@ -90,14 +92,6 @@ export async function getUpcomingEventsForReminders(
     const set = exceptionsByEventId.get(exception.event_id) ?? new Set<string>();
     set.add(exception.original_date);
     exceptionsByEventId.set(exception.event_id, set);
-  }
-
-  const checklistByEventId = new Map<string, { id: string; item: string; status: string }[]>();
-  for (const item of checklist) {
-    if (!item.linked_event_id) continue;
-    const list = checklistByEventId.get(item.linked_event_id) ?? [];
-    list.push({ id: item.id, item: item.item, status: item.status });
-    checklistByEventId.set(item.linked_event_id, list);
   }
 
   const rawOccurrences = expandEvents(events, parseDateStr(startStr), parseDateStr(endStr), exceptionsByEventId);
@@ -109,8 +103,10 @@ export async function getUpcomingEventsForReminders(
     eventId: occ.event.id,
     name: occ.event.name,
     date: occ.occurrenceDate,
+    startTime: occ.startTime,
+    endTime: occ.endTime,
+    location: occ.event.location,
     flagged: isFlaggedForReminders(occ.event),
-    checklistItems: checklistByEventId.get(occ.event.id) ?? [],
   }));
 }
 

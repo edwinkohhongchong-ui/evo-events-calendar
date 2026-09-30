@@ -159,6 +159,7 @@ export interface EventFormValues {
   end_time: string | null;
   duration_minutes: number | null;
   level: Level;
+  location: string | null;
   recurring: Recurring;
   repeat_until: string | null;
   notes: string | null;

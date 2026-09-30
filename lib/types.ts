@@ -36,6 +36,7 @@ export interface EventRow {
   pastoral_uni: boolean;
   pastoral_adults: boolean;
   // Gathering-only fields — null when event_type is "Event".
+  location: string | null; // see migration 019
   gathering_type: GatheringType | null;
   series: string | null;
   preacher_name: string | null;
