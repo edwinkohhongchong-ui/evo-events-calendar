@@ -23,7 +23,7 @@ import { LevelColorProvider } from "@/lib/levelColorContext";
 import { useEventFilter } from "@/lib/eventFilterContext";
 import { useUndo } from "@/lib/undo/UndoProvider";
 import { EventOccurrence, LevelRow } from "@/lib/types";
-import LevelFilterBar from "./LevelFilterBar";
+import LevelChips from "./LevelChips";
 
 const HOURS = Array.from({ length: 24 }, (_, i) => i);
 const SNAP_MINUTES = 15;
@@ -122,7 +122,7 @@ export default function DayView({ occurrences, levels }: DayViewProps) {
     <LevelColorProvider colorMap={colorMap}>
       {error && <ErrorBanner message={error} onDismiss={() => setError(null)} />}
       <div className="mb-3">
-        <LevelFilterBar levels={levels} />
+        <LevelChips levels={levels} />
       </div>
       <DndContext id="day-dnd" sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
         <div className="flex border border-gray-200 rounded-md overflow-hidden">

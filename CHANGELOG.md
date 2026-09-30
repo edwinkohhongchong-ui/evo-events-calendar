@@ -8,6 +8,20 @@ items (features/fixes) that push contains — a push with 1 item goes up by
 `1.05`). If MINOR would pass `.99`, MAJOR increments and MINOR carries the
 remainder (e.g. `1.99` + 2 items → `2.01`).
 
+## v1.17 — 2026-09-30
+
+- Fixed PDF/Word export silently downloading a corrupt file (the login
+  page's HTML, mislabeled as a .pdf/.docx) whenever the passcode session was
+  missing or expired — the export API route now returns a proper JSON 401 in
+  that case instead of a redirect that `fetch` was silently following.
+- "Events by Category" now starts fully collapsed — expand a category by
+  clicking its header, same as before, just no longer expanded by default.
+- Replaced the separate "Filter:" chip row with click-to-toggle on the
+  existing category legend chips themselves — click a chip's name to
+  hide/show that category (dims when hidden), the pencil still edits and the
+  × still deletes, no extra row needed. Applied to both month view and day
+  view.
+
 ## v1.14 — 2026-09-30
 
 - Holiday badges and Season bars on the month grid are now clickable — each

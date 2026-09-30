@@ -12,6 +12,15 @@ export function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
+  // API routes are hit via fetch(), not browser navigation — a redirect to
+  // /login would be silently followed and come back as a 200 text/html
+  // response (the login page), which callers like ExportForm only check
+  // via res.ok and would then download as a corrupt "PDF"/"DOCX". Return a
+  // JSON 401 instead so those callers can detect and surface the failure.
+  if (request.nextUrl.pathname.startsWith("/api/")) {
+    return NextResponse.json({ error: "Session expired. Please log in again." }, { status: 401 });
+  }
+
   const loginUrl = new URL("/login", request.url);
   return NextResponse.redirect(loginUrl);
 }

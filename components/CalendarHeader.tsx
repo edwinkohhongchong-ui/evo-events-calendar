@@ -4,13 +4,9 @@ import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { format, addMonths, subMonths } from "date-fns";
-import { LEVEL_COLOR_CLASSES } from "@/lib/constants";
-import { resolveLevelColor } from "@/lib/levelColor";
-import { deleteLevel } from "@/lib/levelActions";
-import { useUndo } from "@/lib/undo/UndoProvider";
 import { LevelRow } from "@/lib/types";
 import LevelModal from "./LevelModal";
-import LevelFilterBar from "./LevelFilterBar";
+import LevelChips from "./LevelChips";
 
 interface CalendarHeaderProps {
   monthStart: Date;
@@ -22,34 +18,10 @@ type LevelModalState = { type: "closed" } | { type: "add" } | { type: "edit"; le
 
 export default function CalendarHeader({ monthStart, levels, onAddClick }: CalendarHeaderProps) {
   const router = useRouter();
-  const { record } = useUndo();
   const prev = subMonths(monthStart, 1);
   const next = addMonths(monthStart, 1);
   const [levelModal, setLevelModal] = useState<LevelModalState>({ type: "closed" });
-  const [removingId, setRemovingId] = useState<string | null>(null);
-  const [removeError, setRemoveError] = useState<string | null>(null);
   const nextSortOrder = levels.length > 0 ? Math.max(...levels.map((l) => l.sort_order)) + 1 : 0;
-
-  async function handleRemove(level: LevelRow) {
-    if (!window.confirm(`Delete the "${level.name}" category?`)) return;
-    setRemovingId(level.id);
-    setRemoveError(null);
-    try {
-      const affected = await deleteLevel(level.id);
-      record(`Delete category "${level.name}"`, affected);
-      router.refresh();
-    } catch (err) {
-      setRemoveError(
-        err instanceof Error && (err.message.includes("foreign key") || err.message.includes("violates"))
-          ? `Can't delete "${level.name}" — it's still used by one or more events.`
-          : err instanceof Error
-            ? err.message
-            : "Something went wrong deleting this category."
-      );
-    } finally {
-      setRemovingId(null);
-    }
-  }
 
   return (
     <div className="flex flex-col gap-3 mb-4">
@@ -91,37 +63,7 @@ export default function CalendarHeader({ monthStart, levels, onAddClick }: Calen
         </div>
       </div>
 
-      <div className="flex flex-wrap gap-2 items-center">
-        {levels.map((level) => (
-          <span
-            key={level.id}
-            className={[
-              "group flex items-center gap-1 text-[11px] pl-1.5 pr-1 py-0.5 rounded border",
-              LEVEL_COLOR_CLASSES[resolveLevelColor(level)],
-            ].join(" ")}
-          >
-            <button
-              type="button"
-              onClick={() => setLevelModal({ type: "edit", level })}
-              title="Edit category"
-            >
-              {level.name}
-            </button>
-            <button
-              type="button"
-              onClick={() => handleRemove(level)}
-              disabled={removingId === level.id}
-              title={`Remove "${level.name}"`}
-              className="leading-none opacity-50 hover:opacity-100 disabled:opacity-30 px-0.5"
-            >
-              ×
-            </button>
-          </span>
-        ))}
-      </div>
-      {removeError && <p className="text-xs text-red-600">{removeError}</p>}
-
-      <LevelFilterBar levels={levels} />
+      <LevelChips levels={levels} onEdit={(level) => setLevelModal({ type: "edit", level })} />
 
       {levelModal.type !== "closed" && (
         <LevelModal

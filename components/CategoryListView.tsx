@@ -27,7 +27,7 @@ type ModalState = { type: "closed" } | { type: "add" } | { type: "edit"; occurre
 export default function CategoryListView({ occurrences, levels, defaultAddDate }: CategoryListViewProps) {
   const router = useRouter();
   const { isVisible } = useEventFilter();
-  const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
+  const [collapsed, setCollapsed] = useState<Set<string>>(() => new Set(levels.map((l) => l.name)));
   const [modal, setModal] = useState<ModalState>({ type: "closed" });
 
   const grouped = useMemo(() => {
