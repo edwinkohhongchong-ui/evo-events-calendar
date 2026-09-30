@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import HolidayModal from "./HolidayModal";
 import { deleteHoliday } from "@/lib/holidayActions";
+import { useUndo } from "@/lib/undo/UndoProvider";
 import { HolidayRow } from "@/lib/types";
 import { formatDateDisplay } from "@/lib/dates";
 
@@ -14,6 +15,7 @@ const ALL_YEARS = "All";
 
 export default function HolidaysTable({ holidays }: { holidays: HolidayRow[] }) {
   const router = useRouter();
+  const { record } = useUndo();
   const [modal, setModal] = useState<ModalState>({ type: "closed" });
   const [yearFilter, setYearFilter] = useState<string>(ALL_YEARS);
   const [removingId, setRemovingId] = useState<string | null>(null);
@@ -23,7 +25,8 @@ export default function HolidaysTable({ holidays }: { holidays: HolidayRow[] }) 
     if (!window.confirm(`Delete "${holiday.name}"?`)) return;
     setRemovingId(holiday.id);
     try {
-      await deleteHoliday(holiday.id);
+      const affected = await deleteHoliday(holiday.id);
+      record(`Delete holiday "${holiday.name}"`, affected);
       router.refresh();
     } catch (err) {
       window.alert(err instanceof Error ? err.message : "Something went wrong deleting this holiday.");

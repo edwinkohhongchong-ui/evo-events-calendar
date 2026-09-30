@@ -8,12 +8,43 @@ items (features/fixes) that push contains — a push with 1 item goes up by
 `1.05`). If MINOR would pass `.99`, MAJOR increments and MINOR carries the
 remainder (e.g. `1.99` + 2 items → `2.01`).
 
-## v1.10 — 2026-09-29
+## v1.14 — 2026-09-30
 
 - Holiday badges and Season bars on the month grid are now clickable — each
   opens the same Edit/Delete modal previously only reachable from the
   Holidays/Seasons admin tables, so both can be managed directly from the
   calendar.
+
+## v1.13 — 2026-09-29
+
+- Restyled the Undo/Redo nav bar buttons to match the visual weight of
+  Prev/Next/Today — bordered buttons with text labels ("↶ Undo" / "Redo ↷")
+  instead of bare icon-only ghost buttons, so they read as clearly clickable.
+
+## v1.12 — 2026-09-23
+
+- Added undo/redo, covering every mutation in the app — events (add, edit,
+  delete, drag-move, drag-retime, drag-resize, per-occurrence overrides and
+  exceptions on recurring series), levels, holidays, seasons, checklist
+  items, day notes, and note comments (including cascaded replies). ↶/↷
+  buttons in the nav bar, plus Cmd/Ctrl+Z and Cmd/Ctrl+Shift+Z. Built as a
+  generic snapshot-based engine (`lib/undo/`) that captures each action's
+  before/after row images and restores by upsert/delete, rather than
+  hand-written inverses — the recurring-event override/exception logic in
+  `lib/actions.ts` is intricate enough that reversing it by hand would risk
+  duplicating the same bugs in reverse. Undo only rewinds actions taken in
+  your own browser tab and has no way to detect a concurrent edit by someone
+  else in between — a known limitation, consistent with the rest of the
+  app's no-realtime-conflict-detection design.
+- Added a category filter: click a category chip in the "Filter:" row
+  (month view, day view) to hide it from the calendar, day view, and
+  "Events by Category" list — untick everything except one category (e.g.
+  Gathering) to isolate it. New `lib/eventFilterContext.tsx`, shared across
+  all three views so a filter set on one persists across navigation.
+- Fixed the Add/Edit Event modal (and the Category/Holiday/Season/Checklist
+  modals, which shared the same unconstrained wrapper) overflowing the
+  viewport with no way to reach Save/Cancel on a long form or a short
+  screen — all five now cap at 90% viewport height and scroll internally.
 
 ## v1.09 — 2026-09-22
 

@@ -6,6 +6,8 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { HolidayDiffRow, HolidayType } from "@/lib/types";
 import { HOLIDAY_TYPES } from "@/lib/constants";
 import { createHoliday } from "@/lib/holidayActions";
+import { useUndo } from "@/lib/undo/UndoProvider";
+import { AffectedRow } from "@/lib/undo/types";
 
 interface ReviewRow extends HolidayDiffRow {
   id: string;
@@ -51,6 +53,7 @@ export default function NewYearPage() {
 
 function NewYearPageInner() {
   const router = useRouter();
+  const { record } = useUndo();
   const searchParams = useSearchParams();
   const nextYear = new Date().getFullYear() + 1;
   // ?year= comes from the Holidays page's "Update Calendar" button (checks
@@ -96,14 +99,17 @@ function NewYearPageInner() {
     const approved = phase.rows.filter((r) => r.approved);
     let insertedCount = 0;
     const failed: { name: string; error: string }[] = [];
+    const affected: AffectedRow[] = [];
 
     for (const row of approved) {
       try {
-        await createHoliday({
-          holiday_date: row.editedDate,
-          name: row.editedName.trim(),
-          type: row.editedType,
-        });
+        affected.push(
+          ...(await createHoliday({
+            holiday_date: row.editedDate,
+            name: row.editedName.trim(),
+            type: row.editedType,
+          }))
+        );
         insertedCount++;
       } catch (err) {
         failed.push({
@@ -113,6 +119,7 @@ function NewYearPageInner() {
       }
     }
 
+    if (affected.length > 0) record(`Import ${insertedCount} holiday(s) for ${phase.year}`, affected);
     setPhase({ kind: "saved", insertedCount, failed });
   }
 

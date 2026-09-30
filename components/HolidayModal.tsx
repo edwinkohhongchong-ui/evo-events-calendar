@@ -4,6 +4,7 @@ import { useState, FormEvent } from "react";
 import { HolidayRow, HolidayType } from "@/lib/types";
 import { HOLIDAY_TYPES } from "@/lib/constants";
 import { createHoliday, updateHoliday, deleteHoliday } from "@/lib/holidayActions";
+import { useUndo } from "@/lib/undo/UndoProvider";
 import ConfirmDialog from "./ConfirmDialog";
 
 interface HolidayModalProps {
@@ -21,6 +22,7 @@ export default function HolidayModal({
   onSaved,
   onDeleted,
 }: HolidayModalProps) {
+  const { record } = useUndo();
   const [holidayDate, setHolidayDate] = useState(holiday?.holiday_date ?? "");
   const [name, setName] = useState(holiday?.name ?? "");
   const [type, setType] = useState<HolidayType>(holiday?.type ?? HOLIDAY_TYPES[0]);
@@ -45,9 +47,11 @@ export default function HolidayModal({
     try {
       const values = { holiday_date: holidayDate, name: name.trim(), type };
       if (mode === "add") {
-        await createHoliday(values);
+        const affected = await createHoliday(values);
+        record(`Add holiday "${values.name}"`, affected);
       } else if (holiday) {
-        await updateHoliday(holiday.id, values);
+        const affected = await updateHoliday(holiday.id, values);
+        record(`Edit holiday "${values.name}"`, affected);
       }
       onSaved();
     } catch (err) {
@@ -61,7 +65,8 @@ export default function HolidayModal({
     setSaving(true);
     setFormError(null);
     try {
-      await deleteHoliday(holiday.id);
+      const affected = await deleteHoliday(holiday.id);
+      record(`Delete holiday "${holiday.name}"`, affected);
       onDeleted();
     } catch (err) {
       setFormError(
@@ -77,7 +82,7 @@ export default function HolidayModal({
       onClick={onClose}
     >
       <div
-        className="bg-white rounded-lg shadow-lg w-full max-w-md p-5"
+        className="bg-white rounded-lg shadow-lg w-full max-w-md p-5 max-h-[90vh] overflow-y-auto"
         onClick={(e) => e.stopPropagation()}
       >
         <h2 className="text-lg font-semibold text-navy mb-3">
@@ -154,7 +159,7 @@ export default function HolidayModal({
           </form>
         ) : (
           <ConfirmDialog
-            message={<>Delete &ldquo;{holiday?.name}&rdquo;? This can&apos;t be undone.</>}
+            message={<>Delete &ldquo;{holiday?.name}&rdquo;?</>}
             error={formError}
             busy={saving}
             onCancel={() => setConfirmDelete(false)}

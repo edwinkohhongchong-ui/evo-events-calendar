@@ -7,6 +7,7 @@ import { EventOccurrence, LevelRow } from "@/lib/types";
 import { LEVEL_COLOR_CLASSES } from "@/lib/constants";
 import { resolveLevelColor } from "@/lib/levelColor";
 import { formatDateDisplay, formatEventTimeRange } from "@/lib/dates";
+import { useEventFilter } from "@/lib/eventFilterContext";
 
 interface CategoryListViewProps {
   occurrences: EventOccurrence[];
@@ -25,13 +26,17 @@ type ModalState = { type: "closed" } | { type: "add" } | { type: "edit"; occurre
 // including the recurring-series scope prompt.
 export default function CategoryListView({ occurrences, levels, defaultAddDate }: CategoryListViewProps) {
   const router = useRouter();
+  const { isVisible } = useEventFilter();
   const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
   const [modal, setModal] = useState<ModalState>({ type: "closed" });
 
   const grouped = useMemo(() => {
     const map = new Map<string, EventOccurrence[]>();
-    for (const level of levels) map.set(level.name, []);
+    for (const level of levels) {
+      if (isVisible(level.name)) map.set(level.name, []);
+    }
     for (const occ of occurrences) {
+      if (!isVisible(occ.event.level)) continue;
       const existing = map.get(occ.event.level);
       if (existing) {
         existing.push(occ);
@@ -49,7 +54,7 @@ export default function CategoryListView({ occurrences, levels, defaultAddDate }
       );
     }
     return map;
-  }, [occurrences, levels]);
+  }, [occurrences, levels, isVisible]);
 
   function toggle(name: string) {
     setCollapsed((prev) => {

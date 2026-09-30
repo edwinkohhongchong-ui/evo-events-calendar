@@ -15,6 +15,7 @@ import { computeDuration, computeEndTime, endsNextDay } from "@/lib/timeMath";
 import { formatDateDisplay, formatEventTimeRange } from "@/lib/dates";
 import { PastoralFocus, applyTitlePrefix, stripTitlePrefix } from "@/lib/pastoralFocus";
 import { CHURCHWIDE_LEVEL_NAME, GATHERING_TYPES, TG_LEVEL_NAME, ZONE_LEVEL_NAMES } from "@/lib/constants";
+import { useUndo } from "@/lib/undo/UndoProvider";
 import ConfirmDialog from "./ConfirmDialog";
 import RecurringScopeDialog from "./RecurringScopeDialog";
 
@@ -48,6 +49,7 @@ export default function EventModal({
   onSaved,
   onDeleted,
 }: EventModalProps) {
+  const { record } = useUndo();
   const [eventType, setEventType] = useState<EventType>(event?.event_type ?? "Event");
   // The Name field always holds the bare title, never the Y/P/U/A prefix —
   // an existing prefix (baked into event.name at save time, see handleSubmit)
@@ -252,9 +254,11 @@ export default function EventModal({
     setSaving(true);
     try {
       if (mode === "add") {
-        await createEvent(values);
+        const affected = await createEvent(values);
+        record(`Add "${values.name}"`, affected);
       } else if (event) {
-        await updateEvent(event.id, values);
+        const affected = await updateEvent(event.id, values);
+        record(`Edit "${values.name}"`, affected);
       }
       onSaved();
     } catch (err) {
@@ -269,9 +273,11 @@ export default function EventModal({
     setFormError(null);
     try {
       if (scope === "only") {
-        await detachOccurrence(event, occurrence.originalDate, pendingValues);
+        const affected = await detachOccurrence(event, occurrence.originalDate, pendingValues);
+        record(`Edit "${pendingValues.name}" (only this event)`, affected);
       } else {
-        await splitSeriesFromOccurrence(event, occurrence.originalDate, pendingValues);
+        const affected = await splitSeriesFromOccurrence(event, occurrence.originalDate, pendingValues);
+        record(`Edit "${pendingValues.name}" (this and future events)`, affected);
       }
       onSaved();
     } catch (err) {
@@ -293,7 +299,8 @@ export default function EventModal({
     setSaving(true);
     setFormError(null);
     try {
-      await deleteOccurrence(event, occurrence.originalDate);
+      const affected = await deleteOccurrence(event, occurrence.originalDate);
+      record(`Delete "${event.name}" (only this event)`, affected);
       onDeleted();
     } catch (err) {
       setFormError(err instanceof Error ? err.message : "Something went wrong deleting this event.");
@@ -306,7 +313,8 @@ export default function EventModal({
     setSaving(true);
     setFormError(null);
     try {
-      await deleteEvent(event.id);
+      const affected = await deleteEvent(event.id);
+      record(`Delete "${event.name}"`, affected);
       onDeleted();
     } catch (err) {
       setFormError(err instanceof Error ? err.message : "Something went wrong deleting this event.");
@@ -320,7 +328,7 @@ export default function EventModal({
       onClick={onClose}
     >
       <div
-        className="bg-white rounded-lg shadow-lg w-full max-w-md p-5"
+        className="bg-white rounded-lg shadow-lg w-full max-w-md p-5 max-h-[90vh] overflow-y-auto"
         onClick={(e) => e.stopPropagation()}
       >
         <h2 className="text-lg font-semibold text-navy mb-1">
@@ -343,10 +351,10 @@ export default function EventModal({
                     This will delete all occurrences of this recurring event
                   </strong>{" "}
                   — the entire &ldquo;{event?.name}&rdquo; series ({event?.recurring}), not just
-                  one date. This can&apos;t be undone.
+                  one date.
                 </>
               ) : (
-                <>Delete &ldquo;{event?.name}&rdquo;? This can&apos;t be undone.</>
+                <>Delete &ldquo;{event?.name}&rdquo;?</>
               )
             }
             error={formError}
@@ -478,7 +486,7 @@ export default function EventModal({
             optionALabel="Only this event"
             optionADescription="Removes just this occurrence — the rest of the series is unaffected."
             optionBLabel="The whole series"
-            optionBDescription={`Deletes every occurrence of "${event?.name}" (${event?.recurring}). This can't be undone.`}
+            optionBDescription={`Deletes every occurrence of "${event?.name}" (${event?.recurring}).`}
             optionBDanger
             busy={saving}
             error={formError}

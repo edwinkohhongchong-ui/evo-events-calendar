@@ -1,0 +1,49 @@
+import { supabase } from "../supabase";
+import { AffectedRow, SnapshotRow, UndoTable } from "./types";
+
+// Parent rows must exist before their children are written (events before
+// event_overrides/event_exceptions; a top-level note_comments row before its
+// replies), and children should be removed before their parents when a
+// parent is also being deleted — though ON DELETE CASCADE would clean them
+// up anyway, doing it explicitly keeps behavior predictable if a child's
+// snapshot differs from what cascade alone would produce.
+function rank(table: UndoTable, row: SnapshotRow): number {
+  if (table === "event_overrides" || table === "event_exceptions") return 1;
+  if (table === "note_comments") return row.parent_id ? 1 : 0;
+  return 0;
+}
+
+async function applyRow(table: UndoTable, id: string, row: SnapshotRow | null): Promise<void> {
+  if (row === null) {
+    const { error } = await supabase.from(table).delete().eq("id", id);
+    if (error) throw new Error(error.message);
+    return;
+  }
+  const { error } = await supabase.from(table).upsert(row);
+  if (error) throw new Error(error.message);
+}
+
+// Restores `affected` to either its `before` or `after` image. Writes/
+// upserts (row present) run parent-tables-first; deletes (row null) run
+// child-tables-first — each in the order the entries were recorded within
+// their own rank, since a bulk-migrated set of override rows (see
+// splitSeriesFromOccurrence) has no ordering dependency on each other.
+export async function restoreSnapshot(affected: AffectedRow[], which: "before" | "after"): Promise<void> {
+  const entries = affected.map((a) => ({ ...a, row: which === "before" ? a.before : a.after }));
+  const writes = entries.filter((e) => e.row !== null).sort((a, b) => rank(a.table, a.row!) - rank(b.table, b.row!));
+  const deletes = entries.filter((e) => e.row === null);
+  // A delete's own row is null, so rank it using whichever image *does*
+  // exist (the other side of the same entry) to preserve parent/child order.
+  deletes.sort((a, b) => {
+    const aRef = a.before ?? a.after ?? {};
+    const bRef = b.before ?? b.after ?? {};
+    return rank(b.table, bRef) - rank(a.table, aRef);
+  });
+
+  for (const e of writes) {
+    await applyRow(e.table, e.id, e.row);
+  }
+  for (const e of deletes) {
+    await applyRow(e.table, e.id, null);
+  }
+}

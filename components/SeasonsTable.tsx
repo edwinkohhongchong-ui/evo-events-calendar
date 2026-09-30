@@ -4,6 +4,7 @@ import { useMemo, useState, MouseEvent } from "react";
 import { useRouter } from "next/navigation";
 import SeasonModal from "./SeasonModal";
 import { deleteSeason } from "@/lib/seasonActions";
+import { useUndo } from "@/lib/undo/UndoProvider";
 import { SeasonRow } from "@/lib/types";
 import { formatDateDisplay } from "@/lib/dates";
 
@@ -13,6 +14,7 @@ const ALL_YEARS = "All";
 
 export default function SeasonsTable({ seasons }: { seasons: SeasonRow[] }) {
   const router = useRouter();
+  const { record } = useUndo();
   const [modal, setModal] = useState<ModalState>({ type: "closed" });
   const [yearFilter, setYearFilter] = useState<string>(ALL_YEARS);
   const [removingId, setRemovingId] = useState<string | null>(null);
@@ -22,7 +24,8 @@ export default function SeasonsTable({ seasons }: { seasons: SeasonRow[] }) {
     if (!window.confirm(`Delete "${season.name}"?`)) return;
     setRemovingId(season.id);
     try {
-      await deleteSeason(season.id);
+      const affected = await deleteSeason(season.id);
+      record(`Delete season "${season.name}"`, affected);
       router.refresh();
     } catch (err) {
       window.alert(err instanceof Error ? err.message : "Something went wrong deleting this season.");
