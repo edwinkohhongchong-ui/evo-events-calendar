@@ -10,6 +10,7 @@ import {
   deleteChecklistItem,
 } from "@/lib/checklistActions";
 import { useUndo } from "@/lib/undo/UndoProvider";
+import { useEscapeKey } from "@/lib/useEscapeKey";
 import ConfirmDialog from "./ConfirmDialog";
 
 interface ChecklistModalProps {
@@ -49,6 +50,8 @@ export default function ChecklistModal({
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
   const [confirmDelete, setConfirmDelete] = useState(false);
+
+  useEscapeKey(onClose);
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();

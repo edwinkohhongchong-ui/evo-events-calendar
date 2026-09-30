@@ -1,5 +1,8 @@
+"use server";
+
 import { supabase } from "../supabase";
 import { AffectedRow, SnapshotRow, UndoTable } from "./types";
+import { requireRole } from "../authz";
 
 // Parent rows must exist before their children are written (events before
 // event_overrides/event_exceptions; a top-level note_comments row before its
@@ -30,6 +33,7 @@ async function applyRow(table: UndoTable, id: string, row: SnapshotRow | null): 
 // their own rank, since a bulk-migrated set of override rows (see
 // splitSeriesFromOccurrence) has no ordering dependency on each other.
 export async function restoreSnapshot(affected: AffectedRow[], which: "before" | "after"): Promise<void> {
+  await requireRole("editor");
   const entries = affected.map((a) => ({ ...a, row: which === "before" ? a.before : a.after }));
   const writes = entries.filter((e) => e.row !== null).sort((a, b) => rank(a.table, a.row!) - rank(b.table, b.row!));
   const deletes = entries.filter((e) => e.row === null);

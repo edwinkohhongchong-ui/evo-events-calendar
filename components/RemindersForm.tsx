@@ -77,7 +77,11 @@ export default function RemindersForm({ templates, checklistTemplates }: Reminde
   const [selectedId, setSelectedId] = useState("");
   const [handle, setHandle] = useState("");
   const [introText, setIntroText] = useState("");
-  const [lookaheadDays, setLookaheadDays] = useState(30);
+  // 60, not 30 — a Churchwide/Xmas/Easter event planned a couple months out
+  // would otherwise silently not appear until someone thinks to widen this
+  // (Pastor review finding #3); the empty-state message below also now says
+  // so explicitly rather than just showing a blank list.
+  const [lookaheadDays, setLookaheadDays] = useState(60);
   const [message, setMessage] = useState("");
   const [messageTouched, setMessageTouched] = useState(false);
   const [pickerEvents, setPickerEvents] = useState<ReminderPickerEvent[]>([]);
@@ -114,7 +118,7 @@ export default function RemindersForm({ templates, checklistTemplates }: Reminde
   }, []);
 
   useEffect(() => {
-    fetchEvents(30);
+    fetchEvents(60);
     // Only on mount — subsequent range/template changes call fetchEvents explicitly.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -269,7 +273,10 @@ export default function RemindersForm({ templates, checklistTemplates }: Reminde
           </div>
           <div className="border border-gray-200 rounded-md divide-y divide-gray-100 max-h-72 overflow-y-auto">
             {pickerEvents.length === 0 && !loadingEvents && (
-              <p className="px-3 py-4 text-sm text-gray-400 text-center">No events in this period.</p>
+              <p className="px-3 py-4 text-sm text-gray-400 text-center">
+                No events in the next {lookaheadDays} days — try widening the range above if you
+                expected to see something (e.g. a Christmas/Easter event planned further out).
+              </p>
             )}
             {pickerEvents.map((ev) => {
               const timeRange = formatEventTimeRange(ev.startTime, ev.endTime);

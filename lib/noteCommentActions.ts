@@ -1,7 +1,10 @@
+"use server";
+
 import { supabase } from "./supabase";
 import { NoteScope } from "./types";
 import { AffectedRow } from "./undo/types";
 import { fetchRow } from "./undo/capture";
+import { requireRole } from "./authz";
 
 export interface NoteCommentValues {
   scope: NoteScope;
@@ -14,6 +17,7 @@ export interface NoteCommentValues {
 }
 
 export async function createNoteComment(values: NoteCommentValues): Promise<AffectedRow[]> {
+  await requireRole("viewer");
   const { data, error } = await supabase.from("note_comments").insert(values).select().single();
   if (error) throw new Error(error.message);
   return [{ table: "note_comments", id: data.id, before: null, after: data }];
@@ -23,6 +27,7 @@ export async function createNoteComment(values: NoteCommentValues): Promise<Affe
 // migration 012) — captured explicitly here so undo can bring them all back,
 // not just the parent.
 export async function deleteNoteComment(id: string): Promise<AffectedRow[]> {
+  await requireRole("editor");
   const before = await fetchRow("note_comments", id);
   if (!before) return [];
   const { data: replies, error: repliesError } = await supabase

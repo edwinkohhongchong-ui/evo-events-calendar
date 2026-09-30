@@ -4,6 +4,7 @@ import { useState, FormEvent } from "react";
 import { ChecklistTemplateWithItems } from "@/lib/types";
 import { saveChecklistTemplate, deleteChecklistTemplate } from "@/lib/checklistTemplateActions";
 import { useUndo } from "@/lib/undo/UndoProvider";
+import { useEscapeKey } from "@/lib/useEscapeKey";
 import ConfirmDialog from "./ConfirmDialog";
 
 interface ChecklistTemplateModalProps {
@@ -38,6 +39,8 @@ export default function ChecklistTemplateModal({
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
   const [confirmDelete, setConfirmDelete] = useState(false);
+
+  useEscapeKey(onClose);
 
   function updateItem(index: number, patch: Partial<DraftItem>) {
     setItems((prev) => prev.map((it, i) => (i === index ? { ...it, ...patch } : it)));

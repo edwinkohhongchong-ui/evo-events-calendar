@@ -55,6 +55,10 @@ function dtStartEnd(
   return [`DTSTART;VALUE=DATE:${icsDate(startDate)}`, `DTEND;VALUE=DATE:${icsDate(exclusiveEnd)}`];
 }
 
+// Simple, uniform default alarm applied to every exported event: a 30-minute-
+// before reminder. Apple/Google Calendar both render VALARM on import.
+const VALARM = ["BEGIN:VALARM", "ACTION:DISPLAY", "DESCRIPTION:Reminder", "TRIGGER:-PT30M", "END:VALARM"];
+
 function dtStamp(): string {
   const now = new Date();
   const pad = (n: number) => String(n).padStart(2, "0");
@@ -90,6 +94,7 @@ function buildSeriesEvent(event: EventRow, excludedDates: string[]): string[] {
     }
   }
 
+  lines.push(...VALARM);
   lines.push("END:VEVENT");
   return lines;
 }
@@ -109,6 +114,7 @@ function buildOverrideEvent(event: EventRow, override: OverrideRow): string[] {
   lines.push(...dtStartEnd(override.new_date, effectiveEnd, effectiveTime, event.end_time));
   lines.push(`SUMMARY:${escapeIcsText(event.name)}`);
   if (event.notes) lines.push(`DESCRIPTION:${escapeIcsText(event.notes)}`);
+  lines.push(...VALARM);
   lines.push("END:VEVENT");
   return lines;
 }

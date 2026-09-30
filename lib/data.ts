@@ -1,6 +1,8 @@
 import { supabase } from "./supabase";
 import {
   ChecklistRow,
+  ChecklistTemplateItemRow,
+  ChecklistTemplateRow,
   ChecklistTemplateWithItems,
   DayNoteRow,
   EventOption,
@@ -408,6 +410,158 @@ export async function getMonthComments(year: number, month: number): Promise<Not
     return data ?? [];
   } catch (err) {
     console.error("getMonthComments threw:", err);
+    return [];
+  }
+}
+
+// ---------- Full-table fetchers for the Backup page (app/admin/backup) ----------
+// Read-only, whole-table dumps — deliberately separate from the scoped/
+// windowed fetchers above (getEvents, getOverrides, getExceptions, etc.),
+// which only ever return the slice needed to render a given month/range.
+// month_focus and general_notes have no dedicated row types elsewhere in the
+// app (their UI-facing concepts were retired — see migration 011's comment),
+// so minimal local shapes are declared here just for the backup dump.
+
+interface MonthFocusRow {
+  id: string;
+  year: number;
+  month: number;
+  series_focus: string | null;
+  key_theme: string | null;
+  notes: string | null;
+}
+
+interface GeneralNoteRow {
+  id: string;
+  content: string | null;
+  updated_at: string;
+}
+
+export async function getAllEventsRaw(): Promise<EventRow[]> {
+  try {
+    const { data, error } = await supabase.from("events").select("*").order("event_date");
+    if (error) {
+      console.error("getAllEventsRaw failed:", error.message);
+      return [];
+    }
+    return data ?? [];
+  } catch (err) {
+    console.error("getAllEventsRaw threw:", err);
+    return [];
+  }
+}
+
+export async function getAllEventOverrides(): Promise<OverrideRow[]> {
+  try {
+    const { data, error } = await supabase.from("event_overrides").select("*");
+    if (error) {
+      console.error("getAllEventOverrides failed:", error.message);
+      return [];
+    }
+    return data ?? [];
+  } catch (err) {
+    console.error("getAllEventOverrides threw:", err);
+    return [];
+  }
+}
+
+export async function getAllEventExceptions(): Promise<ExceptionRow[]> {
+  try {
+    const { data, error } = await supabase.from("event_exceptions").select("*");
+    if (error) {
+      console.error("getAllEventExceptions failed:", error.message);
+      return [];
+    }
+    return data ?? [];
+  } catch (err) {
+    console.error("getAllEventExceptions threw:", err);
+    return [];
+  }
+}
+
+export async function getAllMonthFocus(): Promise<MonthFocusRow[]> {
+  try {
+    const { data, error } = await supabase.from("month_focus").select("*").order("year").order("month");
+    if (error) {
+      console.error("getAllMonthFocus failed:", error.message);
+      return [];
+    }
+    return data ?? [];
+  } catch (err) {
+    console.error("getAllMonthFocus threw:", err);
+    return [];
+  }
+}
+
+export async function getAllGeneralNotes(): Promise<GeneralNoteRow[]> {
+  try {
+    const { data, error } = await supabase.from("general_notes").select("*");
+    if (error) {
+      console.error("getAllGeneralNotes failed:", error.message);
+      return [];
+    }
+    return data ?? [];
+  } catch (err) {
+    console.error("getAllGeneralNotes threw:", err);
+    return [];
+  }
+}
+
+export async function getAllNoteComments(): Promise<NoteCommentRow[]> {
+  try {
+    const { data, error } = await supabase.from("note_comments").select("*").order("created_at");
+    if (error) {
+      console.error("getAllNoteComments failed:", error.message);
+      return [];
+    }
+    return data ?? [];
+  } catch (err) {
+    console.error("getAllNoteComments threw:", err);
+    return [];
+  }
+}
+
+export async function getAllDayNotes(): Promise<DayNoteRow[]> {
+  try {
+    const { data, error } = await supabase.from("day_notes").select("*").order("note_date");
+    if (error) {
+      console.error("getAllDayNotes failed:", error.message);
+      return [];
+    }
+    return data ?? [];
+  } catch (err) {
+    console.error("getAllDayNotes threw:", err);
+    return [];
+  }
+}
+
+export async function getAllChecklistTemplatesRaw(): Promise<ChecklistTemplateRow[]> {
+  try {
+    const { data, error } = await supabase.from("checklist_templates").select("*").order("name");
+    if (error) {
+      console.error("getAllChecklistTemplatesRaw failed:", error.message);
+      return [];
+    }
+    return data ?? [];
+  } catch (err) {
+    console.error("getAllChecklistTemplatesRaw threw:", err);
+    return [];
+  }
+}
+
+export async function getAllChecklistTemplateItemsRaw(): Promise<ChecklistTemplateItemRow[]> {
+  try {
+    const { data, error } = await supabase
+      .from("checklist_template_items")
+      .select("*")
+      .order("sort_order");
+    if (error) {
+      console.error("getAllChecklistTemplateItemsRaw failed:", error.message);
+      return [];
+    }
+    return data ?? [];
+  } catch (err) {
+    console.error("getAllChecklistTemplateItemsRaw threw:", err);
     return [];
   }
 }

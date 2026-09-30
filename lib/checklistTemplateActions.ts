@@ -1,6 +1,9 @@
+"use server";
+
 import { supabase } from "./supabase";
 import { AffectedRow } from "./undo/types";
 import { fetchRow } from "./undo/capture";
+import { requireRole } from "./authz";
 
 export interface ChecklistTemplateItemInput {
   item: string;
@@ -13,24 +16,40 @@ export interface ChecklistTemplateItemInput {
 // old set and inserts the new one rather than diffing row-by-row — far
 // simpler than reconciling added/removed/reordered rows, and the whole
 // replacement is captured as one undo step either way.
+// `expectedUpdatedAt` (optional, backward-compatible) is an optimistic-lock
+// check applied to the rename step when replacing an existing template — see
+// updateHoliday in lib/holidayActions.ts for the full explanation and the
+// known limitation that no call site wires it through yet. It's ignored when
+// templateId is null (there's nothing existing to conflict with on create).
 export async function saveChecklistTemplate(
   templateId: string | null,
   name: string,
-  items: ChecklistTemplateItemInput[]
+  items: ChecklistTemplateItemInput[],
+  expectedUpdatedAt?: string
 ): Promise<AffectedRow[]> {
+  // Creating a brand-new template (templateId == null) is a create action
+  // (Editor-only); replacing an existing template's name/items in place is
+  // an edit of something that already exists (Viewer-allowed), matching the
+  // product decision that Viewers can edit existing rows but not add new
+  // top-level ones.
+  await requireRole(templateId ? "viewer" : "editor");
   const affected: AffectedRow[] = [];
   let id = templateId;
 
   if (id) {
     const before = await fetchRow("checklist_templates", id);
-    const { data, error } = await supabase
-      .from("checklist_templates")
-      .update({ name })
-      .eq("id", id)
-      .select()
-      .single();
+    let query = supabase.from("checklist_templates").update({ name }).eq("id", id);
+    if (expectedUpdatedAt) query = query.eq("updated_at", expectedUpdatedAt);
+    const { data, error } = await query.select();
     if (error) throw new Error(error.message);
-    affected.push({ table: "checklist_templates", id, before, after: data });
+    if (!data || data.length === 0) {
+      throw new Error(
+        expectedUpdatedAt
+          ? "Someone else changed this since you loaded it — please refresh and try again."
+          : "Checklist template not found."
+      );
+    }
+    affected.push({ table: "checklist_templates", id, before, after: data[0] });
 
     const { data: oldItems, error: fetchErr } = await supabase
       .from("checklist_template_items")
@@ -70,6 +89,7 @@ export async function saveChecklistTemplate(
 }
 
 export async function deleteChecklistTemplate(id: string): Promise<AffectedRow[]> {
+  await requireRole("editor");
   const before = await fetchRow("checklist_templates", id);
   const { data: items } = await supabase.from("checklist_template_items").select("*").eq("template_id", id);
   const affected: AffectedRow[] = (items ?? []).map((item) => ({

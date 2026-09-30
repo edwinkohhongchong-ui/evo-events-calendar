@@ -4,6 +4,7 @@ import { useMemo, useState, MouseEvent } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import HolidayModal from "./HolidayModal";
+import ConfirmDialog from "./ConfirmDialog";
 import { deleteHoliday } from "@/lib/holidayActions";
 import { useUndo } from "@/lib/undo/UndoProvider";
 import { HolidayRow } from "@/lib/types";
@@ -19,17 +20,28 @@ export default function HolidaysTable({ holidays }: { holidays: HolidayRow[] }) 
   const [modal, setModal] = useState<ModalState>({ type: "closed" });
   const [yearFilter, setYearFilter] = useState<string>(ALL_YEARS);
   const [removingId, setRemovingId] = useState<string | null>(null);
+  const [pendingDelete, setPendingDelete] = useState<HolidayRow | null>(null);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
 
-  async function handleRemove(e: MouseEvent, holiday: HolidayRow) {
+  function handleRemove(e: MouseEvent, holiday: HolidayRow) {
     e.stopPropagation();
-    if (!window.confirm(`Delete "${holiday.name}"?`)) return;
+    setDeleteError(null);
+    setPendingDelete(holiday);
+  }
+
+  async function handleConfirmRemove() {
+    if (!pendingDelete) return;
+    const holiday = pendingDelete;
     setRemovingId(holiday.id);
     try {
       const affected = await deleteHoliday(holiday.id);
       record(`Delete holiday "${holiday.name}"`, affected);
+      setPendingDelete(null);
       router.refresh();
     } catch (err) {
-      window.alert(err instanceof Error ? err.message : "Something went wrong deleting this holiday.");
+      setDeleteError(
+        err instanceof Error ? err.message : "Something went wrong deleting this holiday."
+      );
     } finally {
       setRemovingId(null);
     }
@@ -148,6 +160,26 @@ export default function HolidaysTable({ holidays }: { holidays: HolidayRow[] }) 
             router.refresh();
           }}
         />
+      )}
+
+      {pendingDelete && (
+        <div
+          className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4"
+          onClick={() => setPendingDelete(null)}
+        >
+          <div
+            className="bg-white rounded-lg shadow-lg w-full max-w-md p-5"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <ConfirmDialog
+              message={<>Delete &ldquo;{pendingDelete.name}&rdquo;?</>}
+              error={deleteError}
+              busy={removingId === pendingDelete.id}
+              onCancel={() => setPendingDelete(null)}
+              onConfirm={handleConfirmRemove}
+            />
+          </div>
+        </div>
       )}
     </div>
   );

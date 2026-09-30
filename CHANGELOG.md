@@ -8,6 +8,44 @@ items (features/fixes) that push contains — a push with 1 item goes up by
 `1.05`). If MINOR would pass `.99`, MAJOR increments and MINOR carries the
 remainder (e.g. `1.99` + 2 items → `2.01`).
 
+## v1.35 — 2026-09-30
+
+- Event form: the Churchwide/Zone/TG (or Level, for Gatherings) category no
+  longer silently defaults to whatever sorts first — it starts unset and
+  Save now requires an explicit choice. The picker also moved above
+  Date/Time, since it's a bigger planning decision than timing.
+- Reminders: default lookahead raised from 30 to 60 days (a Christmas/Easter
+  event planned further out was silently invisible), and the empty-state
+  message now says so explicitly instead of just showing a blank list.
+- Holiday/Season delete now uses the app's own styled confirm dialog
+  instead of a native browser popup, matching every other delete flow.
+- Escape now closes any open modal (previously only the backdrop click or
+  an explicit Cancel/Close button worked).
+- Server-side enforcement for the Editor/Viewer role split: every
+  create/edit/delete function is now a real Next.js Server Action that
+  re-checks the session role from the httpOnly cookie, not just hidden UI
+  buttons — a Viewer can no longer bypass restrictions via devtools. (The
+  underlying Supabase "allow all" RLS tradeoff is unchanged and separately
+  documented; this closes the application-level gap, not that one.)
+- Added `updated_at` tracking (with an optimistic-lock check available) to
+  every mutable table, as a foundation for detecting concurrent edits —
+  the data-layer half is live; wiring it through the edit forms themselves
+  is a follow-up.
+- Added the project's first automated tests: an 8-case Vitest suite for the
+  recurring-event expansion logic (`npm test`). It surfaced a real latent
+  bug worth a look: a monthly/yearly event anchored on the 31st or Feb 29
+  permanently drifts to a lower day the first time it crosses a short
+  month/non-leap year, and never recovers even when a later date would
+  allow the original day again — documented and tested as current behavior,
+  not yet fixed.
+- Added a "Backup" page (Editor-only) — downloads every table in the app as
+  one JSON file, a developer-restorable safety net beyond Undo's
+  session-local history.
+- Added a live Apple/Google Calendar subscription feed
+  (`/api/calendar-feed/<token>.ics`, token-gated instead of passcode-gated
+  since a calendar app can't log in) and alert (VALARM) support in the ICS
+  export, which had none before.
+
 ## v1.26 — 2026-09-30
 
 - Fixed PDF export returning "Something went wrong generating the

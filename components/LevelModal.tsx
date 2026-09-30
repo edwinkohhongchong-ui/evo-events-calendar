@@ -6,6 +6,7 @@ import { LEVEL_COLOR_CLASSES, LEVEL_COLOR_KEYS } from "@/lib/constants";
 import { createLevel, updateLevel, deleteLevel } from "@/lib/levelActions";
 import { suggestLevelColor } from "@/lib/levelColor";
 import { useUndo } from "@/lib/undo/UndoProvider";
+import { useEscapeKey } from "@/lib/useEscapeKey";
 import ConfirmDialog from "./ConfirmDialog";
 
 interface LevelModalProps {
@@ -35,6 +36,8 @@ export default function LevelModal({
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
   const [confirmDelete, setConfirmDelete] = useState(false);
+
+  useEscapeKey(onClose);
 
   function handleNameChange(value: string) {
     setName(value);

@@ -8,6 +8,7 @@ import {
   deleteReminderTemplate,
 } from "@/lib/reminderTemplateActions";
 import { useUndo } from "@/lib/undo/UndoProvider";
+import { useEscapeKey } from "@/lib/useEscapeKey";
 import ConfirmDialog from "./ConfirmDialog";
 
 interface ReminderTemplateModalProps {
@@ -33,6 +34,8 @@ export default function ReminderTemplateModal({
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
   const [confirmDelete, setConfirmDelete] = useState(false);
+
+  useEscapeKey(onClose);
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();

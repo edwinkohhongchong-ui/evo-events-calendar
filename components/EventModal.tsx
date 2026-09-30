@@ -17,6 +17,7 @@ import { PastoralFocus, applyTitlePrefix, stripTitlePrefix } from "@/lib/pastora
 import { CHURCHWIDE_LEVEL_NAME, GATHERING_TYPES, TG_LEVEL_NAME, ZONE_LEVEL_NAMES } from "@/lib/constants";
 import { useUndo } from "@/lib/undo/UndoProvider";
 import { useIsEditor } from "@/lib/roleContext";
+import { useEscapeKey } from "@/lib/useEscapeKey";
 import ConfirmDialog from "./ConfirmDialog";
 import RecurringScopeDialog from "./RecurringScopeDialog";
 
@@ -92,7 +93,11 @@ export default function EventModal({
   const [durationMinutes, setDurationMinutes] = useState(
     event?.duration_minutes != null ? String(event.duration_minutes) : ""
   );
-  const [level, setLevel] = useState<Level>(event?.level ?? levels[0]?.name ?? "");
+  // Blank (not levels[0]) for a brand-new event — an unset category is more
+  // honest than silently pre-selecting whichever category happens to sort
+  // first, which a leader could easily save without ever noticing (see
+  // Pastor review finding #1).
+  const [level, setLevel] = useState<Level>(event?.level ?? "");
   const [location, setLocation] = useState(event?.location ?? "");
   const [recurring, setRecurring] = useState<Recurring>(event?.recurring ?? "None");
   const [repeatUntil, setRepeatUntil] = useState(event?.repeat_until ?? "");
@@ -106,6 +111,8 @@ export default function EventModal({
   // it goes straight to the form.
   const [step, setStep] = useState<Step>(mode === "edit" ? "view" : "form");
   const [pendingValues, setPendingValues] = useState<EventFormValues | null>(null);
+
+  useEscapeKey(onClose);
 
   const isRecurringSeries = mode === "edit" && !!event && event.recurring !== "None";
   // Scope choices need to know which specific occurrence was clicked —
@@ -175,7 +182,8 @@ export default function EventModal({
   // same underlying `level` field, not a separate one — derived from its
   // current value rather than tracked as its own state, so there's only
   // ever one source of truth for which Level is actually selected.
-  function topCategoryFor(levelName: string): "Churchwide" | "Zone" | "TG" {
+  function topCategoryFor(levelName: string): "Churchwide" | "Zone" | "TG" | "" {
+    if (!levelName) return "";
     if (levelName === CHURCHWIDE_LEVEL_NAME) return "Churchwide";
     if (levelName === TG_LEVEL_NAME) return "TG";
     return "Zone";
@@ -221,6 +229,10 @@ export default function EventModal({
     }
     if (!eventDate) {
       setFormError("Date is required.");
+      return;
+    }
+    if (!level) {
+      setFormError(eventType === "Event" ? "Choose an Event Type." : "Choose a Level.");
       return;
     }
 
@@ -631,6 +643,63 @@ export default function EventModal({
               )}
             </label>
 
+            {eventType === "Event" ? (
+              <div className="flex flex-col gap-1 text-sm">
+                Event Type
+                <div className="flex gap-2">
+                  {(["Churchwide", "Zone", "TG"] as const).map((cat) => (
+                    <button
+                      key={cat}
+                      type="button"
+                      onClick={() => handleEventTypeCategoryChange(cat)}
+                      className={[
+                        "flex-1 px-3 py-1.5 rounded border text-sm",
+                        topCategoryFor(level) === cat
+                          ? "bg-navy text-white border-navy"
+                          : "border-gray-300 text-gray-600 hover:bg-gray-50",
+                      ].join(" ")}
+                    >
+                      {cat}
+                    </button>
+                  ))}
+                </div>
+                {topCategoryFor(level) === "Zone" && (
+                  <select
+                    value={level}
+                    onChange={(e) => setLevel(e.target.value as Level)}
+                    className="border rounded px-2 py-1"
+                  >
+                    {levels
+                      .filter((l) => ZONE_LEVEL_NAMES.includes(l.name))
+                      .map((l) => (
+                        <option key={l.id} value={l.name}>
+                          {l.name}
+                        </option>
+                      ))}
+                  </select>
+                )}
+              </div>
+            ) : (
+              <label className="flex flex-col gap-1 text-sm">
+                Level
+                <select
+                  value={level}
+                  onChange={(e) => setLevel(e.target.value as Level)}
+                  className="border rounded px-2 py-1"
+                >
+                  {!level && (
+                    <option value="" disabled>
+                      — Select —
+                    </option>
+                  )}
+                  {levels.map((l) => (
+                    <option key={l.id} value={l.name}>
+                      {l.name}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            )}
             <div className="grid grid-cols-2 gap-3">
               <label className="flex flex-col gap-1 text-sm">
                 Date
@@ -686,58 +755,6 @@ export default function EventModal({
                 />
               </label>
             </div>
-            {eventType === "Event" ? (
-              <div className="flex flex-col gap-1 text-sm">
-                Event Type
-                <div className="flex gap-2">
-                  {(["Churchwide", "Zone", "TG"] as const).map((cat) => (
-                    <button
-                      key={cat}
-                      type="button"
-                      onClick={() => handleEventTypeCategoryChange(cat)}
-                      className={[
-                        "flex-1 px-3 py-1.5 rounded border text-sm",
-                        topCategoryFor(level) === cat
-                          ? "bg-navy text-white border-navy"
-                          : "border-gray-300 text-gray-600 hover:bg-gray-50",
-                      ].join(" ")}
-                    >
-                      {cat}
-                    </button>
-                  ))}
-                </div>
-                {topCategoryFor(level) === "Zone" && (
-                  <select
-                    value={level}
-                    onChange={(e) => setLevel(e.target.value as Level)}
-                    className="border rounded px-2 py-1"
-                  >
-                    {levels
-                      .filter((l) => ZONE_LEVEL_NAMES.includes(l.name))
-                      .map((l) => (
-                        <option key={l.id} value={l.name}>
-                          {l.name}
-                        </option>
-                      ))}
-                  </select>
-                )}
-              </div>
-            ) : (
-              <label className="flex flex-col gap-1 text-sm">
-                Level
-                <select
-                  value={level}
-                  onChange={(e) => setLevel(e.target.value as Level)}
-                  className="border rounded px-2 py-1"
-                >
-                  {levels.map((l) => (
-                    <option key={l.id} value={l.name}>
-                      {l.name}
-                    </option>
-                  ))}
-                </select>
-              </label>
-            )}
             <label className="flex flex-col gap-1 text-sm">
               Location <span className="text-gray-400 font-normal">(optional)</span>
               <input

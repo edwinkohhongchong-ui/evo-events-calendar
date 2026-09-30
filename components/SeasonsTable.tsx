@@ -3,6 +3,7 @@
 import { useMemo, useState, MouseEvent } from "react";
 import { useRouter } from "next/navigation";
 import SeasonModal from "./SeasonModal";
+import ConfirmDialog from "./ConfirmDialog";
 import { deleteSeason } from "@/lib/seasonActions";
 import { useUndo } from "@/lib/undo/UndoProvider";
 import { SeasonRow } from "@/lib/types";
@@ -18,17 +19,28 @@ export default function SeasonsTable({ seasons }: { seasons: SeasonRow[] }) {
   const [modal, setModal] = useState<ModalState>({ type: "closed" });
   const [yearFilter, setYearFilter] = useState<string>(ALL_YEARS);
   const [removingId, setRemovingId] = useState<string | null>(null);
+  const [pendingDelete, setPendingDelete] = useState<SeasonRow | null>(null);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
 
-  async function handleRemove(e: MouseEvent, season: SeasonRow) {
+  function handleRemove(e: MouseEvent, season: SeasonRow) {
     e.stopPropagation();
-    if (!window.confirm(`Delete "${season.name}"?`)) return;
+    setDeleteError(null);
+    setPendingDelete(season);
+  }
+
+  async function handleConfirmRemove() {
+    if (!pendingDelete) return;
+    const season = pendingDelete;
     setRemovingId(season.id);
     try {
       const affected = await deleteSeason(season.id);
       record(`Delete season "${season.name}"`, affected);
+      setPendingDelete(null);
       router.refresh();
     } catch (err) {
-      window.alert(err instanceof Error ? err.message : "Something went wrong deleting this season.");
+      setDeleteError(
+        err instanceof Error ? err.message : "Something went wrong deleting this season."
+      );
     } finally {
       setRemovingId(null);
     }
@@ -146,6 +158,26 @@ export default function SeasonsTable({ seasons }: { seasons: SeasonRow[] }) {
             router.refresh();
           }}
         />
+      )}
+
+      {pendingDelete && (
+        <div
+          className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4"
+          onClick={() => setPendingDelete(null)}
+        >
+          <div
+            className="bg-white rounded-lg shadow-lg w-full max-w-md p-5"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <ConfirmDialog
+              message={<>Delete &ldquo;{pendingDelete.name}&rdquo;?</>}
+              error={deleteError}
+              busy={removingId === pendingDelete.id}
+              onCancel={() => setPendingDelete(null)}
+              onConfirm={handleConfirmRemove}
+            />
+          </div>
+        </div>
       )}
     </div>
   );

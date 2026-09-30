@@ -1,3 +1,5 @@
+"use server";
+
 import { addDays, subDays } from "date-fns";
 import { supabase } from "./supabase";
 import { computeEndTime, timeStrToMinutes } from "./timeMath";
@@ -6,6 +8,7 @@ import { computeSpanDays } from "./eventSpan";
 import { EventRow, EventType, GatheringType, Level, Recurring } from "./types";
 import { AffectedRow } from "./undo/types";
 import { fetchRow } from "./undo/capture";
+import { requireRole } from "./authz";
 
 // Moves a single occurrence to newDate. Never touches new_time/new_end_date —
 // the upsert below only ever sends event_id/original_date/new_date, so
@@ -26,6 +29,7 @@ export async function moveOccurrence(
   originalDate: string,
   newDate: string
 ): Promise<AffectedRow[]> {
+  await requireRole("viewer");
   if (event.recurring === "None") {
     const before = await fetchRow("events", event.id);
     const { data, error } = await supabase
@@ -85,6 +89,7 @@ export async function retimeOccurrence(
   originalDate: string,
   newTime: string
 ): Promise<AffectedRow[]> {
+  await requireRole("viewer");
   if (event.recurring === "None") {
     const before = await fetchRow("events", event.id);
     const { data, error } = await supabase
@@ -176,16 +181,35 @@ export interface EventFormValues {
 }
 
 export async function createEvent(values: EventFormValues): Promise<AffectedRow[]> {
+  await requireRole("editor");
   const { data, error } = await supabase.from("events").insert(values).select().single();
   if (error) throw new Error(error.message);
   return [{ table: "events", id: data.id, before: null, after: data }];
 }
 
-export async function updateEvent(id: string, values: EventFormValues): Promise<AffectedRow[]> {
+// `expectedUpdatedAt` is optional/backward-compatible — see the note on
+// updateHoliday in lib/holidayActions.ts for the full explanation of this
+// optimistic-lock parameter and its current limitation (no call site wires
+// it through yet).
+export async function updateEvent(
+  id: string,
+  values: EventFormValues,
+  expectedUpdatedAt?: string
+): Promise<AffectedRow[]> {
+  await requireRole("viewer");
   const before = await fetchRow("events", id);
-  const { data, error } = await supabase.from("events").update(values).eq("id", id).select().single();
+  let query = supabase.from("events").update(values).eq("id", id);
+  if (expectedUpdatedAt) query = query.eq("updated_at", expectedUpdatedAt);
+  const { data, error } = await query.select();
   if (error) throw new Error(error.message);
-  return [{ table: "events", id, before, after: data }];
+  if (!data || data.length === 0) {
+    throw new Error(
+      expectedUpdatedAt
+        ? "Someone else changed this since you loaded it — please refresh and try again."
+        : "Event not found."
+    );
+  }
+  return [{ table: "events", id, before, after: data[0] }];
 }
 
 // Deletes the base event row. event_overrides/event_exceptions have ON
@@ -196,6 +220,7 @@ export async function updateEvent(id: string, values: EventFormValues): Promise<
 // series — the confirmation UI is responsible for making that unambiguous
 // before calling this.
 export async function deleteEvent(id: string): Promise<AffectedRow[]> {
+  await requireRole("editor");
   const before = await fetchRow("events", id);
   const { data: overrides, error: overridesError } = await supabase
     .from("event_overrides")
@@ -231,6 +256,7 @@ export async function detachOccurrence(
   originalDate: string,
   values: EventFormValues
 ): Promise<AffectedRow[]> {
+  await requireRole("viewer");
   const { data: inserted, error: insertError } = await supabase
     .from("events")
     .insert({ ...values, recurring: "None", repeat_until: null })
@@ -286,6 +312,7 @@ export async function splitSeriesFromOccurrence(
   originalDate: string,
   values: EventFormValues
 ): Promise<AffectedRow[]> {
+  await requireRole("viewer");
   // Editing the very first occurrence "and all future" has nothing to
   // preserve before it — same as editing the whole series in place.
   if (originalDate === event.event_date) {
@@ -386,6 +413,7 @@ export async function extendOccurrenceSpan(
   originalDate: string,
   newEndDate: string
 ): Promise<AffectedRow[]> {
+  await requireRole("viewer");
   if (event.recurring === "None") {
     const before = await fetchRow("events", event.id);
     const { data, error } = await supabase
@@ -449,6 +477,7 @@ export async function extendOccurrenceSpan(
 // "Only this event" delete: excepts the occurrence so the series stops
 // generating it, without touching the series or any other occurrence.
 export async function deleteOccurrence(event: EventRow, originalDate: string): Promise<AffectedRow[]> {
+  await requireRole("editor");
   const { data: existingException } = await supabase
     .from("event_exceptions")
     .select("*")

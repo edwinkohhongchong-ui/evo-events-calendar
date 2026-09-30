@@ -7,6 +7,7 @@ import { createSeason, updateSeason, deleteSeason } from "@/lib/seasonActions";
 import { suggestSeasonColor } from "@/lib/seasonColor";
 import { useUndo } from "@/lib/undo/UndoProvider";
 import { useIsEditor } from "@/lib/roleContext";
+import { useEscapeKey } from "@/lib/useEscapeKey";
 import ConfirmDialog from "./ConfirmDialog";
 
 interface SeasonModalProps {
@@ -32,6 +33,8 @@ export default function SeasonModal({ mode, season, onClose, onSaved, onDeleted 
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
   const [confirmDelete, setConfirmDelete] = useState(false);
+
+  useEscapeKey(onClose);
 
   function handleNameChange(value: string) {
     setName(value);

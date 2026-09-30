@@ -6,6 +6,7 @@ import { HOLIDAY_TYPES } from "@/lib/constants";
 import { createHoliday, updateHoliday, deleteHoliday } from "@/lib/holidayActions";
 import { useUndo } from "@/lib/undo/UndoProvider";
 import { useIsEditor } from "@/lib/roleContext";
+import { useEscapeKey } from "@/lib/useEscapeKey";
 import ConfirmDialog from "./ConfirmDialog";
 
 interface HolidayModalProps {
@@ -31,6 +32,8 @@ export default function HolidayModal({
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
   const [confirmDelete, setConfirmDelete] = useState(false);
+
+  useEscapeKey(onClose);
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();

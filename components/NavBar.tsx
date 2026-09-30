@@ -14,6 +14,7 @@ const LINKS = [
   { href: "/checklist", label: "Checklist" },
   { href: "/levels", label: "Categories" },
   { href: "/reminders", label: "Reminders" },
+  { href: "/admin/backup", label: "Backup" },
 ];
 
 export default function NavBar() {
