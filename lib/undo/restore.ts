@@ -10,6 +10,7 @@ import { AffectedRow, SnapshotRow, UndoTable } from "./types";
 function rank(table: UndoTable, row: SnapshotRow): number {
   if (table === "event_overrides" || table === "event_exceptions") return 1;
   if (table === "note_comments") return row.parent_id ? 1 : 0;
+  if (table === "checklist_template_items") return 1;
   return 0;
 }
 

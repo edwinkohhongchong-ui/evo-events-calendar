@@ -1,6 +1,7 @@
 import { supabase } from "./supabase";
 import {
   ChecklistRow,
+  ChecklistTemplateWithItems,
   DayNoteRow,
   EventOption,
   EventRow,
@@ -321,6 +322,39 @@ export async function getAllChecklist(): Promise<ChecklistRow[]> {
     return data ?? [];
   } catch (err) {
     console.error("getAllChecklist threw:", err);
+    return [];
+  }
+}
+
+export async function getAllChecklistTemplates(): Promise<ChecklistTemplateWithItems[]> {
+  try {
+    const [{ data: templates, error: templatesError }, { data: items, error: itemsError }] = await Promise.all([
+      supabase.from("checklist_templates").select("*").order("name"),
+      supabase.from("checklist_template_items").select("*").order("sort_order"),
+    ]);
+    if (templatesError) {
+      console.error("getAllChecklistTemplates (templates) failed:", templatesError.message);
+      return [];
+    }
+    if (itemsError) {
+      console.error("getAllChecklistTemplates (items) failed:", itemsError.message);
+      return [];
+    }
+
+    const itemsByTemplate = new Map<string, { id: string; item: string; repeat_count: number }[]>();
+    for (const item of items ?? []) {
+      const list = itemsByTemplate.get(item.template_id) ?? [];
+      list.push({ id: item.id, item: item.item, repeat_count: item.repeat_count });
+      itemsByTemplate.set(item.template_id, list);
+    }
+
+    return (templates ?? []).map((t) => ({
+      id: t.id,
+      name: t.name,
+      items: itemsByTemplate.get(t.id) ?? [],
+    }));
+  } catch (err) {
+    console.error("getAllChecklistTemplates threw:", err);
     return [];
   }
 }

@@ -214,6 +214,28 @@ export interface ChecklistFormValues {
   linked_event_id: string | null;
 }
 
+// A reusable set of checklist items (see migration 018) — applying one to
+// an event expands each item into a real `checklist` row linked to that
+// event; repeat_count > 1 numbers the expansion ("— Week 1 of 4", etc.).
+export interface ChecklistTemplateItemRow {
+  id: string;
+  template_id: string;
+  item: string;
+  repeat_count: number;
+  sort_order: number;
+}
+
+export interface ChecklistTemplateRow {
+  id: string;
+  name: string;
+}
+
+export interface ChecklistTemplateWithItems {
+  id: string;
+  name: string;
+  items: { id: string; item: string; repeat_count: number }[];
+}
+
 // One logged note — general (left column, shown for every month) or
 // month-scoped (right column, year/month always set together). Append-only:
 // there's no edit/delete, just a running log of who said what and when. See

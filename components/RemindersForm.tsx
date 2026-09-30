@@ -4,7 +4,8 @@ import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { useUndo } from "@/lib/undo/UndoProvider";
 import { deleteReminderTemplate } from "@/lib/reminderTemplateActions";
-import { EventOption, ReminderTemplateRow } from "@/lib/types";
+import { applyChecklistTemplate } from "@/lib/checklistTemplateActions";
+import { ChecklistTemplateWithItems, EventOption, ReminderTemplateRow } from "@/lib/types";
 import { ReminderPickerEvent } from "@/lib/data";
 import { toDateStr, formatDateDisplay } from "@/lib/dates";
 import ReminderTemplateModal from "./ReminderTemplateModal";
@@ -13,6 +14,7 @@ import ChecklistModal from "./ChecklistModal";
 interface RemindersFormProps {
   templates: ReminderTemplateRow[];
   eventOptions: EventOption[];
+  checklistTemplates: ChecklistTemplateWithItems[];
 }
 
 type TemplateModalState = { type: "closed" } | { type: "add" } | { type: "edit"; template: ReminderTemplateRow };
@@ -48,9 +50,10 @@ function buildMessage(introText: string, events: ReminderPickerEvent[], selected
   return lines.join("\n").trim();
 }
 
-export default function RemindersForm({ templates, eventOptions }: RemindersFormProps) {
+export default function RemindersForm({ templates, eventOptions, checklistTemplates }: RemindersFormProps) {
   const router = useRouter();
   const { record } = useUndo();
+  const [applyingTemplateFor, setApplyingTemplateFor] = useState<string | null>(null);
   const [selectedId, setSelectedId] = useState("");
   const [handle, setHandle] = useState("");
   const [introText, setIntroText] = useState("");
@@ -133,6 +136,22 @@ export default function RemindersForm({ templates, eventOptions }: RemindersForm
   function resetMessage() {
     setMessageTouched(false);
     setMessage(buildMessage(introText, pickerEvents, selectedKeys));
+  }
+
+  async function handleApplyChecklistTemplate(eventId: string, templateId: string) {
+    if (!templateId) return;
+    setApplyingTemplateFor(eventId);
+    setError(null);
+    try {
+      const affected = await applyChecklistTemplate(eventId, templateId);
+      const template = checklistTemplates.find((t) => t.id === templateId);
+      record(`Apply checklist template "${template?.name ?? "template"}"`, affected);
+      await fetchEvents(lookaheadDays);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Couldn't apply that template.");
+    } finally {
+      setApplyingTemplateFor(null);
+    }
   }
 
   function openInTelegram() {
@@ -251,18 +270,9 @@ export default function RemindersForm({ templates, eventOptions }: RemindersForm
                   </span>
                 </label>
                 {selectedKeys.has(ev.occurrenceKey) && (
-                  <div className="pl-6 flex flex-col gap-0.5">
+                  <div className="pl-6 flex flex-col gap-1">
                     {ev.checklistItems.length === 0 ? (
-                      <div className="flex items-center gap-2 text-xs text-amber-600">
-                        <span>⚠ No prep checklist linked yet</span>
-                        <button
-                          type="button"
-                          onClick={() => setChecklistModal({ type: "add", eventId: ev.eventId })}
-                          className="text-navy hover:underline"
-                        >
-                          + Add checklist item
-                        </button>
-                      </div>
+                      <span className="text-xs text-amber-600">⚠ No prep checklist linked yet</span>
                     ) : (
                       ev.checklistItems.map((item) => (
                         <div key={item.id} className="text-xs text-gray-600">
@@ -270,6 +280,34 @@ export default function RemindersForm({ templates, eventOptions }: RemindersForm
                         </div>
                       ))
                     )}
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <select
+                        value=""
+                        disabled={applyingTemplateFor === ev.eventId}
+                        onChange={(e) => {
+                          const templateId = e.target.value;
+                          e.target.value = "";
+                          if (templateId) handleApplyChecklistTemplate(ev.eventId, templateId);
+                        }}
+                        className="border rounded px-1.5 py-0.5 text-xs disabled:opacity-50"
+                      >
+                        <option value="">
+                          {applyingTemplateFor === ev.eventId ? "Applying…" : "Apply a template…"}
+                        </option>
+                        {checklistTemplates.map((t) => (
+                          <option key={t.id} value={t.id}>
+                            {t.name}
+                          </option>
+                        ))}
+                      </select>
+                      <button
+                        type="button"
+                        onClick={() => setChecklistModal({ type: "add", eventId: ev.eventId })}
+                        className="text-xs text-navy hover:underline"
+                      >
+                        + Add one item
+                      </button>
+                    </div>
                   </div>
                 )}
               </div>

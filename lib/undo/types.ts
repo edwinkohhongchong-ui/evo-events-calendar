@@ -16,7 +16,9 @@ export type UndoTable =
   | "checklist"
   | "day_notes"
   | "note_comments"
-  | "reminder_templates";
+  | "reminder_templates"
+  | "checklist_templates"
+  | "checklist_template_items";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export type SnapshotRow = Record<string, any>;

@@ -8,6 +8,18 @@ items (features/fixes) that push contains — a push with 1 item goes up by
 `1.05`). If MINOR would pass `.99`, MAJOR increments and MINOR carries the
 remainder (e.g. `1.99` + 2 items → `2.01`).
 
+## v1.21 — 2026-09-30
+
+- Added Checklist Templates: save a reusable set of checklist items (e.g.
+  "Big Event Prep") and apply the whole set to any event in one click from
+  the Reminders page's event picker, instead of adding items one at a time.
+  An item can repeat (e.g. a weekly pastoral check-in over 4 weeks) — each
+  repeat expands into its own numbered checklist row when applied. Managed
+  from a new collapsible section on the Checklist page. Seeded with a
+  starter "Big Event Prep" template (e-invite timing, pastoral check-in ×4,
+  post-event follow-up) — edit or delete freely. New `checklist_templates`
+  / `checklist_template_items` tables (migration 018).
+
 ## v1.20 — 2026-09-30
 
 - Reminders now has an event picker instead of a flat auto-summary:
