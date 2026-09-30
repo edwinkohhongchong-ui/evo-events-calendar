@@ -1,15 +1,26 @@
 import { NextRequest, NextResponse } from "next/server";
-
-const COOKIE_NAME = "evo_auth";
+import { AUTH_COOKIE_NAME, expectedPasscodeFor, isPathAllowedForRole, parseAuthCookie } from "@/lib/auth";
 
 // Page-level deterrent only — this does not (and cannot) restrict the
 // Supabase REST API itself, which is governed by RLS policies independently
-// of anything in this app. See PROJECT decision: acceptable for v1.
+// of anything in this app. See PROJECT decision: acceptable for v1. The
+// Viewer role's Add/Delete restriction is enforced the same way (hidden in
+// the UI, not via RLS) — see lib/roleContext.tsx call sites.
 export function middleware(request: NextRequest) {
-  const cookie = request.cookies.get(COOKIE_NAME)?.value;
+  const parsed = parseAuthCookie(request.cookies.get(AUTH_COOKIE_NAME)?.value);
+  const expected = parsed ? expectedPasscodeFor(parsed.role) : undefined;
 
-  if (cookie && process.env.EVO_PASSCODE && cookie === process.env.EVO_PASSCODE) {
-    return NextResponse.next();
+  if (parsed && expected && parsed.passcode === expected) {
+    if (!isPathAllowedForRole(request.nextUrl.pathname, parsed.role)) {
+      return NextResponse.redirect(new URL("/", request.url));
+    }
+
+    // Hand the role to Server Components (app/layout.tsx reads this via
+    // next/headers) so the UI can gate Add/Delete controls without every
+    // page re-deriving it from the cookie itself.
+    const requestHeaders = new Headers(request.headers);
+    requestHeaders.set("x-evo-role", parsed.role);
+    return NextResponse.next({ request: { headers: requestHeaders } });
   }
 
   // API routes are hit via fetch(), not browser navigation — a redirect to

@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { format, parseISO } from "date-fns";
 import { createNoteComment, deleteNoteComment } from "@/lib/noteCommentActions";
 import { useUndo } from "@/lib/undo/UndoProvider";
+import { useIsEditor } from "@/lib/roleContext";
 import { NoteCommentRow, NoteScope } from "@/lib/types";
 
 const AUTHOR_NAME_KEY = "evo-author-name";
@@ -35,6 +36,7 @@ export default function NotesPanel({
 }: NotesPanelProps) {
   const router = useRouter();
   const { record } = useUndo();
+  const isEditor = useIsEditor();
   const [authorName, setAuthorNameState] = useState<string | null>(null);
   const [nameDraft, setNameDraft] = useState("");
   const [content, setContent] = useState("");
@@ -155,15 +157,17 @@ export default function NotesPanel({
             <span className="text-gray-400 text-[10px] whitespace-nowrap">
               {format(parseISO(c.created_at), "d MMM, h:mm a")}
             </span>
-            <button
-              type="button"
-              onClick={() => handleRemove(c.id)}
-              disabled={removingId === c.id}
-              title="Delete this note"
-              className="leading-none text-gray-300 hover:text-red-600 disabled:opacity-30"
-            >
-              ×
-            </button>
+            {isEditor && (
+              <button
+                type="button"
+                onClick={() => handleRemove(c.id)}
+                disabled={removingId === c.id}
+                title="Delete this note"
+                className="leading-none text-gray-300 hover:text-red-600 disabled:opacity-30"
+              >
+                ×
+              </button>
+            )}
           </div>
         </div>
         <p className="text-gray-700 whitespace-pre-wrap break-words">{c.content}</p>

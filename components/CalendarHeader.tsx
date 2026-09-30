@@ -5,19 +5,21 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { format, addMonths, subMonths } from "date-fns";
 import { LevelRow } from "@/lib/types";
+import { useIsEditor } from "@/lib/roleContext";
 import LevelModal from "./LevelModal";
 import LevelChips from "./LevelChips";
 
 interface CalendarHeaderProps {
   monthStart: Date;
   levels: LevelRow[];
-  onAddClick: () => void;
+  onAddClick?: () => void;
 }
 
 type LevelModalState = { type: "closed" } | { type: "add" } | { type: "edit"; level: LevelRow };
 
 export default function CalendarHeader({ monthStart, levels, onAddClick }: CalendarHeaderProps) {
   const router = useRouter();
+  const isEditor = useIsEditor();
   const prev = subMonths(monthStart, 1);
   const next = addMonths(monthStart, 1);
   const [levelModal, setLevelModal] = useState<LevelModalState>({ type: "closed" });
@@ -46,24 +48,31 @@ export default function CalendarHeader({ monthStart, levels, onAddClick }: Calen
           >
             Next →
           </Link>
-          <button
-            type="button"
-            onClick={onAddClick}
-            className="px-2.5 py-1 rounded bg-navy text-white"
-          >
-            + Add Event
-          </button>
-          <button
-            type="button"
-            onClick={() => setLevelModal({ type: "add" })}
-            className="px-2.5 py-1 rounded border border-navy text-navy hover:bg-gray-50"
-          >
-            + Add Category
-          </button>
+          {isEditor && (
+            <>
+              <button
+                type="button"
+                onClick={onAddClick}
+                className="px-2.5 py-1 rounded bg-navy text-white"
+              >
+                + Add Event
+              </button>
+              <button
+                type="button"
+                onClick={() => setLevelModal({ type: "add" })}
+                className="px-2.5 py-1 rounded border border-navy text-navy hover:bg-gray-50"
+              >
+                + Add Category
+              </button>
+            </>
+          )}
         </div>
       </div>
 
-      <LevelChips levels={levels} onEdit={(level) => setLevelModal({ type: "edit", level })} />
+      <LevelChips
+        levels={levels}
+        onEdit={isEditor ? (level) => setLevelModal({ type: "edit", level }) : undefined}
+      />
 
       {levelModal.type !== "closed" && (
         <LevelModal

@@ -1,23 +1,30 @@
 import { NextRequest, NextResponse } from "next/server";
-
-const COOKIE_NAME = "evo_auth";
+import { AUTH_COOKIE_NAME, expectedPasscodeFor, Role, serializeAuthCookie } from "@/lib/auth";
 
 export async function POST(request: NextRequest) {
-  const { passcode } = await request.json().catch(() => ({ passcode: null }));
+  const { role, passcode } = await request.json().catch(() => ({ role: null, passcode: null }));
 
-  if (!process.env.EVO_PASSCODE) {
+  if (role !== "editor" && role !== "viewer") {
+    return NextResponse.json({ error: "Choose Edit or View access." }, { status: 400 });
+  }
+  const typedRole = role as Role;
+
+  const expected = expectedPasscodeFor(typedRole);
+  if (!expected) {
     return NextResponse.json(
-      { error: "Server is not configured with a passcode." },
+      { error: "Server is not configured with a passcode for this role." },
       { status: 500 }
     );
   }
 
-  if (typeof passcode !== "string" || passcode !== process.env.EVO_PASSCODE) {
+  // Deliberately generic — same message regardless of role, so a wrong
+  // guess doesn't reveal whether the Editor or Viewer passcode was closer.
+  if (typeof passcode !== "string" || passcode !== expected) {
     return NextResponse.json({ error: "Incorrect passcode." }, { status: 401 });
   }
 
   const response = NextResponse.json({ ok: true });
-  response.cookies.set(COOKIE_NAME, passcode, {
+  response.cookies.set(AUTH_COOKIE_NAME, serializeAuthCookie(typedRole, passcode), {
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",
     sameSite: "lax",

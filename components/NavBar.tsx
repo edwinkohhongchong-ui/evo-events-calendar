@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useUndo } from "@/lib/undo/UndoProvider";
+import { useIsEditor } from "@/lib/roleContext";
 import ErrorBanner from "./ErrorBanner";
 
 const LINKS = [
@@ -12,45 +13,54 @@ const LINKS = [
   { href: "/seasons", label: "Seasons" },
   { href: "/checklist", label: "Checklist" },
   { href: "/levels", label: "Categories" },
+  { href: "/reminders", label: "Reminders" },
 ];
 
 export default function NavBar() {
   const pathname = usePathname();
+  const isEditor = useIsEditor();
   const [exportOpen, setExportOpen] = useState(false);
   const { undo, redo, canUndo, canRedo, undoLabel, redoLabel, isBusy, error, dismissError } = useUndo();
 
   if (pathname === "/login") return null;
+
+  // Viewer role: Calendar tab only, no Undo/Redo (undoing an add/delete
+  // would recreate/destroy rows a Viewer isn't allowed to touch directly —
+  // see the auth plan) and no Export/Reminders utilities.
+  const links = isEditor ? LINKS : LINKS.filter((link) => link.href === "/");
 
   return (
     <nav className="bg-navy text-white">
       {error && <ErrorBanner message={error} onDismiss={dismissError} />}
       <div className="max-w-6xl mx-auto px-4 sm:px-6 flex items-center h-12 gap-3">
         <span className="font-semibold text-sm whitespace-nowrap shrink-0">+EVO Events</span>
-        <div className="flex items-center gap-1.5 shrink-0">
-          <button
-            type="button"
-            onClick={undo}
-            disabled={!canUndo || isBusy}
-            title={undoLabel ? `Undo: ${undoLabel} (Cmd/Ctrl+Z)` : "Nothing to undo"}
-            className="px-2.5 py-1 text-sm rounded border border-white/30 hover:bg-white/10 whitespace-nowrap disabled:opacity-30 disabled:hover:bg-transparent"
-          >
-            ↶ Undo
-          </button>
-          <button
-            type="button"
-            onClick={redo}
-            disabled={!canRedo || isBusy}
-            title={redoLabel ? `Redo: ${redoLabel} (Cmd/Ctrl+Shift+Z)` : "Nothing to redo"}
-            className="px-2.5 py-1 text-sm rounded border border-white/30 hover:bg-white/10 whitespace-nowrap disabled:opacity-30 disabled:hover:bg-transparent"
-          >
-            Redo ↷
-          </button>
-        </div>
+        {isEditor && (
+          <div className="flex items-center gap-1.5 shrink-0">
+            <button
+              type="button"
+              onClick={undo}
+              disabled={!canUndo || isBusy}
+              title={undoLabel ? `Undo: ${undoLabel} (Cmd/Ctrl+Z)` : "Nothing to undo"}
+              className="px-2.5 py-1 text-sm rounded border border-white/30 hover:bg-white/10 whitespace-nowrap disabled:opacity-30 disabled:hover:bg-transparent"
+            >
+              ↶ Undo
+            </button>
+            <button
+              type="button"
+              onClick={redo}
+              disabled={!canRedo || isBusy}
+              title={redoLabel ? `Redo: ${redoLabel} (Cmd/Ctrl+Shift+Z)` : "Nothing to redo"}
+              className="px-2.5 py-1 text-sm rounded border border-white/30 hover:bg-white/10 whitespace-nowrap disabled:opacity-30 disabled:hover:bg-transparent"
+            >
+              Redo ↷
+            </button>
+          </div>
+        )}
         {/* Scrolls horizontally instead of wrapping/overflowing the page at
             narrow widths — see PROJECT decision: NavBar is in-scope for the
             mobile pass, the calendar grid it sits above is not. */}
         <div className="flex items-center gap-1 overflow-x-auto">
-          {LINKS.map((link) => {
+          {links.map((link) => {
             const active = pathname === link.href;
             return (
               <Link
@@ -67,6 +77,7 @@ export default function NavBar() {
           })}
         </div>
 
+        {isEditor && (
         <div className="relative ml-auto shrink-0">
           <button
             type="button"
@@ -92,6 +103,7 @@ export default function NavBar() {
             </div>
           )}
         </div>
+        )}
       </div>
     </nav>
   );

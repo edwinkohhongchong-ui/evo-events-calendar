@@ -27,6 +27,7 @@ import { resolveLevelColor } from "@/lib/levelColor";
 import { LevelColorProvider } from "@/lib/levelColorContext";
 import { useEventFilter } from "@/lib/eventFilterContext";
 import { useUndo } from "@/lib/undo/UndoProvider";
+import { useIsEditor } from "@/lib/roleContext";
 import { DayNoteRow, EventOccurrence, HolidayRow, LevelRow, SeasonRow } from "@/lib/types";
 
 interface CalendarBoardProps {
@@ -61,6 +62,7 @@ export default function CalendarBoard({
   const router = useRouter();
   const { isVisible } = useEventFilter();
   const { record } = useUndo();
+  const isEditor = useIsEditor();
   const colorMap = useMemo(
     () => Object.fromEntries(levels.map((l) => [l.name, resolveLevelColor(l)])),
     [levels]
@@ -194,7 +196,7 @@ export default function CalendarBoard({
         <CalendarHeader
           monthStart={monthStart}
           levels={levels}
-          onAddClick={() => setModal({ type: "add", date: defaultAddDate })}
+          onAddClick={isEditor ? () => setModal({ type: "add", date: defaultAddDate }) : undefined}
         />
         <CalendarGrid
           weeks={weeks}
@@ -203,7 +205,7 @@ export default function CalendarBoard({
           seasonSegmentsByWeek={seasonSegmentsByWeek}
           eventSegmentsByWeek={eventSegmentsByWeek}
           onDayClick={(date) => {
-            if (isDraggingRef.current) return;
+            if (isDraggingRef.current || !isEditor) return;
             setModal({ type: "add", date });
           }}
           onEventClick={(occ) => {

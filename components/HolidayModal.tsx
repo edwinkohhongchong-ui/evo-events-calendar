@@ -5,6 +5,7 @@ import { HolidayRow, HolidayType } from "@/lib/types";
 import { HOLIDAY_TYPES } from "@/lib/constants";
 import { createHoliday, updateHoliday, deleteHoliday } from "@/lib/holidayActions";
 import { useUndo } from "@/lib/undo/UndoProvider";
+import { useIsEditor } from "@/lib/roleContext";
 import ConfirmDialog from "./ConfirmDialog";
 
 interface HolidayModalProps {
@@ -23,6 +24,7 @@ export default function HolidayModal({
   onDeleted,
 }: HolidayModalProps) {
   const { record } = useUndo();
+  const isEditor = useIsEditor();
   const [holidayDate, setHolidayDate] = useState(holiday?.holiday_date ?? "");
   const [name, setName] = useState(holiday?.name ?? "");
   const [type, setType] = useState<HolidayType>(holiday?.type ?? HOLIDAY_TYPES[0]);
@@ -129,7 +131,7 @@ export default function HolidayModal({
 
             <div className="flex items-center justify-between mt-2">
               <div>
-                {mode === "edit" && (
+                {mode === "edit" && isEditor && (
                   <button
                     type="button"
                     onClick={() => setConfirmDelete(true)}

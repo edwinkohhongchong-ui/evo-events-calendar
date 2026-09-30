@@ -6,6 +6,7 @@ import { SEASON_BAR_COLORS, SEASON_CATEGORIES, SEASON_COLOR_KEYS } from "@/lib/c
 import { createSeason, updateSeason, deleteSeason } from "@/lib/seasonActions";
 import { suggestSeasonColor } from "@/lib/seasonColor";
 import { useUndo } from "@/lib/undo/UndoProvider";
+import { useIsEditor } from "@/lib/roleContext";
 import ConfirmDialog from "./ConfirmDialog";
 
 interface SeasonModalProps {
@@ -18,6 +19,7 @@ interface SeasonModalProps {
 
 export default function SeasonModal({ mode, season, onClose, onSaved, onDeleted }: SeasonModalProps) {
   const { record } = useUndo();
+  const isEditor = useIsEditor();
   const [name, setName] = useState(season?.name ?? "");
   const [category, setCategory] = useState<SeasonCategory>(season?.category ?? SEASON_CATEGORIES[0]);
   const [startDate, setStartDate] = useState(season?.start_date ?? "");
@@ -193,7 +195,7 @@ export default function SeasonModal({ mode, season, onClose, onSaved, onDeleted 
 
             <div className="flex items-center justify-between mt-2">
               <div>
-                {mode === "edit" && (
+                {mode === "edit" && isEditor && (
                   <button
                     type="button"
                     onClick={() => setConfirmDelete(true)}

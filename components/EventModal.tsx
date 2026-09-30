@@ -16,6 +16,7 @@ import { formatDateDisplay, formatEventTimeRange } from "@/lib/dates";
 import { PastoralFocus, applyTitlePrefix, stripTitlePrefix } from "@/lib/pastoralFocus";
 import { CHURCHWIDE_LEVEL_NAME, GATHERING_TYPES, TG_LEVEL_NAME, ZONE_LEVEL_NAMES } from "@/lib/constants";
 import { useUndo } from "@/lib/undo/UndoProvider";
+import { useIsEditor } from "@/lib/roleContext";
 import ConfirmDialog from "./ConfirmDialog";
 import RecurringScopeDialog from "./RecurringScopeDialog";
 
@@ -50,6 +51,7 @@ export default function EventModal({
   onDeleted,
 }: EventModalProps) {
   const { record } = useUndo();
+  const isEditor = useIsEditor();
   const [eventType, setEventType] = useState<EventType>(event?.event_type ?? "Event");
   // The Name field always holds the bare title, never the Y/P/U/A prefix —
   // an existing prefix (baked into event.name at save time, see handleSubmit)
@@ -442,13 +444,17 @@ export default function EventModal({
             {formError && <p className="text-sm text-red-600">{formError}</p>}
 
             <div className="flex items-center justify-between mt-2">
-              <button
-                type="button"
-                onClick={handleDeleteClick}
-                className="text-sm text-red-600 hover:underline"
-              >
-                Delete
-              </button>
+              <div>
+                {isEditor && (
+                  <button
+                    type="button"
+                    onClick={handleDeleteClick}
+                    className="text-sm text-red-600 hover:underline"
+                  >
+                    Delete
+                  </button>
+                )}
+              </div>
               <div className="flex gap-2">
                 <button
                   type="button"
@@ -786,7 +792,7 @@ export default function EventModal({
 
             <div className="flex items-center justify-between mt-2">
               <div>
-                {mode === "edit" && (
+                {mode === "edit" && isEditor && (
                   <button
                     type="button"
                     onClick={handleDeleteClick}

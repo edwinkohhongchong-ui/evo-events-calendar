@@ -176,6 +176,26 @@ export interface HolidayFormValues {
   type: HolidayType;
 }
 
+// A saved draft template for the Reminders page — see migration 017. Sending
+// is always a manual, human-reviewed step (opens Telegram's own compose
+// screen); nothing here is a scheduled/automatic send.
+export interface ReminderTemplateRow {
+  id: string;
+  name: string;
+  default_message: string | null;
+  default_telegram_handle: string | null;
+  include_event_summary: boolean;
+  lookahead_days: number;
+}
+
+export interface ReminderTemplateFormValues {
+  name: string;
+  default_message: string | null;
+  default_telegram_handle: string | null;
+  include_event_summary: boolean;
+  lookahead_days: number;
+}
+
 export interface SeasonFormValues {
   name: string;
   category: SeasonCategory;

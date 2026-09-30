@@ -15,7 +15,8 @@ export type UndoTable =
   | "seasons"
   | "checklist"
   | "day_notes"
-  | "note_comments";
+  | "note_comments"
+  | "reminder_templates";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export type SnapshotRow = Record<string, any>;

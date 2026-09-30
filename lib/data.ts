@@ -8,9 +8,13 @@ import {
   HolidayRow,
   LevelRow,
   NoteCommentRow,
+  ReminderTemplateRow,
   SeasonRow,
   OverrideRow,
 } from "./types";
+import { expandEvents } from "./recurrence";
+import { applyOverrides } from "./overrides";
+import { parseDateStr, formatDateDisplay } from "./dates";
 
 export interface CalendarData {
   events: EventRow[];
@@ -40,6 +44,36 @@ export async function getCalendarData(
   ]);
 
   return { events, holidays, seasons, overrides, levels, exceptions, dayNotes };
+}
+
+// Plain-text bullet list of events in [startStr, endStr] — used to pre-fill
+// a reminder draft on the Reminders page. Reuses the same recurrence
+// expansion + override application as the calendar grid itself, so a
+// reminder never lists something the calendar wouldn't actually show.
+export async function getEventsSummaryText(startStr: string, endStr: string): Promise<string> {
+  const [events, overrides, exceptions] = await Promise.all([
+    getEvents(startStr, endStr),
+    getOverrides(startStr, endStr),
+    getExceptions(startStr, endStr),
+  ]);
+
+  const eventsById = new Map(events.map((e) => [e.id, e]));
+  const exceptionsByEventId = new Map<string, Set<string>>();
+  for (const exception of exceptions) {
+    const set = exceptionsByEventId.get(exception.event_id) ?? new Set<string>();
+    set.add(exception.original_date);
+    exceptionsByEventId.set(exception.event_id, set);
+  }
+
+  const rawOccurrences = expandEvents(events, parseDateStr(startStr), parseDateStr(endStr), exceptionsByEventId);
+  const occurrences = applyOverrides(rawOccurrences, overrides, eventsById, startStr, endStr);
+  occurrences.sort((a, b) => a.occurrenceDate.localeCompare(b.occurrenceDate));
+
+  if (occurrences.length === 0) return "No events scheduled in this period.";
+
+  return occurrences
+    .map((occ) => `• ${occ.event.name} — ${formatDateDisplay(occ.occurrenceDate)}`)
+    .join("\n");
 }
 
 async function getDayNotes(gridStartStr: string, gridEndStr: string): Promise<DayNoteRow[]> {
@@ -208,6 +242,20 @@ export async function getAllSeasons(): Promise<SeasonRow[]> {
 // Levels are a small, rarely-changing table — fetched whole (like Holidays/
 // Seasons admin data), ordered so the legend and dropdowns render in a
 // stable, user-controlled order rather than insertion order.
+export async function getAllReminderTemplates(): Promise<ReminderTemplateRow[]> {
+  try {
+    const { data, error } = await supabase.from("reminder_templates").select("*").order("name");
+    if (error) {
+      console.error("getAllReminderTemplates failed:", error.message);
+      return [];
+    }
+    return data ?? [];
+  } catch (err) {
+    console.error("getAllReminderTemplates threw:", err);
+    return [];
+  }
+}
+
 export async function getAllLevels(): Promise<LevelRow[]> {
   try {
     const { data, error } = await supabase.from("levels").select("*").order("sort_order");

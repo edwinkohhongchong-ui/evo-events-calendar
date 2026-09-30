@@ -8,6 +8,20 @@ items (features/fixes) that push contains — a push with 1 item goes up by
 `1.05`). If MINOR would pass `.99`, MAJOR increments and MINOR carries the
 remainder (e.g. `1.99` + 2 items → `2.01`).
 
+## v1.19 — 2026-09-30
+
+- Added a "Reminders" page: save named templates (default Telegram handle,
+  default message, whether to append an auto-generated list of upcoming
+  events) and draft a message from one, then click "Open in Telegram" to
+  launch Telegram with it pre-filled — sending is always a manual, reviewed
+  step, nothing is sent automatically. New `reminder_templates` table
+  (migration 017).
+- Added a two-role passcode gate: Editor (full access, same as before) and
+  Viewer (can view the calendar, edit existing events, and comment — can't
+  add or delete anything, and can only reach the Calendar tab, enforced by
+  middleware on direct URL access too). The login page now asks which role
+  to sign in as, each with its own passcode.
+
 ## v1.17 — 2026-09-30
 
 - Fixed PDF/Word export silently downloading a corrupt file (the login

@@ -2,8 +2,10 @@
 
 import { useState, FormEvent } from "react";
 import { useRouter } from "next/navigation";
+import { Role } from "@/lib/auth";
 
 export default function LoginPage() {
+  const [role, setRole] = useState<Role>("editor");
   const [passcode, setPasscode] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
@@ -18,7 +20,7 @@ export default function LoginPage() {
       const res = await fetch("/api/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ passcode }),
+        body: JSON.stringify({ role, passcode }),
       });
 
       if (!res.ok) {
@@ -43,7 +45,31 @@ export default function LoginPage() {
         className="bg-white rounded-lg shadow-lg p-6 w-full max-w-sm flex flex-col gap-3"
       >
         <h1 className="text-lg font-semibold text-navy mb-1">+EVO Events Calendar</h1>
-        <p className="text-sm text-gray-500 mb-2">Enter the shared passcode to continue.</p>
+        <p className="text-sm text-gray-500 mb-2">Choose your access level and enter the passcode.</p>
+
+        <div className="flex gap-2 mb-1">
+          {(["editor", "viewer"] as Role[]).map((r) => (
+            <button
+              key={r}
+              type="button"
+              onClick={() => setRole(r)}
+              className={[
+                "flex-1 px-3 py-1.5 rounded border text-sm",
+                role === r
+                  ? "bg-navy text-white border-navy"
+                  : "border-gray-300 text-gray-600 hover:bg-gray-50",
+              ].join(" ")}
+            >
+              {r === "editor" ? "Edit access" : "View access"}
+            </button>
+          ))}
+        </div>
+        <p className="text-xs text-gray-400 -mt-1 mb-1">
+          {role === "editor"
+            ? "Full access — add, edit, delete."
+            : "View the calendar, edit existing events, and comment — can't add or delete anything."}
+        </p>
+
         <input
           type="password"
           value={passcode}

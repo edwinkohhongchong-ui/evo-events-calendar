@@ -74,24 +74,26 @@ export default function LevelChips({ levels, onEdit }: LevelChipsProps) {
                 {level.name}
               </button>
               {onEdit && (
-                <button
-                  type="button"
-                  onClick={() => onEdit(level)}
-                  title="Edit category"
-                  className="leading-none opacity-50 hover:opacity-100 px-0.5"
-                >
-                  ✎
-                </button>
+                <>
+                  <button
+                    type="button"
+                    onClick={() => onEdit(level)}
+                    title="Edit category"
+                    className="leading-none opacity-50 hover:opacity-100 px-0.5"
+                  >
+                    ✎
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleRemove(level)}
+                    disabled={removingId === level.id}
+                    title={`Remove "${level.name}"`}
+                    className="leading-none opacity-50 hover:opacity-100 disabled:opacity-30 px-0.5"
+                  >
+                    ×
+                  </button>
+                </>
               )}
-              <button
-                type="button"
-                onClick={() => handleRemove(level)}
-                disabled={removingId === level.id}
-                title={`Remove "${level.name}"`}
-                className="leading-none opacity-50 hover:opacity-100 disabled:opacity-30 px-0.5"
-              >
-                ×
-              </button>
             </span>
           );
         })}

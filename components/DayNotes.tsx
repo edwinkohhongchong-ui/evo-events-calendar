@@ -4,6 +4,7 @@ import { useState, FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { createDayNote, deleteDayNote } from "@/lib/dayNoteActions";
 import { useUndo } from "@/lib/undo/UndoProvider";
+import { useIsEditor } from "@/lib/roleContext";
 import { DayNoteRow } from "@/lib/types";
 
 interface DayNotesProps {
@@ -18,6 +19,7 @@ interface DayNotesProps {
 export default function DayNotes({ dateStr, notes }: DayNotesProps) {
   const router = useRouter();
   const { record } = useUndo();
+  const isEditor = useIsEditor();
   const [open, setOpen] = useState(false);
   const [draft, setDraft] = useState("");
   const [saving, setSaving] = useState(false);
@@ -68,16 +70,18 @@ export default function DayNotes({ dateStr, notes }: DayNotesProps) {
         </span>
       ))}
 
-      <button
-        type="button"
-        onClick={() => setOpen((prev) => !prev)}
-        title="Add a note to this day"
-        className="self-start text-[10px] text-gray-300 hover:text-green-700 leading-none"
-      >
-        {open ? "▾ note" : "+ note"}
-      </button>
+      {isEditor && (
+        <button
+          type="button"
+          onClick={() => setOpen((prev) => !prev)}
+          title="Add a note to this day"
+          className="self-start text-[10px] text-gray-300 hover:text-green-700 leading-none"
+        >
+          {open ? "▾ note" : "+ note"}
+        </button>
+      )}
 
-      {open && (
+      {isEditor && open && (
         <div className="flex flex-col gap-1 border border-gray-200 rounded p-1.5 bg-white">
           {notes.map((n) => (
             <div key={n.id} className="flex items-start justify-between gap-1">

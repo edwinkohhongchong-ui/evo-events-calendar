@@ -8,6 +8,7 @@ import { LEVEL_COLOR_CLASSES } from "@/lib/constants";
 import { resolveLevelColor } from "@/lib/levelColor";
 import { formatDateDisplay, formatEventTimeRange } from "@/lib/dates";
 import { useEventFilter } from "@/lib/eventFilterContext";
+import { useIsEditor } from "@/lib/roleContext";
 
 interface CategoryListViewProps {
   occurrences: EventOccurrence[];
@@ -27,6 +28,7 @@ type ModalState = { type: "closed" } | { type: "add" } | { type: "edit"; occurre
 export default function CategoryListView({ occurrences, levels, defaultAddDate }: CategoryListViewProps) {
   const router = useRouter();
   const { isVisible } = useEventFilter();
+  const isEditor = useIsEditor();
   const [collapsed, setCollapsed] = useState<Set<string>>(() => new Set(levels.map((l) => l.name)));
   const [modal, setModal] = useState<ModalState>({ type: "closed" });
 
@@ -69,13 +71,15 @@ export default function CategoryListView({ occurrences, levels, defaultAddDate }
     <div className="mt-6 flex flex-col gap-2">
       <div className="flex items-center justify-between">
         <h2 className="text-lg font-semibold text-navy">Events by Category</h2>
-        <button
-          type="button"
-          onClick={() => setModal({ type: "add" })}
-          className="px-3 py-1.5 text-sm rounded bg-navy text-white"
-        >
-          + Add Event
-        </button>
+        {isEditor && (
+          <button
+            type="button"
+            onClick={() => setModal({ type: "add" })}
+            className="px-3 py-1.5 text-sm rounded bg-navy text-white"
+          >
+            + Add Event
+          </button>
+        )}
       </div>
       {Array.from(grouped.entries()).map(([name, occs]) => {
         const level = levels.find((l) => l.name === name);
