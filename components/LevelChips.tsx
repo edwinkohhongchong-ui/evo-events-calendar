@@ -8,6 +8,7 @@ import { useEventFilter } from "@/lib/eventFilterContext";
 import { deleteLevel } from "@/lib/levelActions";
 import { useUndo } from "@/lib/undo/UndoProvider";
 import { LevelRow } from "@/lib/types";
+import ConfirmDialog from "./ConfirmDialog";
 
 interface LevelChipsProps {
   levels: LevelRow[];
@@ -27,17 +28,25 @@ export default function LevelChips({ levels, onEdit }: LevelChipsProps) {
   const { record } = useUndo();
   const [removingId, setRemovingId] = useState<string | null>(null);
   const [removeError, setRemoveError] = useState<string | null>(null);
+  const [pendingDelete, setPendingDelete] = useState<LevelRow | null>(null);
   const allNames = levels.map((l) => l.name);
 
   if (levels.length === 0) return null;
 
-  async function handleRemove(level: LevelRow) {
-    if (!window.confirm(`Delete the "${level.name}" category?`)) return;
+  function handleRemove(level: LevelRow) {
+    setRemoveError(null);
+    setPendingDelete(level);
+  }
+
+  async function handleConfirmRemove() {
+    if (!pendingDelete) return;
+    const level = pendingDelete;
     setRemovingId(level.id);
     setRemoveError(null);
     try {
       const affected = await deleteLevel(level.id);
       record(`Delete category "${level.name}"`, affected);
+      setPendingDelete(null);
       router.refresh();
     } catch (err) {
       setRemoveError(
@@ -103,7 +112,27 @@ export default function LevelChips({ levels, onEdit }: LevelChipsProps) {
           </button>
         )}
       </div>
-      {removeError && <p className="text-xs text-red-600">{removeError}</p>}
+      {removeError && !pendingDelete && <p className="text-xs text-red-600">{removeError}</p>}
+
+      {pendingDelete && (
+        <div
+          className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4"
+          onClick={() => setPendingDelete(null)}
+        >
+          <div
+            className="bg-white rounded-lg shadow-lg w-full max-w-md p-5"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <ConfirmDialog
+              message={<>Delete the &ldquo;{pendingDelete.name}&rdquo; category?</>}
+              error={removeError}
+              busy={removingId === pendingDelete.id}
+              onCancel={() => setPendingDelete(null)}
+              onConfirm={handleConfirmRemove}
+            />
+          </div>
+        </div>
+      )}
     </div>
   );
 }

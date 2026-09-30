@@ -132,7 +132,11 @@ top entry for the exact current version and what's in it.
   Supabase project (Edwin) — there's no migration runner. Since the database
   is shared (not per-developer), you generally won't need to run these
   yourself; just know they exist if a feature you're building needs a schema
-  change; next number is 017.
+  change; next number is 021 (001 through 020 already exist; migrations
+  017-020 have been confirmed run against the live Supabase project per
+  Edwin's confirmation in a prior session: "Ran all the migrations, no other
+  errors"). See `MIGRATIONS_APPLIED.md` at the repo root for the full
+  confirmed-run tracking table.
 
 ## Working with Claude Code on this project
 This project was built almost entirely through conversational, phase-by-phase

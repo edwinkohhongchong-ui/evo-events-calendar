@@ -30,8 +30,8 @@ export default function EventCardContent({ occurrence }: { occurrence: EventOccu
         {nextDay && <span className="ml-1 text-[10px] font-normal opacity-70">(next day)</span>}
         {occurrence.isOverridden && <span className="ml-1 text-[10px] font-normal opacity-70">(moved)</span>}
       </div>
-      {subtitle && <div className="text-[11px] opacity-80 truncate">{subtitle}</div>}
-      {time && <div className="text-[11px] opacity-80 truncate">{time}</div>}
+      {subtitle && <div className="text-[13px] opacity-80 truncate">{subtitle}</div>}
+      {time && <div className="text-[13px] opacity-80 truncate">{time}</div>}
     </div>
   );
 }

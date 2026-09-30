@@ -98,9 +98,21 @@ export default function EventModal({
   // first, which a leader could easily save without ever noticing (see
   // Pastor review finding #1).
   const [level, setLevel] = useState<Level>(event?.level ?? "");
+  // Tracks that "Zone" was clicked as the top-level category while no
+  // specific zone Level has been chosen yet (level stays "" in that state —
+  // see handleEventTypeCategoryChange/Bug 1 fix). Needed because
+  // topCategoryFor("") can't tell "Zone, undecided" apart from "nothing
+  // picked yet"; this flag disambiguates purely for display/validation.
+  const [zonePickedWithoutLevel, setZonePickedWithoutLevel] = useState(false);
   const [location, setLocation] = useState(event?.location ?? "");
   const [recurring, setRecurring] = useState<Recurring>(event?.recurring ?? "None");
   const [repeatUntil, setRepeatUntil] = useState(event?.repeat_until ?? "");
+  // Gate for saving a recurring event with no Repeat Until — forces an
+  // explicit "yes, forever" choice instead of silently defaulting to
+  // indefinite recurrence (see Pastor review finding — mirrors the same
+  // "force an explicit choice" pattern as the Zone picker below). Purely a
+  // client-side confirmation; nothing is persisted for this.
+  const [acknowledgeNoEndDate, setAcknowledgeNoEndDate] = useState(false);
   const [notes, setNotes] = useState(event?.notes ?? "");
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
@@ -189,14 +201,31 @@ export default function EventModal({
     return "Zone";
   }
 
+  // Like topCategoryFor, but also reports "Zone" while the user has clicked
+  // Zone as the top category yet hasn't picked a specific zone Level yet
+  // (level is still "" in that state) — topCategoryFor("") alone can't
+  // distinguish "Zone, undecided" from "nothing picked at all".
+  function displayCategoryFor(levelName: string): "Churchwide" | "Zone" | "TG" | "" {
+    const cat = topCategoryFor(levelName);
+    if (cat) return cat;
+    return zonePickedWithoutLevel ? "Zone" : "";
+  }
+
   function handleEventTypeCategoryChange(category: "Churchwide" | "Zone" | "TG") {
     if (category === "Churchwide") {
+      setZonePickedWithoutLevel(false);
       setLevel(CHURCHWIDE_LEVEL_NAME);
     } else if (category === "TG") {
+      setZonePickedWithoutLevel(false);
       setLevel(TG_LEVEL_NAME);
     } else if (!ZONE_LEVEL_NAMES.includes(level)) {
-      const firstZone = levels.find((l) => ZONE_LEVEL_NAMES.includes(l.name));
-      setLevel(firstZone?.name ?? level);
+      // Zone: do NOT auto-select whichever zone Level happens to sort
+      // first — leave the choice unset and force the user to explicitly
+      // open the sub-dropdown and pick one (see Bug 1 fix). If a zone
+      // Level is already selected (e.g. editing an existing event), leave
+      // it as-is.
+      setLevel("");
+      setZonePickedWithoutLevel(true);
     }
   }
 
@@ -232,7 +261,15 @@ export default function EventModal({
       return;
     }
     if (!level) {
-      setFormError(eventType === "Event" ? "Choose an Event Type." : "Choose a Level.");
+      if (eventType === "Event" && zonePickedWithoutLevel) {
+        setFormError("Choose a zone.");
+      } else {
+        setFormError(eventType === "Event" ? "Choose an Event Type." : "Choose a Level.");
+      }
+      return;
+    }
+    if (recurring !== "None" && !repeatUntil && !acknowledgeNoEndDate) {
+      setFormError("Set a Repeat Until date, or confirm this repeats with no end date.");
       return;
     }
 
@@ -654,7 +691,7 @@ export default function EventModal({
                       onClick={() => handleEventTypeCategoryChange(cat)}
                       className={[
                         "flex-1 px-3 py-1.5 rounded border text-sm",
-                        topCategoryFor(level) === cat
+                        displayCategoryFor(level) === cat
                           ? "bg-navy text-white border-navy"
                           : "border-gray-300 text-gray-600 hover:bg-gray-50",
                       ].join(" ")}
@@ -663,12 +700,20 @@ export default function EventModal({
                     </button>
                   ))}
                 </div>
-                {topCategoryFor(level) === "Zone" && (
+                {displayCategoryFor(level) === "Zone" && (
                   <select
                     value={level}
-                    onChange={(e) => setLevel(e.target.value as Level)}
+                    onChange={(e) => {
+                      setLevel(e.target.value as Level);
+                      setZonePickedWithoutLevel(false);
+                    }}
                     className="border rounded px-2 py-1"
                   >
+                    {!level && (
+                      <option value="" disabled>
+                        — Select zone —
+                      </option>
+                    )}
                     {levels
                       .filter((l) => ZONE_LEVEL_NAMES.includes(l.name))
                       .map((l) => (
@@ -789,10 +834,28 @@ export default function EventModal({
                 <input
                   type="date"
                   value={repeatUntil ?? ""}
-                  onChange={(e) => setRepeatUntil(e.target.value)}
+                  onChange={(e) => {
+                    setRepeatUntil(e.target.value);
+                    if (e.target.value) setAcknowledgeNoEndDate(false);
+                  }}
                   disabled={recurring === "None"}
                   className="border rounded px-2 py-1 disabled:bg-gray-100 disabled:text-gray-400"
                 />
+                {recurring !== "None" && !repeatUntil && (
+                  <div className="flex flex-col gap-1 mt-1">
+                    <span className="text-xs text-amber-600 font-normal">
+                      ⚠ No end date — this event will repeat forever until removed.
+                    </span>
+                    <label className="flex items-center gap-1.5 text-xs font-normal text-gray-600">
+                      <input
+                        type="checkbox"
+                        checked={acknowledgeNoEndDate}
+                        onChange={(e) => setAcknowledgeNoEndDate(e.target.checked)}
+                      />
+                      No end date — this repeats indefinitely
+                    </label>
+                  </div>
+                )}
               </label>
             </div>
             <label className="flex flex-col gap-1 text-sm">

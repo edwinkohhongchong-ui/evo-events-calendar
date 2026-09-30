@@ -20,11 +20,17 @@ function rank(table: UndoTable, row: SnapshotRow): number {
 async function applyRow(table: UndoTable, id: string, row: SnapshotRow | null): Promise<void> {
   if (row === null) {
     const { error } = await supabase.from(table).delete().eq("id", id);
-    if (error) throw new Error(error.message);
+    if (error) {
+      console.error(error);
+      throw new Error("Something went wrong undoing/redoing that change. Please try again.");
+    }
     return;
   }
   const { error } = await supabase.from(table).upsert(row);
-  if (error) throw new Error(error.message);
+  if (error) {
+    console.error(error);
+    throw new Error("Something went wrong undoing/redoing that change. Please try again.");
+  }
 }
 
 // Restores `affected` to either its `before` or `after` image. Writes/

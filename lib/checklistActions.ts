@@ -9,7 +9,10 @@ import { requireRole } from "./authz";
 export async function createChecklistItem(values: ChecklistFormValues): Promise<AffectedRow[]> {
   await requireRole("editor");
   const { data, error } = await supabase.from("checklist").insert(values).select().single();
-  if (error) throw new Error(error.message);
+  if (error) {
+    console.error(error);
+    throw new Error("Something went wrong saving this checklist item. Please try again.");
+  }
   return [{ table: "checklist", id: data.id, before: null, after: data }];
 }
 
@@ -26,7 +29,10 @@ export async function updateChecklistItem(
   let query = supabase.from("checklist").update(values).eq("id", id);
   if (expectedUpdatedAt) query = query.eq("updated_at", expectedUpdatedAt);
   const { data, error } = await query.select();
-  if (error) throw new Error(error.message);
+  if (error) {
+    console.error(error);
+    throw new Error("Something went wrong saving this checklist item. Please try again.");
+  }
   if (!data || data.length === 0) {
     throw new Error(
       expectedUpdatedAt
@@ -48,7 +54,10 @@ export async function updateChecklistStatus(
   let query = supabase.from("checklist").update({ status }).eq("id", id);
   if (expectedUpdatedAt) query = query.eq("updated_at", expectedUpdatedAt);
   const { data, error } = await query.select();
-  if (error) throw new Error(error.message);
+  if (error) {
+    console.error(error);
+    throw new Error("Something went wrong updating this checklist item's status. Please try again.");
+  }
   if (!data || data.length === 0) {
     throw new Error(
       expectedUpdatedAt
@@ -63,6 +72,9 @@ export async function deleteChecklistItem(id: string): Promise<AffectedRow[]> {
   await requireRole("editor");
   const before = await fetchRow("checklist", id);
   const { error } = await supabase.from("checklist").delete().eq("id", id);
-  if (error) throw new Error(error.message);
+  if (error) {
+    console.error(error);
+    throw new Error("Something went wrong deleting this checklist item. Please try again.");
+  }
   return before ? [{ table: "checklist", id, before, after: null }] : [];
 }

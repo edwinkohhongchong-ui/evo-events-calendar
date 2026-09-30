@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import HolidayModal from "./HolidayModal";
 import ConfirmDialog from "./ConfirmDialog";
+import { useEscapeKey } from "@/lib/useEscapeKey";
 import { deleteHoliday } from "@/lib/holidayActions";
 import { useUndo } from "@/lib/undo/UndoProvider";
 import { HolidayRow } from "@/lib/types";
@@ -22,6 +23,8 @@ export default function HolidaysTable({ holidays }: { holidays: HolidayRow[] }) 
   const [removingId, setRemovingId] = useState<string | null>(null);
   const [pendingDelete, setPendingDelete] = useState<HolidayRow | null>(null);
   const [deleteError, setDeleteError] = useState<string | null>(null);
+
+  useEscapeKey(() => setPendingDelete(null));
 
   function handleRemove(e: MouseEvent, holiday: HolidayRow) {
     e.stopPropagation();
@@ -168,7 +171,7 @@ export default function HolidaysTable({ holidays }: { holidays: HolidayRow[] }) 
           onClick={() => setPendingDelete(null)}
         >
           <div
-            className="bg-white rounded-lg shadow-lg w-full max-w-md p-5"
+            className="bg-white rounded-lg shadow-lg w-full max-w-md p-5 max-h-[90vh] overflow-y-auto"
             onClick={(e) => e.stopPropagation()}
           >
             <ConfirmDialog

@@ -5,7 +5,9 @@ import { useRouter } from "next/navigation";
 import { ChecklistTemplateWithItems } from "@/lib/types";
 import { deleteChecklistTemplate } from "@/lib/checklistTemplateActions";
 import { useUndo } from "@/lib/undo/UndoProvider";
+import { useEscapeKey } from "@/lib/useEscapeKey";
 import ChecklistTemplateModal from "./ChecklistTemplateModal";
+import ConfirmDialog from "./ConfirmDialog";
 
 type ModalState =
   | { type: "closed" }
@@ -28,16 +30,29 @@ export default function ChecklistTemplatesSection({
   const [modal, setModal] = useState<ModalState>({ type: "closed" });
   const [open, setOpen] = useState(true);
   const [removingId, setRemovingId] = useState<string | null>(null);
+  const [pendingDelete, setPendingDelete] = useState<ChecklistTemplateWithItems | null>(null);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
 
-  async function handleRemove(template: ChecklistTemplateWithItems) {
-    if (!window.confirm(`Delete "${template.name}"?`)) return;
+  useEscapeKey(() => setPendingDelete(null));
+
+  function handleRemove(template: ChecklistTemplateWithItems) {
+    setDeleteError(null);
+    setPendingDelete(template);
+  }
+
+  async function handleConfirmRemove() {
+    if (!pendingDelete) return;
+    const template = pendingDelete;
     setRemovingId(template.id);
     try {
       const affected = await deleteChecklistTemplate(template.id);
-      record(`Delete checklist template "${template.name}"`, affected);
+      record(`Delete message snippet "${template.name}"`, affected);
+      setPendingDelete(null);
       router.refresh();
     } catch (err) {
-      window.alert(err instanceof Error ? err.message : "Something went wrong deleting this template.");
+      setDeleteError(
+        err instanceof Error ? err.message : "Something went wrong deleting this message snippet."
+      );
     } finally {
       setRemovingId(null);
     }
@@ -50,14 +65,15 @@ export default function ChecklistTemplatesSection({
         onClick={() => setOpen((prev) => !prev)}
         className="w-full flex items-center justify-between px-3 py-2 bg-gray-50 hover:bg-gray-100 text-sm font-medium text-navy"
       >
-        <span>Checklist Templates ({templates.length})</span>
+        <span>Message Checklist Snippets ({templates.length})</span>
         <span className="text-gray-400">{open ? "▾" : "▸"}</span>
       </button>
       {open && (
         <div className="p-3 flex flex-col gap-2">
           <p className="text-xs text-gray-500 -mt-1">
-            Reusable checklist text for drafted messages only — separate from the real Checklist
-            tab. Select one per event below to pre-load its lines into the message.
+            Pre-written checklist text you can drop into a drafted Telegram message. This does NOT
+            update the real Checklist tab — selecting one here only adds text to the message,
+            nothing is tracked.
           </p>
           {templates.map((t) => (
             <div
@@ -86,14 +102,14 @@ export default function ChecklistTemplatesSection({
             </div>
           ))}
           {templates.length === 0 && (
-            <p className="text-sm text-gray-400 text-center py-2">No templates yet.</p>
+            <p className="text-sm text-gray-400 text-center py-2">No message snippets yet.</p>
           )}
           <button
             type="button"
             onClick={() => setModal({ type: "add" })}
             className="self-start px-3 py-1.5 text-sm rounded bg-navy text-white"
           >
-            + Add Template
+            + Add Snippet
           </button>
         </div>
       )}
@@ -112,6 +128,26 @@ export default function ChecklistTemplatesSection({
             router.refresh();
           }}
         />
+      )}
+
+      {pendingDelete && (
+        <div
+          className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4"
+          onClick={() => setPendingDelete(null)}
+        >
+          <div
+            className="bg-white rounded-lg shadow-lg w-full max-w-md p-5 max-h-[90vh] overflow-y-auto"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <ConfirmDialog
+              message={<>Delete &ldquo;{pendingDelete.name}&rdquo;?</>}
+              error={deleteError}
+              busy={removingId === pendingDelete.id}
+              onCancel={() => setPendingDelete(null)}
+              onConfirm={handleConfirmRemove}
+            />
+          </div>
+        </div>
       )}
     </div>
   );

@@ -4,6 +4,7 @@ import { useMemo, useState, MouseEvent } from "react";
 import { useRouter } from "next/navigation";
 import SeasonModal from "./SeasonModal";
 import ConfirmDialog from "./ConfirmDialog";
+import { useEscapeKey } from "@/lib/useEscapeKey";
 import { deleteSeason } from "@/lib/seasonActions";
 import { useUndo } from "@/lib/undo/UndoProvider";
 import { SeasonRow } from "@/lib/types";
@@ -21,6 +22,8 @@ export default function SeasonsTable({ seasons }: { seasons: SeasonRow[] }) {
   const [removingId, setRemovingId] = useState<string | null>(null);
   const [pendingDelete, setPendingDelete] = useState<SeasonRow | null>(null);
   const [deleteError, setDeleteError] = useState<string | null>(null);
+
+  useEscapeKey(() => setPendingDelete(null));
 
   function handleRemove(e: MouseEvent, season: SeasonRow) {
     e.stopPropagation();
@@ -166,7 +169,7 @@ export default function SeasonsTable({ seasons }: { seasons: SeasonRow[] }) {
           onClick={() => setPendingDelete(null)}
         >
           <div
-            className="bg-white rounded-lg shadow-lg w-full max-w-md p-5"
+            className="bg-white rounded-lg shadow-lg w-full max-w-md p-5 max-h-[90vh] overflow-y-auto"
             onClick={(e) => e.stopPropagation()}
           >
             <ConfirmDialog

@@ -73,7 +73,7 @@ export default function ChecklistTemplateModal({
     setSaving(true);
     try {
       const affected = await saveChecklistTemplate(template?.id ?? null, name.trim(), cleanItems);
-      record(`${mode === "add" ? "Add" : "Edit"} checklist template "${name.trim()}"`, affected);
+      record(`${mode === "add" ? "Add" : "Edit"} message snippet "${name.trim()}"`, affected);
       onSaved();
     } catch (err) {
       setFormError(err instanceof Error ? err.message : "Something went wrong saving this template.");
@@ -87,11 +87,11 @@ export default function ChecklistTemplateModal({
     setFormError(null);
     try {
       const affected = await deleteChecklistTemplate(template.id);
-      record(`Delete checklist template "${template.name}"`, affected);
+      record(`Delete message snippet "${template.name}"`, affected);
       onDeleted();
     } catch (err) {
       setFormError(
-        err instanceof Error ? err.message : "Something went wrong deleting this template."
+        err instanceof Error ? err.message : "Something went wrong deleting this message snippet."
       );
       setSaving(false);
     }
@@ -107,7 +107,7 @@ export default function ChecklistTemplateModal({
         onClick={(e) => e.stopPropagation()}
       >
         <h2 className="text-lg font-semibold text-navy mb-3">
-          {mode === "add" ? "Add Checklist Template" : "Edit Checklist Template"}
+          {mode === "add" ? "Add Message Snippet" : "Edit Message Snippet"}
         </h2>
 
         {!confirmDelete ? (

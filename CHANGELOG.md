@@ -8,6 +8,45 @@ items (features/fixes) that push contains — a push with 1 item goes up by
 `1.05`). If MINOR would pass `.99`, MAJOR increments and MINOR carries the
 remainder (e.g. `1.99` + 2 items → `2.01`).
 
+## v1.44 — 2026-09-30
+
+- Fixed a real authorization gap: two event-occurrence Server Actions
+  (`splitSeriesFromOccurrence`, `extendOccurrenceSpan`) incorrectly allowed
+  Viewer-level access, inconsistent with their sibling event-mutation
+  functions (`updateEvent`, `moveOccurrence`, `retimeOccurrence`,
+  `detachOccurrence`), which were already correctly Editor-only. (A first
+  pass also tightened `updateHoliday`/`updateSeason`/`updateLevel`/
+  `updateChecklistItem`/`updateReminderTemplate` to Editor-only, but that
+  was reverted — those were already correct at Viewer-level, matching the
+  app's actual UI, which has never gated Save/Edit behind Editor, only
+  Delete. Viewers editing an existing holiday, season, category, checklist
+  item, or reminder template is intended behavior, not a bypass.)
+- Fixed raw Supabase/Postgres error messages leaking to the client from
+  every Server Action — now wrapped in safe, context-specific messages,
+  with the real error still logged server-side for debugging.
+- Fixed the Zone category picker silently auto-selecting the first zone on
+  click — now requires an explicit choice, matching the same fix already
+  applied to the top-level Event Type picker in v1.35.
+- Added an explicit acknowledgment gate for a recurring event left with no
+  "Repeat until" date, so indefinite repetition is a deliberate choice, not
+  a silent default.
+- Fixed the last native `window.confirm`/`alert` popups (Day Note delete,
+  Message Checklist Snippet delete) to use the app's own styled
+  confirmation dialog, and added the missing Escape-close/viewport cap to
+  the Holidays/Seasons delete confirmation.
+- Bumped secondary event-card text (subtitle/time) from 11px up to the
+  stated 13px design floor.
+- Renamed "Checklist Templates" to "Message Checklist Snippets" throughout
+  the Reminders page (UI copy only, no data-model change), to reduce
+  confusion with the real Checklist tab.
+- Added `MIGRATIONS_APPLIED.md` tracking which of the 20 database
+  migrations have been confirmed run against production, and fixed a stale
+  migration-number reference in `ONBOARDING.md`.
+- Documented a standing 7-role agent-team workflow (added QA/Live-
+  Verification and Security/Auth to the original five) and a
+  collaborator-sync process for working alongside Darius, both in
+  `CLAUDE.md`.
+
 ## v1.35 — 2026-09-30
 
 - Event form: the Churchwide/Zone/TG (or Level, for Gatherings) category no

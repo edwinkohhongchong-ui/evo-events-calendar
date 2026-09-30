@@ -8,6 +8,7 @@ import { ChecklistTemplateWithItems, ReminderTemplateRow } from "@/lib/types";
 import { ReminderPickerEvent } from "@/lib/data";
 import { toDateStr, formatDateDisplay, formatEventTimeRange } from "@/lib/dates";
 import ReminderTemplateModal from "./ReminderTemplateModal";
+import ConfirmDialog from "./ConfirmDialog";
 
 interface RemindersFormProps {
   templates: ReminderTemplateRow[];
@@ -94,6 +95,8 @@ export default function RemindersForm({ templates, checklistTemplates }: Reminde
   const [error, setError] = useState<string | null>(null);
   const [templateModal, setTemplateModal] = useState<TemplateModalState>({ type: "closed" });
   const [removingId, setRemovingId] = useState<string | null>(null);
+  const [pendingDelete, setPendingDelete] = useState<ReminderTemplateRow | null>(null);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
 
   const fetchEvents = useCallback(async (days: number) => {
     setLoadingEvents(true);
@@ -186,8 +189,14 @@ export default function RemindersForm({ templates, checklistTemplates }: Reminde
     window.open(url, "_blank", "noopener,noreferrer");
   }
 
-  async function handleRemoveTemplate(template: ReminderTemplateRow) {
-    if (!window.confirm(`Delete "${template.name}"?`)) return;
+  function handleRemoveTemplate(template: ReminderTemplateRow) {
+    setDeleteError(null);
+    setPendingDelete(template);
+  }
+
+  async function handleConfirmRemoveTemplate() {
+    if (!pendingDelete) return;
+    const template = pendingDelete;
     setRemovingId(template.id);
     try {
       const affected = await deleteReminderTemplate(template.id);
@@ -197,9 +206,12 @@ export default function RemindersForm({ templates, checklistTemplates }: Reminde
         setHandle("");
         setIntroText("");
       }
+      setPendingDelete(null);
       router.refresh();
     } catch (err) {
-      window.alert(err instanceof Error ? err.message : "Something went wrong deleting this template.");
+      setDeleteError(
+        err instanceof Error ? err.message : "Something went wrong deleting this template."
+      );
     } finally {
       setRemovingId(null);
     }
@@ -309,7 +321,7 @@ export default function RemindersForm({ templates, checklistTemplates }: Reminde
                           onChange={(e) => setEventTemplate(ev.occurrenceKey, e.target.value)}
                           className="border rounded px-1.5 py-0.5 text-xs"
                         >
-                          <option value="">No checklist template</option>
+                          <option value="">No message snippet</option>
                           {checklistTemplates.map((t) => (
                             <option key={t.id} value={t.id}>
                               {t.name}
@@ -320,7 +332,7 @@ export default function RemindersForm({ templates, checklistTemplates }: Reminde
                           <button
                             type="button"
                             onClick={() => setEventTemplate(ev.occurrenceKey, "")}
-                            title="Remove this checklist template from the message"
+                            title="Remove this message snippet from the message"
                             className="text-gray-300 hover:text-red-600 leading-none"
                           >
                             ×
@@ -449,6 +461,26 @@ export default function RemindersForm({ templates, checklistTemplates }: Reminde
             router.refresh();
           }}
         />
+      )}
+
+      {pendingDelete && (
+        <div
+          className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4"
+          onClick={() => setPendingDelete(null)}
+        >
+          <div
+            className="bg-white rounded-lg shadow-lg w-full max-w-md p-5"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <ConfirmDialog
+              message={<>Delete &ldquo;{pendingDelete.name}&rdquo;?</>}
+              error={deleteError}
+              busy={removingId === pendingDelete.id}
+              onCancel={() => setPendingDelete(null)}
+              onConfirm={handleConfirmRemoveTemplate}
+            />
+          </div>
+        </div>
       )}
     </div>
   );

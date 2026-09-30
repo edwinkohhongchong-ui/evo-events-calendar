@@ -9,7 +9,10 @@ import { requireRole } from "./authz";
 export async function createSeason(values: SeasonFormValues): Promise<AffectedRow[]> {
   await requireRole("editor");
   const { data, error } = await supabase.from("seasons").insert(values).select().single();
-  if (error) throw new Error(error.message);
+  if (error) {
+    console.error(error);
+    throw new Error("Something went wrong saving this season. Please try again.");
+  }
   return [{ table: "seasons", id: data.id, before: null, after: data }];
 }
 
@@ -26,7 +29,10 @@ export async function updateSeason(
   let query = supabase.from("seasons").update(values).eq("id", id);
   if (expectedUpdatedAt) query = query.eq("updated_at", expectedUpdatedAt);
   const { data, error } = await query.select();
-  if (error) throw new Error(error.message);
+  if (error) {
+    console.error(error);
+    throw new Error("Something went wrong saving this season. Please try again.");
+  }
   if (!data || data.length === 0) {
     throw new Error(
       expectedUpdatedAt
@@ -41,6 +47,9 @@ export async function deleteSeason(id: string): Promise<AffectedRow[]> {
   await requireRole("editor");
   const before = await fetchRow("seasons", id);
   const { error } = await supabase.from("seasons").delete().eq("id", id);
-  if (error) throw new Error(error.message);
+  if (error) {
+    console.error(error);
+    throw new Error("Something went wrong deleting this season. Please try again.");
+  }
   return before ? [{ table: "seasons", id, before, after: null }] : [];
 }

@@ -9,7 +9,10 @@ import { requireRole } from "./authz";
 export async function createReminderTemplate(values: ReminderTemplateFormValues): Promise<AffectedRow[]> {
   await requireRole("editor");
   const { data, error } = await supabase.from("reminder_templates").insert(values).select().single();
-  if (error) throw new Error(error.message);
+  if (error) {
+    console.error(error);
+    throw new Error("Something went wrong saving this reminder template. Please try again.");
+  }
   return [{ table: "reminder_templates", id: data.id, before: null, after: data }];
 }
 
@@ -26,7 +29,10 @@ export async function updateReminderTemplate(
   let query = supabase.from("reminder_templates").update(values).eq("id", id);
   if (expectedUpdatedAt) query = query.eq("updated_at", expectedUpdatedAt);
   const { data, error } = await query.select();
-  if (error) throw new Error(error.message);
+  if (error) {
+    console.error(error);
+    throw new Error("Something went wrong saving this reminder template. Please try again.");
+  }
   if (!data || data.length === 0) {
     throw new Error(
       expectedUpdatedAt
@@ -41,6 +47,9 @@ export async function deleteReminderTemplate(id: string): Promise<AffectedRow[]>
   await requireRole("editor");
   const before = await fetchRow("reminder_templates", id);
   const { error } = await supabase.from("reminder_templates").delete().eq("id", id);
-  if (error) throw new Error(error.message);
+  if (error) {
+    console.error(error);
+    throw new Error("Something went wrong deleting this reminder template. Please try again.");
+  }
   return before ? [{ table: "reminder_templates", id, before, after: null }] : [];
 }

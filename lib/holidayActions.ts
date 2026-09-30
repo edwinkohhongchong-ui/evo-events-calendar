@@ -9,7 +9,10 @@ import { requireRole } from "./authz";
 export async function createHoliday(values: HolidayFormValues): Promise<AffectedRow[]> {
   await requireRole("editor");
   const { data, error } = await supabase.from("holidays").insert(values).select().single();
-  if (error) throw new Error(error.message);
+  if (error) {
+    console.error(error);
+    throw new Error("Something went wrong saving this holiday. Please try again.");
+  }
   return [{ table: "holidays", id: data.id, before: null, after: data }];
 }
 
@@ -37,7 +40,10 @@ export async function updateHoliday(
   let query = supabase.from("holidays").update(values).eq("id", id);
   if (expectedUpdatedAt) query = query.eq("updated_at", expectedUpdatedAt);
   const { data, error } = await query.select();
-  if (error) throw new Error(error.message);
+  if (error) {
+    console.error(error);
+    throw new Error("Something went wrong saving this holiday. Please try again.");
+  }
   if (!data || data.length === 0) {
     throw new Error(
       expectedUpdatedAt
@@ -52,6 +58,9 @@ export async function deleteHoliday(id: string): Promise<AffectedRow[]> {
   await requireRole("editor");
   const before = await fetchRow("holidays", id);
   const { error } = await supabase.from("holidays").delete().eq("id", id);
-  if (error) throw new Error(error.message);
+  if (error) {
+    console.error(error);
+    throw new Error("Something went wrong deleting this holiday. Please try again.");
+  }
   return before ? [{ table: "holidays", id, before, after: null }] : [];
 }

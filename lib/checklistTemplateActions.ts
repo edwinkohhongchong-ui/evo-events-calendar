@@ -41,7 +41,10 @@ export async function saveChecklistTemplate(
     let query = supabase.from("checklist_templates").update({ name }).eq("id", id);
     if (expectedUpdatedAt) query = query.eq("updated_at", expectedUpdatedAt);
     const { data, error } = await query.select();
-    if (error) throw new Error(error.message);
+    if (error) {
+      console.error(error);
+      throw new Error("Something went wrong saving this checklist template. Please try again.");
+    }
     if (!data || data.length === 0) {
       throw new Error(
         expectedUpdatedAt
@@ -55,7 +58,10 @@ export async function saveChecklistTemplate(
       .from("checklist_template_items")
       .select("*")
       .eq("template_id", id);
-    if (fetchErr) throw new Error(fetchErr.message);
+    if (fetchErr) {
+      console.error(fetchErr);
+      throw new Error("Something went wrong saving this checklist template. Please try again.");
+    }
     for (const oldItem of oldItems ?? []) {
       affected.push({ table: "checklist_template_items", id: oldItem.id, before: oldItem, after: null });
     }
@@ -63,10 +69,16 @@ export async function saveChecklistTemplate(
       .from("checklist_template_items")
       .delete()
       .eq("template_id", id);
-    if (deleteErr) throw new Error(deleteErr.message);
+    if (deleteErr) {
+      console.error(deleteErr);
+      throw new Error("Something went wrong saving this checklist template. Please try again.");
+    }
   } else {
     const { data, error } = await supabase.from("checklist_templates").insert({ name }).select().single();
-    if (error) throw new Error(error.message);
+    if (error) {
+      console.error(error);
+      throw new Error("Something went wrong saving this checklist template. Please try again.");
+    }
     id = data.id as string;
     affected.push({ table: "checklist_templates", id: data.id, before: null, after: data });
   }
@@ -79,7 +91,10 @@ export async function saveChecklistTemplate(
       sort_order: index,
     }));
     const { data: inserted, error } = await supabase.from("checklist_template_items").insert(rows).select();
-    if (error) throw new Error(error.message);
+    if (error) {
+      console.error(error);
+      throw new Error("Something went wrong saving this checklist template's items. Please try again.");
+    }
     for (const row of inserted ?? []) {
       affected.push({ table: "checklist_template_items", id: row.id, before: null, after: row });
     }
@@ -100,7 +115,10 @@ export async function deleteChecklistTemplate(id: string): Promise<AffectedRow[]
   }));
 
   const { error } = await supabase.from("checklist_templates").delete().eq("id", id);
-  if (error) throw new Error(error.message);
+  if (error) {
+    console.error(error);
+    throw new Error("Something went wrong deleting this checklist template. Please try again.");
+  }
   if (before) affected.push({ table: "checklist_templates", id, before, after: null });
   return affected;
 }

@@ -7,6 +7,8 @@ import { createNoteComment, deleteNoteComment } from "@/lib/noteCommentActions";
 import { useUndo } from "@/lib/undo/UndoProvider";
 import { useIsEditor } from "@/lib/roleContext";
 import { NoteCommentRow, NoteScope } from "@/lib/types";
+import { useEscapeKey } from "@/lib/useEscapeKey";
+import ConfirmDialog from "./ConfirmDialog";
 
 const AUTHOR_NAME_KEY = "evo-author-name";
 
@@ -45,6 +47,10 @@ export default function NotesPanel({
   const [replyingTo, setReplyingTo] = useState<string | null>(null);
   const [replyDraft, setReplyDraft] = useState("");
   const [removingId, setRemovingId] = useState<string | null>(null);
+  const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
+
+  useEscapeKey(() => setPendingDeleteId(null));
 
   useEffect(() => {
     try {
@@ -133,16 +139,22 @@ export default function NotesPanel({
     }
   }
 
-  async function handleRemove(id: string) {
-    if (!window.confirm("Delete this note?")) return;
+  function handleRemove(id: string) {
+    setDeleteError(null);
+    setPendingDeleteId(id);
+  }
+
+  async function handleConfirmRemove() {
+    if (!pendingDeleteId) return;
+    const id = pendingDeleteId;
     setRemovingId(id);
-    setError(null);
     try {
       const affected = await deleteNoteComment(id);
       record("Delete note", affected);
+      setPendingDeleteId(null);
       router.refresh();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Something went wrong deleting this note.");
+      setDeleteError(err instanceof Error ? err.message : "Something went wrong deleting this note.");
     } finally {
       setRemovingId(null);
     }
@@ -281,6 +293,26 @@ export default function NotesPanel({
         )}
       </div>
       {error && <p className="text-xs text-red-600">{error}</p>}
+
+      {pendingDeleteId && (
+        <div
+          className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4"
+          onClick={() => setPendingDeleteId(null)}
+        >
+          <div
+            className="bg-white rounded-lg shadow-lg w-full max-w-md p-5 max-h-[90vh] overflow-y-auto"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <ConfirmDialog
+              message="Delete this note?"
+              error={deleteError}
+              busy={removingId === pendingDeleteId}
+              onCancel={() => setPendingDeleteId(null)}
+              onConfirm={handleConfirmRemove}
+            />
+          </div>
+        </div>
+      )}
     </div>
   );
 }

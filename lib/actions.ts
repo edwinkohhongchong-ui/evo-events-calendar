@@ -29,7 +29,7 @@ export async function moveOccurrence(
   originalDate: string,
   newDate: string
 ): Promise<AffectedRow[]> {
-  await requireRole("viewer");
+  await requireRole("editor");
   if (event.recurring === "None") {
     const before = await fetchRow("events", event.id);
     const { data, error } = await supabase
@@ -38,7 +38,10 @@ export async function moveOccurrence(
       .eq("id", event.id)
       .select()
       .single();
-    if (error) throw new Error(error.message);
+    if (error) {
+      console.error(error);
+      throw new Error("Something went wrong moving this event. Please try again.");
+    }
     return [{ table: "events", id: event.id, before, after: data }];
   }
 
@@ -48,7 +51,10 @@ export async function moveOccurrence(
     .eq("event_id", event.id)
     .eq("original_date", originalDate)
     .maybeSingle();
-  if (fetchError) throw new Error(fetchError.message);
+  if (fetchError) {
+    console.error(fetchError);
+    throw new Error("Something went wrong moving this event. Please try again.");
+  }
 
   const hasTimeOverride = existing?.new_time != null;
   const hasSpanOverride = existing?.new_end_date != null;
@@ -56,7 +62,10 @@ export async function moveOccurrence(
   if (newDate === originalDate && !hasTimeOverride && !hasSpanOverride) {
     if (existing) {
       const { error } = await supabase.from("event_overrides").delete().eq("id", existing.id);
-      if (error) throw new Error(error.message);
+      if (error) {
+        console.error(error);
+        throw new Error("Something went wrong moving this event. Please try again.");
+      }
       return [{ table: "event_overrides", id: existing.id, before: existing, after: null }];
     }
     return [];
@@ -70,7 +79,10 @@ export async function moveOccurrence(
     )
     .select()
     .single();
-  if (error) throw new Error(error.message);
+  if (error) {
+    console.error(error);
+    throw new Error("Something went wrong moving this event. Please try again.");
+  }
   return [{ table: "event_overrides", id: data.id, before: existing, after: data }];
 }
 
@@ -89,7 +101,7 @@ export async function retimeOccurrence(
   originalDate: string,
   newTime: string
 ): Promise<AffectedRow[]> {
-  await requireRole("viewer");
+  await requireRole("editor");
   if (event.recurring === "None") {
     const before = await fetchRow("events", event.id);
     const { data, error } = await supabase
@@ -102,7 +114,10 @@ export async function retimeOccurrence(
       .eq("id", event.id)
       .select()
       .single();
-    if (error) throw new Error(error.message);
+    if (error) {
+      console.error(error);
+      throw new Error("Something went wrong retiming this event. Please try again.");
+    }
     return [{ table: "events", id: event.id, before, after: data }];
   }
 
@@ -112,7 +127,10 @@ export async function retimeOccurrence(
     .eq("event_id", event.id)
     .eq("original_date", originalDate)
     .maybeSingle();
-  if (fetchError) throw new Error(fetchError.message);
+  if (fetchError) {
+    console.error(fetchError);
+    throw new Error("Something went wrong retiming this event. Please try again.");
+  }
 
   const dateIsNatural = !existing || existing.new_date === originalDate;
   const spanIsNatural = !existing || existing.new_end_date == null;
@@ -125,7 +143,10 @@ export async function retimeOccurrence(
   if (timeIsNatural && dateIsNatural && spanIsNatural) {
     if (existing) {
       const { error } = await supabase.from("event_overrides").delete().eq("id", existing.id);
-      if (error) throw new Error(error.message);
+      if (error) {
+        console.error(error);
+        throw new Error("Something went wrong retiming this event. Please try again.");
+      }
       return [{ table: "event_overrides", id: existing.id, before: existing, after: null }];
     }
     return [];
@@ -138,7 +159,10 @@ export async function retimeOccurrence(
       .eq("id", existing.id)
       .select()
       .single();
-    if (error) throw new Error(error.message);
+    if (error) {
+      console.error(error);
+      throw new Error("Something went wrong retiming this event. Please try again.");
+    }
     return [{ table: "event_overrides", id: existing.id, before: existing, after: data }];
   }
 
@@ -152,7 +176,10 @@ export async function retimeOccurrence(
     })
     .select()
     .single();
-  if (error) throw new Error(error.message);
+  if (error) {
+    console.error(error);
+    throw new Error("Something went wrong retiming this event. Please try again.");
+  }
   return [{ table: "event_overrides", id: data.id, before: null, after: data }];
 }
 
@@ -183,7 +210,10 @@ export interface EventFormValues {
 export async function createEvent(values: EventFormValues): Promise<AffectedRow[]> {
   await requireRole("editor");
   const { data, error } = await supabase.from("events").insert(values).select().single();
-  if (error) throw new Error(error.message);
+  if (error) {
+    console.error(error);
+    throw new Error("Something went wrong saving this event. Please try again.");
+  }
   return [{ table: "events", id: data.id, before: null, after: data }];
 }
 
@@ -196,12 +226,15 @@ export async function updateEvent(
   values: EventFormValues,
   expectedUpdatedAt?: string
 ): Promise<AffectedRow[]> {
-  await requireRole("viewer");
+  await requireRole("editor");
   const before = await fetchRow("events", id);
   let query = supabase.from("events").update(values).eq("id", id);
   if (expectedUpdatedAt) query = query.eq("updated_at", expectedUpdatedAt);
   const { data, error } = await query.select();
-  if (error) throw new Error(error.message);
+  if (error) {
+    console.error(error);
+    throw new Error("Something went wrong saving this event. Please try again.");
+  }
   if (!data || data.length === 0) {
     throw new Error(
       expectedUpdatedAt
@@ -226,15 +259,24 @@ export async function deleteEvent(id: string): Promise<AffectedRow[]> {
     .from("event_overrides")
     .select("*")
     .eq("event_id", id);
-  if (overridesError) throw new Error(overridesError.message);
+  if (overridesError) {
+    console.error(overridesError);
+    throw new Error("Something went wrong deleting this event. Please try again.");
+  }
   const { data: exceptions, error: exceptionsError } = await supabase
     .from("event_exceptions")
     .select("*")
     .eq("event_id", id);
-  if (exceptionsError) throw new Error(exceptionsError.message);
+  if (exceptionsError) {
+    console.error(exceptionsError);
+    throw new Error("Something went wrong deleting this event. Please try again.");
+  }
 
   const { error } = await supabase.from("events").delete().eq("id", id);
-  if (error) throw new Error(error.message);
+  if (error) {
+    console.error(error);
+    throw new Error("Something went wrong deleting this event. Please try again.");
+  }
 
   const affected: AffectedRow[] = [];
   if (before) affected.push({ table: "events", id, before, after: null });
@@ -256,13 +298,16 @@ export async function detachOccurrence(
   originalDate: string,
   values: EventFormValues
 ): Promise<AffectedRow[]> {
-  await requireRole("viewer");
+  await requireRole("editor");
   const { data: inserted, error: insertError } = await supabase
     .from("events")
     .insert({ ...values, recurring: "None", repeat_until: null })
     .select()
     .single();
-  if (insertError) throw new Error(insertError.message);
+  if (insertError) {
+    console.error(insertError);
+    throw new Error("Something went wrong saving this event. Please try again.");
+  }
   const affected: AffectedRow[] = [{ table: "events", id: inserted.id, before: null, after: inserted }];
 
   const { data: existingException } = await supabase
@@ -277,7 +322,10 @@ export async function detachOccurrence(
     .upsert({ event_id: event.id, original_date: originalDate }, { onConflict: "event_id,original_date" })
     .select()
     .single();
-  if (exceptionError) throw new Error(exceptionError.message);
+  if (exceptionError) {
+    console.error(exceptionError);
+    throw new Error("Something went wrong saving this event. Please try again.");
+  }
   affected.push({ table: "event_exceptions", id: exception.id, before: existingException ?? null, after: exception });
 
   // Any prior date/time-only override on this occurrence is superseded by
@@ -293,7 +341,10 @@ export async function detachOccurrence(
       .from("event_overrides")
       .delete()
       .eq("id", existingOverride.id);
-    if (deleteOverrideError) throw new Error(deleteOverrideError.message);
+    if (deleteOverrideError) {
+      console.error(deleteOverrideError);
+      throw new Error("Something went wrong saving this event. Please try again.");
+    }
     affected.push({ table: "event_overrides", id: existingOverride.id, before: existingOverride, after: null });
   }
 
@@ -312,7 +363,7 @@ export async function splitSeriesFromOccurrence(
   originalDate: string,
   values: EventFormValues
 ): Promise<AffectedRow[]> {
-  await requireRole("viewer");
+  await requireRole("editor");
   // Editing the very first occurrence "and all future" has nothing to
   // preserve before it — same as editing the whole series in place.
   if (originalDate === event.event_date) {
@@ -329,7 +380,10 @@ export async function splitSeriesFromOccurrence(
     .eq("id", event.id)
     .select()
     .single();
-  if (shortenError) throw new Error(shortenError.message);
+  if (shortenError) {
+    console.error(shortenError);
+    throw new Error("Something went wrong saving this event series. Please try again.");
+  }
   affected.push({ table: "events", id: event.id, before: beforeShorten, after: shortened });
 
   const { data: inserted, error: insertError } = await supabase
@@ -337,7 +391,10 @@ export async function splitSeriesFromOccurrence(
     .insert(values)
     .select()
     .single();
-  if (insertError) throw new Error(insertError.message);
+  if (insertError) {
+    console.error(insertError);
+    throw new Error("Something went wrong saving this event series. Please try again.");
+  }
   const newEventId = inserted.id as string;
   affected.push({ table: "events", id: newEventId, before: null, after: inserted });
 
@@ -346,7 +403,10 @@ export async function splitSeriesFromOccurrence(
     .select("*")
     .eq("event_id", event.id)
     .gt("original_date", originalDate);
-  if (overridesBeforeError) throw new Error(overridesBeforeError.message);
+  if (overridesBeforeError) {
+    console.error(overridesBeforeError);
+    throw new Error("Something went wrong saving this event series. Please try again.");
+  }
   if (overridesBefore && overridesBefore.length > 0) {
     const { data: overridesAfter, error: overrideMigrateError } = await supabase
       .from("event_overrides")
@@ -354,7 +414,10 @@ export async function splitSeriesFromOccurrence(
       .eq("event_id", event.id)
       .gt("original_date", originalDate)
       .select();
-    if (overrideMigrateError) throw new Error(overrideMigrateError.message);
+    if (overrideMigrateError) {
+      console.error(overrideMigrateError);
+      throw new Error("Something went wrong saving this event series. Please try again.");
+    }
     const afterById = new Map((overridesAfter ?? []).map((row) => [row.id, row]));
     for (const row of overridesBefore) {
       affected.push({ table: "event_overrides", id: row.id, before: row, after: afterById.get(row.id) ?? null });
@@ -372,7 +435,10 @@ export async function splitSeriesFromOccurrence(
       .from("event_overrides")
       .delete()
       .eq("id", overrideOnSplitDate.id);
-    if (overrideDeleteError) throw new Error(overrideDeleteError.message);
+    if (overrideDeleteError) {
+      console.error(overrideDeleteError);
+      throw new Error("Something went wrong saving this event series. Please try again.");
+    }
     affected.push({ table: "event_overrides", id: overrideOnSplitDate.id, before: overrideOnSplitDate, after: null });
   }
 
@@ -381,7 +447,10 @@ export async function splitSeriesFromOccurrence(
     .select("*")
     .eq("event_id", event.id)
     .gt("original_date", originalDate);
-  if (exceptionsBeforeError) throw new Error(exceptionsBeforeError.message);
+  if (exceptionsBeforeError) {
+    console.error(exceptionsBeforeError);
+    throw new Error("Something went wrong saving this event series. Please try again.");
+  }
   if (exceptionsBefore && exceptionsBefore.length > 0) {
     const { data: exceptionsAfter, error: exceptionMigrateError } = await supabase
       .from("event_exceptions")
@@ -389,7 +458,10 @@ export async function splitSeriesFromOccurrence(
       .eq("event_id", event.id)
       .gt("original_date", originalDate)
       .select();
-    if (exceptionMigrateError) throw new Error(exceptionMigrateError.message);
+    if (exceptionMigrateError) {
+      console.error(exceptionMigrateError);
+      throw new Error("Something went wrong saving this event series. Please try again.");
+    }
     const afterById = new Map((exceptionsAfter ?? []).map((row) => [row.id, row]));
     for (const row of exceptionsBefore) {
       affected.push({ table: "event_exceptions", id: row.id, before: row, after: afterById.get(row.id) ?? null });
@@ -413,7 +485,7 @@ export async function extendOccurrenceSpan(
   originalDate: string,
   newEndDate: string
 ): Promise<AffectedRow[]> {
-  await requireRole("viewer");
+  await requireRole("editor");
   if (event.recurring === "None") {
     const before = await fetchRow("events", event.id);
     const { data, error } = await supabase
@@ -422,7 +494,10 @@ export async function extendOccurrenceSpan(
       .eq("id", event.id)
       .select()
       .single();
-    if (error) throw new Error(error.message);
+    if (error) {
+      console.error(error);
+      throw new Error("Something went wrong resizing this event. Please try again.");
+    }
     return [{ table: "events", id: event.id, before, after: data }];
   }
 
@@ -434,7 +509,10 @@ export async function extendOccurrenceSpan(
     .eq("event_id", event.id)
     .eq("original_date", originalDate)
     .maybeSingle();
-  if (fetchError) throw new Error(fetchError.message);
+  if (fetchError) {
+    console.error(fetchError);
+    throw new Error("Something went wrong resizing this event. Please try again.");
+  }
 
   const dateIsNatural = !existing || existing.new_date === originalDate;
   const timeIsNatural = !existing || existing.new_time == null;
@@ -443,7 +521,10 @@ export async function extendOccurrenceSpan(
   if (spanIsNatural && dateIsNatural && timeIsNatural) {
     if (existing) {
       const { error } = await supabase.from("event_overrides").delete().eq("id", existing.id);
-      if (error) throw new Error(error.message);
+      if (error) {
+        console.error(error);
+        throw new Error("Something went wrong resizing this event. Please try again.");
+      }
       return [{ table: "event_overrides", id: existing.id, before: existing, after: null }];
     }
     return [];
@@ -456,7 +537,10 @@ export async function extendOccurrenceSpan(
       .eq("id", existing.id)
       .select()
       .single();
-    if (error) throw new Error(error.message);
+    if (error) {
+      console.error(error);
+      throw new Error("Something went wrong resizing this event. Please try again.");
+    }
     return [{ table: "event_overrides", id: existing.id, before: existing, after: data }];
   }
 
@@ -470,7 +554,10 @@ export async function extendOccurrenceSpan(
     })
     .select()
     .single();
-  if (error) throw new Error(error.message);
+  if (error) {
+    console.error(error);
+    throw new Error("Something went wrong resizing this event. Please try again.");
+  }
   return [{ table: "event_overrides", id: data.id, before: null, after: data }];
 }
 
@@ -490,7 +577,10 @@ export async function deleteOccurrence(event: EventRow, originalDate: string): P
     .upsert({ event_id: event.id, original_date: originalDate }, { onConflict: "event_id,original_date" })
     .select()
     .single();
-  if (exceptionError) throw new Error(exceptionError.message);
+  if (exceptionError) {
+    console.error(exceptionError);
+    throw new Error("Something went wrong deleting this event occurrence. Please try again.");
+  }
   const affected: AffectedRow[] = [
     { table: "event_exceptions", id: exception.id, before: existingException ?? null, after: exception },
   ];
@@ -506,7 +596,10 @@ export async function deleteOccurrence(event: EventRow, originalDate: string): P
       .from("event_overrides")
       .delete()
       .eq("id", existingOverride.id);
-    if (deleteOverrideError) throw new Error(deleteOverrideError.message);
+    if (deleteOverrideError) {
+      console.error(deleteOverrideError);
+      throw new Error("Something went wrong deleting this event occurrence. Please try again.");
+    }
     affected.push({ table: "event_overrides", id: existingOverride.id, before: existingOverride, after: null });
   }
 

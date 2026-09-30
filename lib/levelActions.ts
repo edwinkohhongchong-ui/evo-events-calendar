@@ -9,7 +9,10 @@ import { requireRole } from "./authz";
 export async function createLevel(values: LevelFormValues): Promise<AffectedRow[]> {
   await requireRole("editor");
   const { data, error } = await supabase.from("levels").insert(values).select().single();
-  if (error) throw new Error(error.message);
+  if (error) {
+    console.error(error);
+    throw new Error("Something went wrong saving this category. Please try again.");
+  }
   return [{ table: "levels", id: data.id, before: null, after: data }];
 }
 
@@ -30,7 +33,10 @@ export async function updateLevel(
   let query = supabase.from("levels").update(values).eq("id", id);
   if (expectedUpdatedAt) query = query.eq("updated_at", expectedUpdatedAt);
   const { data, error } = await query.select();
-  if (error) throw new Error(error.message);
+  if (error) {
+    console.error(error);
+    throw new Error("Something went wrong saving this category. Please try again.");
+  }
   if (!data || data.length === 0) {
     throw new Error(
       expectedUpdatedAt
@@ -48,6 +54,9 @@ export async function deleteLevel(id: string): Promise<AffectedRow[]> {
   await requireRole("editor");
   const before = await fetchRow("levels", id);
   const { error } = await supabase.from("levels").delete().eq("id", id);
-  if (error) throw new Error(error.message);
+  if (error) {
+    console.error(error);
+    throw new Error("Something went wrong deleting this category. Please try again.");
+  }
   return before ? [{ table: "levels", id, before, after: null }] : [];
 }

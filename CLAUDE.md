@@ -55,10 +55,14 @@ internal tool (not public-facing).
 - Keep it dense but scannable — this replaces a spreadsheet power users are used
   to scanning quickly, so favor information density over whitespace, but keep
   text legible (don't go below ~13px for event text).
-- No login/auth needed for v1 — this is an internal tool shared via a single URL
-  with the team. (Flag to Edwin: if this needs to be locked down later, a simple
-  shared-passcode gate or Supabase magic-link auth can be added in a follow-up
-  session — don't build it into v1 unless asked.)
+- Auth: a two-role passcode gate shipped in v1.19 (Editor / Viewer, middleware-
+  enforced), with server-side re-checks on every mutating Server Action added
+  in v1.35 (`lib/authz.ts#requireRole`) so a Viewer can't bypass restrictions
+  via devtools. Supabase RLS itself remains "allow all" by design — the
+  Server Action checks close the application-level gap, not the underlying
+  REST-API-level one. This is a deliberate, accepted v1 tradeoff (internal
+  tool, single shared URL), not an oversight — don't tighten RLS without
+  checking with Edwin first.
 
 ## Explicit non-goals for v1
 - No mobile-native app — responsive web is enough.
@@ -88,3 +92,48 @@ Every push must bump `CHANGELOG.md` first — this applies regardless of who
   bullet per item.
 - Always confirm with Edwin before running `git push` — do not push
   unprompted, even after committing.
+
+## Working mode: agent team (standing process)
+Work on this project is done through a seven-role agent team, not by one
+generalist session alone. Whenever a task falls into one of these lanes,
+route it to the matching agent (via the Agent tool, `subagent_type` set to
+the name below) instead of handling it generically:
+- `coder` — code correctness, implementation, bug fixes.
+- `code-deployment` — Supabase, Vercel, GitHub, terminal/CLI, migrations.
+- `ui-ux-designer` — look, feel, layout, interaction design.
+- `project-administrator` — changelog/version accuracy, drift-checking,
+  token/agent-efficiency calls.
+- `pastoral-leader` — end-user usability sanity-check, the product lens.
+- `qa-verification` — live browser verification, expanding test coverage.
+- `security-auth` — dedicated auth/RLS/secrets/error-leakage audit.
+
+Each of these agents is authorized to spin up its own further sub-agents for
+work that splits cleanly within its own department (e.g. `coder` parallelizing
+independent file fixes), as long as it consolidates and verifies the result
+itself before reporting up. Full role definitions live in `.claude/agents/`
+(local to each machine, gitignored — not part of the public repo, since they
+contain internal project detail).
+
+A task that doesn't fit any single lane, or that's genuinely trivial, can
+still be handled directly — this structure is for keeping ownership clear on
+real work, not ceremony for its own sake.
+
+## Collaborator sync (standing process)
+Darius also works on this repo, in his own Claude Code session on his own
+machine — he edits, commits, and pushes to GitHub independently of Edwin's
+sessions. This means the local checkout in any given session can silently
+fall behind `origin/main`, or diverge from it, without anyone noticing until
+a push conflicts.
+- At the **start** of a work session, and again before starting any new
+  milestone, run `git fetch origin && git status -sb` to check whether
+  `origin/main` has commits not yet merged locally (Darius may have pushed
+  since the last session). Surface this to Edwin rather than pulling
+  silently if there are also uncommitted local changes.
+- At the **end** of every milestone (a feature/fix batch that's been
+  committed, changelog bumped), push — after Edwin's confirmation, per the
+  standing push rule above — so Darius can pull the latest before he starts
+  his own next piece of work.
+- If a `git pull`/merge is needed to reconcile diverged history, treat it
+  like any other operation that can discard or reorder work: check
+  `git status` first, and don't force-push or discard either side's commits
+  without Edwin's explicit go-ahead.

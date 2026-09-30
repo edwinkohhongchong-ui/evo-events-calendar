@@ -19,7 +19,10 @@ export interface NoteCommentValues {
 export async function createNoteComment(values: NoteCommentValues): Promise<AffectedRow[]> {
   await requireRole("viewer");
   const { data, error } = await supabase.from("note_comments").insert(values).select().single();
-  if (error) throw new Error(error.message);
+  if (error) {
+    console.error(error);
+    throw new Error("Something went wrong posting this comment. Please try again.");
+  }
   return [{ table: "note_comments", id: data.id, before: null, after: data }];
 }
 
@@ -34,10 +37,16 @@ export async function deleteNoteComment(id: string): Promise<AffectedRow[]> {
     .from("note_comments")
     .select("*")
     .eq("parent_id", id);
-  if (repliesError) throw new Error(repliesError.message);
+  if (repliesError) {
+    console.error(repliesError);
+    throw new Error("Something went wrong deleting this comment. Please try again.");
+  }
 
   const { error } = await supabase.from("note_comments").delete().eq("id", id);
-  if (error) throw new Error(error.message);
+  if (error) {
+    console.error(error);
+    throw new Error("Something went wrong deleting this comment. Please try again.");
+  }
 
   const affected: AffectedRow[] = [{ table: "note_comments", id, before, after: null }];
   for (const reply of replies ?? []) {
