@@ -8,6 +8,19 @@ items (features/fixes) that push contains — a push with 1 item goes up by
 `1.05`). If MINOR would pass `.99`, MAJOR increments and MINOR carries the
 remainder (e.g. `1.99` + 2 items → `2.01`).
 
+## v1.46 — 2026-09-30
+
+- Fixed the real cause of PDF/Word export failing in production only (not
+  locally): `@react-pdf/renderer` pulls in `pdfkit`, which loads its standard
+  font files (metrics + font modules) via dynamic `require()` calls at
+  runtime — calls Next.js's build-time file tracing can't detect, so
+  Vercel's serverless bundle silently pruned them, producing
+  `Cannot find module '.../pdfkit/js/standard-fonts/Helvetica.cjs'` on every
+  export attempt. Added `next.config.mjs`'s `outputFileTracingIncludes` for
+  the export route to force those files into the bundle. Verified locally
+  via a production build that the fix's file-tracing manifest now includes
+  the exact file the production error was missing.
+
 ## v1.45 — 2026-09-30
 
 - Hardened the Export Document API route (`app/api/export/document/route.ts`):
