@@ -16,6 +16,10 @@ interface ChecklistModalProps {
   mode: "add" | "edit";
   item?: ChecklistRow;
   eventOptions: EventOption[];
+  // Pre-selects "Linked event" when adding — used by the Reminders page's
+  // "+ Add checklist item" shortcut on a flagged event with no prep tracked
+  // yet, so the link doesn't have to be found again in the dropdown.
+  defaultLinkedEventId?: string;
   onClose: () => void;
   onSaved: () => void;
   onDeleted: () => void;
@@ -28,6 +32,7 @@ export default function ChecklistModal({
   mode,
   item,
   eventOptions,
+  defaultLinkedEventId,
   onClose,
   onSaved,
   onDeleted,
@@ -37,7 +42,9 @@ export default function ChecklistModal({
   const [itemText, setItemText] = useState(item?.item ?? "");
   const [status, setStatus] = useState<ChecklistStatus>(item?.status ?? "Not Started");
   const [targetMonth, setTargetMonth] = useState<string>(item?.target_month ?? NO_MONTH);
-  const [linkedEventId, setLinkedEventId] = useState<string>(item?.linked_event_id ?? NO_LINK);
+  const [linkedEventId, setLinkedEventId] = useState<string>(
+    item?.linked_event_id ?? defaultLinkedEventId ?? NO_LINK
+  );
   const [notes, setNotes] = useState(item?.notes ?? "");
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);

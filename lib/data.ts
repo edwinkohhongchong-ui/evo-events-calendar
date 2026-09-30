@@ -14,7 +14,7 @@ import {
 } from "./types";
 import { expandEvents } from "./recurrence";
 import { applyOverrides } from "./overrides";
-import { parseDateStr, formatDateDisplay } from "./dates";
+import { parseDateStr } from "./dates";
 
 export interface CalendarData {
   events: EventRow[];
@@ -46,15 +46,41 @@ export async function getCalendarData(
   return { events, holidays, seasons, overrides, levels, exceptions, dayNotes };
 }
 
-// Plain-text bullet list of events in [startStr, endStr] — used to pre-fill
-// a reminder draft on the Reminders page. Reuses the same recurrence
-// expansion + override application as the calendar grid itself, so a
-// reminder never lists something the calendar wouldn't actually show.
-export async function getEventsSummaryText(startStr: string, endStr: string): Promise<string> {
-  const [events, overrides, exceptions] = await Promise.all([
+// Events staff must not forget to prep collateral/to-dos for — Churchwide
+// carries the same weight for plain "Event" entries as it does for
+// Gatherings, so both are checked here rather than just gathering_type.
+const FLAGGED_GATHERING_TYPES = new Set(["YTH Gathering", "+EVO YTH Big Day", "Easter/XMAS"]);
+
+function isFlaggedForReminders(event: EventRow): boolean {
+  if (event.level === "Churchwide") return true;
+  return !!event.gathering_type && FLAGGED_GATHERING_TYPES.has(event.gathering_type);
+}
+
+export interface ReminderPickerEvent {
+  occurrenceKey: string;
+  eventId: string;
+  name: string;
+  date: string;
+  flagged: boolean;
+  checklistItems: { id: string; item: string; status: string }[];
+}
+
+// Upcoming events in [startStr, endStr] for the Reminders page's event
+// picker — same recurrence expansion + override application as the
+// calendar grid, so this never lists something the calendar wouldn't. Each
+// occurrence carries whether it's "flagged" (Churchwide, or a Gathering
+// Type that always needs prep collateral) and any Checklist items already
+// linked to its base event, so a leader drafting a reminder can see at a
+// glance whether prep is tracked yet.
+export async function getUpcomingEventsForReminders(
+  startStr: string,
+  endStr: string
+): Promise<ReminderPickerEvent[]> {
+  const [events, overrides, exceptions, checklist] = await Promise.all([
     getEvents(startStr, endStr),
     getOverrides(startStr, endStr),
     getExceptions(startStr, endStr),
+    getAllChecklist(),
   ]);
 
   const eventsById = new Map(events.map((e) => [e.id, e]));
@@ -65,15 +91,26 @@ export async function getEventsSummaryText(startStr: string, endStr: string): Pr
     exceptionsByEventId.set(exception.event_id, set);
   }
 
+  const checklistByEventId = new Map<string, { id: string; item: string; status: string }[]>();
+  for (const item of checklist) {
+    if (!item.linked_event_id) continue;
+    const list = checklistByEventId.get(item.linked_event_id) ?? [];
+    list.push({ id: item.id, item: item.item, status: item.status });
+    checklistByEventId.set(item.linked_event_id, list);
+  }
+
   const rawOccurrences = expandEvents(events, parseDateStr(startStr), parseDateStr(endStr), exceptionsByEventId);
   const occurrences = applyOverrides(rawOccurrences, overrides, eventsById, startStr, endStr);
   occurrences.sort((a, b) => a.occurrenceDate.localeCompare(b.occurrenceDate));
 
-  if (occurrences.length === 0) return "No events scheduled in this period.";
-
-  return occurrences
-    .map((occ) => `• ${occ.event.name} — ${formatDateDisplay(occ.occurrenceDate)}`)
-    .join("\n");
+  return occurrences.map((occ) => ({
+    occurrenceKey: `${occ.event.id}::${occ.occurrenceDate}`,
+    eventId: occ.event.id,
+    name: occ.event.name,
+    date: occ.occurrenceDate,
+    flagged: isFlaggedForReminders(occ.event),
+    checklistItems: checklistByEventId.get(occ.event.id) ?? [],
+  }));
 }
 
 async function getDayNotes(gridStartStr: string, gridEndStr: string): Promise<DayNoteRow[]> {

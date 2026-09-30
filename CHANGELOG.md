@@ -8,6 +8,18 @@ items (features/fixes) that push contains — a push with 1 item goes up by
 `1.05`). If MINOR would pass `.99`, MAJOR increments and MINOR carries the
 remainder (e.g. `1.99` + 2 items → `2.01`).
 
+## v1.20 — 2026-09-30
+
+- Reminders now has an event picker instead of a flat auto-summary:
+  Churchwide events and Gathering Types YTH Gathering / +EVO YTH Big Day /
+  Easter-XMAS are auto-flagged (⭐) and pre-checked as "important" — no extra
+  tagging step needed, since Level and Gathering Type already capture this.
+  Every event in the lookahead window still shows (unchecked) so nothing is
+  hidden. Each checked event pulls in its linked Checklist to-dos into the
+  drafted message, or shows "⚠ No prep checklist linked yet" with a
+  one-click shortcut to add one right there, so collateral/to-dos for big
+  events don't get missed.
+
 ## v1.19 — 2026-09-30
 
 - Added a "Reminders" page: save named templates (default Telegram handle,

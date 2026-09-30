@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getEventsSummaryText } from "@/lib/data";
+import { getUpcomingEventsForReminders } from "@/lib/data";
 
 export async function GET(request: NextRequest) {
   const start = request.nextUrl.searchParams.get("start");
@@ -9,6 +9,6 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: "start and end are required." }, { status: 400 });
   }
 
-  const summary = await getEventsSummaryText(start, end);
-  return NextResponse.json({ summary });
+  const events = await getUpcomingEventsForReminders(start, end);
+  return NextResponse.json({ events });
 }

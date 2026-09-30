@@ -29,7 +29,6 @@ export default function ReminderTemplateModal({
   const [name, setName] = useState(template?.name ?? "");
   const [defaultMessage, setDefaultMessage] = useState(template?.default_message ?? "");
   const [defaultHandle, setDefaultHandle] = useState(template?.default_telegram_handle ?? "");
-  const [includeEventSummary, setIncludeEventSummary] = useState(template?.include_event_summary ?? true);
   const [lookaheadDays, setLookaheadDays] = useState(String(template?.lookahead_days ?? 30));
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
@@ -55,7 +54,7 @@ export default function ReminderTemplateModal({
         name: name.trim(),
         default_message: defaultMessage.trim() || null,
         default_telegram_handle: defaultHandle.trim() || null,
-        include_event_summary: includeEventSummary,
+        include_event_summary: true,
         lookahead_days: days,
       };
       if (mode === "add") {
@@ -136,24 +135,19 @@ export default function ReminderTemplateModal({
                 rows={3}
               />
             </label>
-            <label className="flex items-center gap-1.5 text-sm font-normal">
-              <input
-                type="checkbox"
-                checked={includeEventSummary}
-                onChange={(e) => setIncludeEventSummary(e.target.checked)}
-              />
-              Append an auto-generated list of upcoming events
-            </label>
             <label className="flex flex-col gap-1 text-sm">
-              Lookahead (days)
+              Default lookahead (days)
               <input
                 type="number"
                 min={1}
                 value={lookaheadDays}
                 onChange={(e) => setLookaheadDays(e.target.value)}
-                disabled={!includeEventSummary}
-                className="border rounded px-2 py-1 disabled:bg-gray-100 disabled:text-gray-400"
+                className="border rounded px-2 py-1"
               />
+              <span className="text-xs text-gray-400">
+                How many days ahead the event picker shows by default when this template is
+                selected — you can still widen or narrow it on the Reminders page itself.
+              </span>
             </label>
 
             {formError && <p className="text-sm text-red-600">{formError}</p>}

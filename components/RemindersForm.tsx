@@ -1,18 +1,22 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { useUndo } from "@/lib/undo/UndoProvider";
 import { deleteReminderTemplate } from "@/lib/reminderTemplateActions";
-import { ReminderTemplateRow } from "@/lib/types";
-import { toDateStr } from "@/lib/dates";
+import { EventOption, ReminderTemplateRow } from "@/lib/types";
+import { ReminderPickerEvent } from "@/lib/data";
+import { toDateStr, formatDateDisplay } from "@/lib/dates";
 import ReminderTemplateModal from "./ReminderTemplateModal";
+import ChecklistModal from "./ChecklistModal";
 
 interface RemindersFormProps {
   templates: ReminderTemplateRow[];
+  eventOptions: EventOption[];
 }
 
-type ModalState = { type: "closed" } | { type: "add" } | { type: "edit"; template: ReminderTemplateRow };
+type TemplateModalState = { type: "closed" } | { type: "add" } | { type: "edit"; template: ReminderTemplateRow };
+type ChecklistModalState = { type: "closed" } | { type: "add"; eventId: string };
 
 function addDays(date: Date, days: number): Date {
   const next = new Date(date);
@@ -20,49 +24,115 @@ function addDays(date: Date, days: number): Date {
   return next;
 }
 
-export default function RemindersForm({ templates }: RemindersFormProps) {
+// Same layout as the recommended preview shown when this feature was
+// designed: intro text, then each selected event with either its linked
+// checklist to-dos or a warning that none are tracked yet — the message is
+// meant to be self-contained so nobody has to open the app to see what's
+// needed for a flagged event.
+function buildMessage(introText: string, events: ReminderPickerEvent[], selected: Set<string>): string {
+  const lines: string[] = [];
+  if (introText.trim()) lines.push(introText.trim(), "");
+
+  for (const ev of events) {
+    if (!selected.has(ev.occurrenceKey)) continue;
+    lines.push(`${ev.flagged ? "⭐ " : ""}${ev.name} — ${formatDateDisplay(ev.date)}`);
+    if (ev.checklistItems.length === 0) {
+      lines.push("  ⚠ No prep checklist linked yet");
+    } else {
+      for (const item of ev.checklistItems) {
+        lines.push(`  ☐ ${item.item} (${item.status})`);
+      }
+    }
+    lines.push("");
+  }
+  return lines.join("\n").trim();
+}
+
+export default function RemindersForm({ templates, eventOptions }: RemindersFormProps) {
   const router = useRouter();
   const { record } = useUndo();
-  const [selectedId, setSelectedId] = useState<string>("");
+  const [selectedId, setSelectedId] = useState("");
   const [handle, setHandle] = useState("");
+  const [introText, setIntroText] = useState("");
+  const [lookaheadDays, setLookaheadDays] = useState(30);
   const [message, setMessage] = useState("");
-  const [loadingSummary, setLoadingSummary] = useState(false);
+  const [messageTouched, setMessageTouched] = useState(false);
+  const [pickerEvents, setPickerEvents] = useState<ReminderPickerEvent[]>([]);
+  const [selectedKeys, setSelectedKeys] = useState<Set<string>>(new Set());
+  const [loadingEvents, setLoadingEvents] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [modal, setModal] = useState<ModalState>({ type: "closed" });
+  const [templateModal, setTemplateModal] = useState<TemplateModalState>({ type: "closed" });
+  const [checklistModal, setChecklistModal] = useState<ChecklistModalState>({ type: "closed" });
   const [removingId, setRemovingId] = useState<string | null>(null);
 
-  async function applyTemplate(id: string) {
-    setSelectedId(id);
+  const fetchEvents = useCallback(async (days: number) => {
+    setLoadingEvents(true);
     setError(null);
+    try {
+      const start = toDateStr(new Date());
+      const end = toDateStr(addDays(new Date(), days));
+      const res = await fetch(`/api/reminders/events?start=${start}&end=${end}`);
+      const data = await res.json();
+      if (!res.ok) throw new Error(data?.error ?? "Couldn't load upcoming events.");
+      const events: ReminderPickerEvent[] = data.events;
+      setPickerEvents(events);
+      setSelectedKeys(new Set(events.filter((e) => e.flagged).map((e) => e.occurrenceKey)));
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Couldn't load upcoming events.");
+      setPickerEvents([]);
+      setSelectedKeys(new Set());
+    } finally {
+      setLoadingEvents(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchEvents(30);
+    // Only on mount — subsequent range/template changes call fetchEvents explicitly.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Auto-regenerates the message from the intro text + current selection —
+  // same "auto-suggest until touched" pattern used elsewhere in this app
+  // (Season/Level color, Gathering auto-name) — stops once the user directly
+  // edits the textarea, so their edits are never silently clobbered.
+  useEffect(() => {
+    if (messageTouched) return;
+    setMessage(buildMessage(introText, pickerEvents, selectedKeys));
+  }, [introText, pickerEvents, selectedKeys, messageTouched]);
+
+  function applyTemplate(id: string) {
+    setSelectedId(id);
+    setMessageTouched(false);
     const template = templates.find((t) => t.id === id);
     if (!template) {
       setHandle("");
-      setMessage("");
+      setIntroText("");
       return;
     }
-
     setHandle(template.default_telegram_handle ?? "");
+    setIntroText(template.default_message ?? "");
+    setLookaheadDays(template.lookahead_days);
+    fetchEvents(template.lookahead_days);
+  }
 
-    if (!template.include_event_summary) {
-      setMessage(template.default_message ?? "");
-      return;
-    }
+  function toggleEvent(key: string) {
+    setSelectedKeys((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
+    });
+  }
 
-    setLoadingSummary(true);
-    try {
-      const start = toDateStr(new Date());
-      const end = toDateStr(addDays(new Date(), template.lookahead_days));
-      const res = await fetch(`/api/reminders/summary?start=${start}&end=${end}`);
-      const data = await res.json();
-      if (!res.ok) throw new Error(data?.error ?? "Couldn't load the upcoming events summary.");
-      const intro = template.default_message?.trim();
-      setMessage(intro ? `${intro}\n\n${data.summary}` : data.summary);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Couldn't load the upcoming events summary.");
-      setMessage(template.default_message ?? "");
-    } finally {
-      setLoadingSummary(false);
-    }
+  function handleLookaheadChange(days: number) {
+    setLookaheadDays(days);
+    fetchEvents(days);
+  }
+
+  function resetMessage() {
+    setMessageTouched(false);
+    setMessage(buildMessage(introText, pickerEvents, selectedKeys));
   }
 
   function openInTelegram() {
@@ -85,7 +155,7 @@ export default function RemindersForm({ templates }: RemindersFormProps) {
       if (selectedId === template.id) {
         setSelectedId("");
         setHandle("");
-        setMessage("");
+        setIntroText("");
       }
       router.refresh();
     } catch (err) {
@@ -105,21 +175,33 @@ export default function RemindersForm({ templates }: RemindersFormProps) {
           username.
         </p>
 
-        <label className="flex flex-col gap-1 text-sm">
-          Template
-          <select
-            value={selectedId}
-            onChange={(e) => applyTemplate(e.target.value)}
-            className="border rounded px-2 py-1"
-          >
-            <option value="">— Freeform (no template) —</option>
-            {templates.map((t) => (
-              <option key={t.id} value={t.id}>
-                {t.name}
-              </option>
-            ))}
-          </select>
-        </label>
+        <div className="grid grid-cols-2 gap-3">
+          <label className="flex flex-col gap-1 text-sm">
+            Template
+            <select
+              value={selectedId}
+              onChange={(e) => applyTemplate(e.target.value)}
+              className="border rounded px-2 py-1"
+            >
+              <option value="">— Freeform (no template) —</option>
+              {templates.map((t) => (
+                <option key={t.id} value={t.id}>
+                  {t.name}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="flex flex-col gap-1 text-sm">
+            Show events in the next (days)
+            <input
+              type="number"
+              min={1}
+              value={lookaheadDays}
+              onChange={(e) => handleLookaheadChange(Number(e.target.value) || 1)}
+              className="border rounded px-2 py-1"
+            />
+          </label>
+        </div>
 
         <label className="flex flex-col gap-1 text-sm">
           Telegram handle
@@ -132,12 +214,85 @@ export default function RemindersForm({ templates }: RemindersFormProps) {
         </label>
 
         <label className="flex flex-col gap-1 text-sm">
-          Message
+          Intro text (optional)
+          <input
+            value={introText}
+            onChange={(e) => setIntroText(e.target.value)}
+            placeholder="Please prepare e-invites and confirm pastoral goals for next month."
+            className="border rounded px-2 py-1"
+          />
+        </label>
+
+        <div className="flex flex-col gap-1">
+          <div className="flex items-center justify-between">
+            <span className="text-sm">
+              Events to include
+              <span className="text-gray-400 font-normal"> — ⭐ pre-checked as important</span>
+            </span>
+            {loadingEvents && <span className="text-xs text-gray-400">Loading…</span>}
+          </div>
+          <div className="border border-gray-200 rounded-md divide-y divide-gray-100 max-h-72 overflow-y-auto">
+            {pickerEvents.length === 0 && !loadingEvents && (
+              <p className="px-3 py-4 text-sm text-gray-400 text-center">No events in this period.</p>
+            )}
+            {pickerEvents.map((ev) => (
+              <div key={ev.occurrenceKey} className="px-3 py-2 flex flex-col gap-1">
+                <label className="flex items-start gap-2 text-sm cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={selectedKeys.has(ev.occurrenceKey)}
+                    onChange={() => toggleEvent(ev.occurrenceKey)}
+                    className="mt-0.5"
+                  />
+                  <span className="flex-1">
+                    {ev.flagged && <span title="Flagged as important">⭐ </span>}
+                    {ev.name}
+                    <span className="text-gray-400"> — {formatDateDisplay(ev.date)}</span>
+                  </span>
+                </label>
+                {selectedKeys.has(ev.occurrenceKey) && (
+                  <div className="pl-6 flex flex-col gap-0.5">
+                    {ev.checklistItems.length === 0 ? (
+                      <div className="flex items-center gap-2 text-xs text-amber-600">
+                        <span>⚠ No prep checklist linked yet</span>
+                        <button
+                          type="button"
+                          onClick={() => setChecklistModal({ type: "add", eventId: ev.eventId })}
+                          className="text-navy hover:underline"
+                        >
+                          + Add checklist item
+                        </button>
+                      </div>
+                    ) : (
+                      ev.checklistItems.map((item) => (
+                        <div key={item.id} className="text-xs text-gray-600">
+                          ☐ {item.item} <span className="text-gray-400">({item.status})</span>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <label className="flex flex-col gap-1 text-sm">
+          <div className="flex items-center justify-between">
+            Message
+            {messageTouched && (
+              <button type="button" onClick={resetMessage} className="text-xs text-navy hover:underline">
+                Reset to auto-generated
+              </button>
+            )}
+          </div>
           <textarea
             value={message}
-            onChange={(e) => setMessage(e.target.value)}
-            rows={8}
-            placeholder={loadingSummary ? "Loading upcoming events…" : "Your message…"}
+            onChange={(e) => {
+              setMessage(e.target.value);
+              setMessageTouched(true);
+            }}
+            rows={10}
             className="border rounded px-2 py-1 font-mono text-xs"
           />
         </label>
@@ -147,8 +302,7 @@ export default function RemindersForm({ templates }: RemindersFormProps) {
         <button
           type="button"
           onClick={openInTelegram}
-          disabled={loadingSummary}
-          className="self-start px-3 py-1.5 text-sm rounded bg-navy text-white disabled:opacity-50"
+          className="self-start px-3 py-1.5 text-sm rounded bg-navy text-white"
         >
           Open in Telegram
         </button>
@@ -159,7 +313,7 @@ export default function RemindersForm({ templates }: RemindersFormProps) {
           <h2 className="text-base font-semibold text-navy">Saved templates</h2>
           <button
             type="button"
-            onClick={() => setModal({ type: "add" })}
+            onClick={() => setTemplateModal({ type: "add" })}
             className="px-3 py-1.5 text-sm rounded bg-navy text-white"
           >
             Add Template
@@ -171,7 +325,7 @@ export default function RemindersForm({ templates }: RemindersFormProps) {
               <tr>
                 <th className="px-3 py-2">Name</th>
                 <th className="px-3 py-2">Default handle</th>
-                <th className="px-3 py-2">Event summary</th>
+                <th className="px-3 py-2">Default lookahead</th>
                 <th className="px-3 py-2 w-8"></th>
               </tr>
             </thead>
@@ -179,14 +333,12 @@ export default function RemindersForm({ templates }: RemindersFormProps) {
               {templates.map((t) => (
                 <tr
                   key={t.id}
-                  onClick={() => setModal({ type: "edit", template: t })}
+                  onClick={() => setTemplateModal({ type: "edit", template: t })}
                   className="border-t border-gray-200 hover:bg-gray-50 cursor-pointer"
                 >
                   <td className="px-3 py-2">{t.name}</td>
                   <td className="px-3 py-2 text-gray-600">{t.default_telegram_handle ?? "—"}</td>
-                  <td className="px-3 py-2 text-gray-600">
-                    {t.include_event_summary ? `Next ${t.lookahead_days} days` : "No"}
-                  </td>
+                  <td className="px-3 py-2 text-gray-600">{t.lookahead_days} days</td>
                   <td className="px-3 py-2">
                     <button
                       type="button"
@@ -215,19 +367,33 @@ export default function RemindersForm({ templates }: RemindersFormProps) {
         </div>
       </div>
 
-      {modal.type !== "closed" && (
+      {templateModal.type !== "closed" && (
         <ReminderTemplateModal
-          mode={modal.type}
-          template={modal.type === "edit" ? modal.template : undefined}
-          onClose={() => setModal({ type: "closed" })}
+          mode={templateModal.type}
+          template={templateModal.type === "edit" ? templateModal.template : undefined}
+          onClose={() => setTemplateModal({ type: "closed" })}
           onSaved={() => {
-            setModal({ type: "closed" });
+            setTemplateModal({ type: "closed" });
             router.refresh();
           }}
           onDeleted={() => {
-            setModal({ type: "closed" });
+            setTemplateModal({ type: "closed" });
             router.refresh();
           }}
+        />
+      )}
+
+      {checklistModal.type !== "closed" && (
+        <ChecklistModal
+          mode="add"
+          eventOptions={eventOptions}
+          defaultLinkedEventId={checklistModal.eventId}
+          onClose={() => setChecklistModal({ type: "closed" })}
+          onSaved={() => {
+            setChecklistModal({ type: "closed" });
+            fetchEvents(lookaheadDays);
+          }}
+          onDeleted={() => setChecklistModal({ type: "closed" })}
         />
       )}
     </div>
