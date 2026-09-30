@@ -8,6 +8,18 @@ items (features/fixes) that push contains — a push with 1 item goes up by
 `1.05`). If MINOR would pass `.99`, MAJOR increments and MINOR carries the
 remainder (e.g. `1.99` + 2 items → `2.01`).
 
+## v1.45 — 2026-09-30
+
+- Hardened the Export Document API route (`app/api/export/document/route.ts`):
+  the data-fetch/render pipeline had no error handling beyond the existing
+  date-validity check, so any unhandled exception there produced a bare 500
+  with no JSON body — surfacing to the user as a generic "Something went
+  wrong generating the document." banner with no way to diagnose the real
+  cause. Now wrapped in a try/catch that logs the real error server-side and
+  returns a proper JSON error response. Couldn't reproduce an actual export
+  failure against current data during this fix — if it recurs, the server
+  log will now show the real root cause.
+
 ## v1.44 — 2026-09-30
 
 - Fixed a real authorization gap: two event-occurrence Server Actions

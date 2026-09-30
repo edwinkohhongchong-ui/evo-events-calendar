@@ -37,43 +37,59 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Invalid date range." }, { status: 400 });
   }
 
-  const { events, overrides, exceptions } = await getCalendarData(startDate, endDate);
-  const eventsById = new Map(events.map((e) => [e.id, e]));
-  const exceptionsByEventId = new Map<string, Set<string>>();
-  for (const exception of exceptions) {
-    const set = exceptionsByEventId.get(exception.event_id) ?? new Set<string>();
-    set.add(exception.original_date);
-    exceptionsByEventId.set(exception.event_id, set);
-  }
+  // Everything below can throw for reasons that have nothing to do with the
+  // date-range validation above (a rendering failure inside react-pdf/docx,
+  // an unexpected data shape, etc). Without this try/catch, an exception
+  // here becomes an unhandled crash that Next turns into a bare 500 with no
+  // JSON body — ExportForm.tsx can't parse that as JSON, so it falls back to
+  // its generic "Something went wrong generating the document." banner with
+  // no way to tell what actually failed. Catch it, log the real error
+  // server-side (never sent to the client — see the Server Action error-leak
+  // fix in v1.44), and return a proper JSON 500 so this failure mode is at
+  // least diagnosable next time instead of silently reproducing the same
+  // dead end.
+  try {
+    const { events, overrides, exceptions } = await getCalendarData(startDate, endDate);
+    const eventsById = new Map(events.map((e) => [e.id, e]));
+    const exceptionsByEventId = new Map<string, Set<string>>();
+    for (const exception of exceptions) {
+      const set = exceptionsByEventId.get(exception.event_id) ?? new Set<string>();
+      set.add(exception.original_date);
+      exceptionsByEventId.set(exception.event_id, set);
+    }
 
-  const rawOccurrences = expandEvents(events, parseDateStr(startDate), parseDateStr(endDate), exceptionsByEventId);
-  let occurrences = applyOverrides(rawOccurrences, overrides, eventsById, startDate, endDate);
+    const rawOccurrences = expandEvents(events, parseDateStr(startDate), parseDateStr(endDate), exceptionsByEventId);
+    let occurrences = applyOverrides(rawOccurrences, overrides, eventsById, startDate, endDate);
 
-  if (levels.length > 0) {
-    occurrences = occurrences.filter((occ) => levels.includes(occ.event.level));
-  }
-  occurrences.sort(
-    (a, b) =>
-      a.occurrenceDate.localeCompare(b.occurrenceDate) || (a.startTime ?? "").localeCompare(b.startTime ?? "")
-  );
+    if (levels.length > 0) {
+      occurrences = occurrences.filter((occ) => levels.includes(occ.event.level));
+    }
+    occurrences.sort(
+      (a, b) =>
+        a.occurrenceDate.localeCompare(b.occurrenceDate) || (a.startTime ?? "").localeCompare(b.startTime ?? "")
+    );
 
-  const range = { startDate, endDate };
+    const range = { startDate, endDate };
 
-  if (format === "pdf") {
-    const buffer = await renderEventLineupPdf(occurrences, range);
+    if (format === "pdf") {
+      const buffer = await renderEventLineupPdf(occurrences, range);
+      return new NextResponse(new Uint8Array(buffer), {
+        headers: {
+          "Content-Type": "application/pdf",
+          "Content-Disposition": 'attachment; filename="evo-event-lineup.pdf"',
+        },
+      });
+    }
+
+    const buffer = await renderEventLineupDocx(occurrences, range);
     return new NextResponse(new Uint8Array(buffer), {
       headers: {
-        "Content-Type": "application/pdf",
-        "Content-Disposition": 'attachment; filename="evo-event-lineup.pdf"',
+        "Content-Type": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        "Content-Disposition": 'attachment; filename="evo-event-lineup.docx"',
       },
     });
+  } catch (err) {
+    console.error("Export document generation failed:", err);
+    return NextResponse.json({ error: "Something went wrong generating the document." }, { status: 500 });
   }
-
-  const buffer = await renderEventLineupDocx(occurrences, range);
-  return new NextResponse(new Uint8Array(buffer), {
-    headers: {
-      "Content-Type": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-      "Content-Disposition": 'attachment; filename="evo-event-lineup.docx"',
-    },
-  });
 }
