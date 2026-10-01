@@ -2,6 +2,8 @@
 
 import { useMemo, useState, useRef, useTransition, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { startOfMonth, endOfMonth } from "date-fns";
+import { toDateStr } from "@/lib/dates";
 import {
   DndContext,
   DragOverlay,
@@ -30,6 +32,8 @@ import { resolveLevelColor } from "@/lib/levelColor";
 import { LevelColorProvider } from "@/lib/levelColorContext";
 import { EventChecklistProvider } from "@/lib/eventChecklistContext";
 import { useEventFilter } from "@/lib/eventFilterContext";
+import { EventSearchContext, type EventSearchValue } from "@/lib/eventSearchContext";
+import { matchesEventQuery, parseSearchQuery } from "@/lib/eventSearch";
 import { useUndo } from "@/lib/undo/UndoProvider";
 import { useIsEditor } from "@/lib/roleContext";
 import FocusHighlighter from "./FocusHighlighter";
@@ -135,6 +139,25 @@ export default function CalendarBoard({
     return next.filter((occ) => isVisible(occ.event.level));
   }, [occurrences, optimisticMove, optimisticResize, optimisticStart, isVisible]);
 
+  // Search dims non-matching chips (CalendarGrid/EventBarRow/EventCardContent
+  // read this context) rather than removing them, so dates keep their context.
+  const [searchQuery, setSearchQuery] = useState("");
+  const search = useMemo<EventSearchValue>(() => {
+    const active = parseSearchQuery(searchQuery).length > 0;
+    const matchedIds = new Set<string>();
+    let matchCount = 0;
+    if (active) {
+      const monthFirst = toDateStr(startOfMonth(monthStart));
+      const monthLast = toDateStr(endOfMonth(monthStart));
+      for (const occ of displayOccurrences) {
+        if (!matchesEventQuery(occ.event, searchQuery)) continue;
+        matchedIds.add(occ.event.id);
+        if (occ.spanEndDate >= monthFirst && occ.occurrenceDate <= monthLast) matchCount++;
+      }
+    }
+    return { query: searchQuery, setQuery: setSearchQuery, active, matchedIds, matchCount };
+  }, [searchQuery, displayOccurrences, monthStart]);
+
   const dayIndex = useMemo(
     () => buildDayIndex(weeks.flat(), displayOccurrences, holidays, monthStart, dayNotes),
     [weeks, displayOccurrences, holidays, monthStart, dayNotes]
@@ -234,6 +257,7 @@ export default function CalendarBoard({
 
   return (
     <LevelColorProvider colorMap={colorMap}>
+      <EventSearchContext.Provider value={search}>
       <EventChecklistProvider progress={checklistProgress}>
       <FocusHighlighter />
       {error && <ErrorBanner message={error} onDismiss={() => setError(null)} />}
@@ -334,6 +358,7 @@ export default function CalendarBoard({
         />
       )}
       </EventChecklistProvider>
+      </EventSearchContext.Provider>
     </LevelColorProvider>
   );
 }

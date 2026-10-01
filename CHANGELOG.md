@@ -8,6 +8,11 @@ items (features/fixes) that push contains — a push with 1 item goes up by
 `1.05`). If MINOR would pass `.99`, MAJOR increments and MINOR carries the
 remainder (e.g. `1.99` + 2 items → `2.01`).
 
+## v2.23 — 2026-10-01
+
+- Added event search: magnifier in the month bar (or press `/`) dims events that don't match name, series, location, theme, preacher or sermon title; shows a match count; the phone agenda lists only matches. Escape clears.
+- Added Duplicate event: Editors can copy an event from its edit window into a pre-filled Add form (recurrence rule kept, one-off edits not copied, checklist off by default).
+
 ## v2.21 — 2026-10-01
 
 - Added a GitHub Actions check (`.github/workflows/ci.yml`) that runs type-check, lint, tests and `next build` on every push and pull request, plus a non-blocking `npm audit`.

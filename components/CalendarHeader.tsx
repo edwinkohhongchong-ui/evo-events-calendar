@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { format, addMonths, subMonths } from "date-fns";
@@ -10,7 +10,9 @@ import { useIsEditor } from "@/lib/roleContext";
 import LevelModal from "./LevelModal";
 import LevelChips from "./LevelChips";
 import Button from "./ui/Button";
-import { ChevronLeftIcon, ChevronRightIcon, PlusIcon, TagPlusIcon } from "./icons";
+import IconButton from "./ui/IconButton";
+import { useEventSearch } from "@/lib/eventSearchContext";
+import { ChevronLeftIcon, ChevronRightIcon, PlusIcon, SearchIcon, TagPlusIcon, XIcon } from "./icons";
 
 // Prev/next stay real links (middle-click, open in new tab) styled as
 // icon-only buttons with a CSS tooltip, since IconButton renders a <button>.
@@ -52,8 +54,23 @@ export default function CalendarHeader({ monthStart, levels, onAddClick, openChe
   const [levelModal, setLevelModal] = useState<LevelModalState>({ type: "closed" });
   const nextSortOrder = levels.length > 0 ? Math.max(...levels.map((l) => l.sort_order)) + 1 : 0;
 
+  // Search: an icon that expands into an input. On phones the open input
+  // overlays the whole bar (so the bar stays one row); from sm up it sits inline.
+  const { query, setQuery, active: searchActive, matchCount } = useEventSearch();
+  const [searchOpen, setSearchOpen] = useState(false);
+  const searchInputRef = useRef<HTMLInputElement>(null);
+  const showSearch = searchOpen || searchActive;
+  const openSearch = useCallback(() => {
+    setSearchOpen(true);
+    requestAnimationFrame(() => searchInputRef.current?.focus());
+  }, []);
+  function clearSearch() {
+    setQuery("");
+    setSearchOpen(false);
+  }
+
   // Keyboard shortcuts: T = this month, ←/→ = previous/next month, N = new
-  // event (Editors). Ignored while typing, with modifier keys held, or while
+  // event (Editors), / = search, Esc = clear search. Ignored while typing, with modifier keys held, or while
   // any dialog (modal, drawer, tour) is open.
   const prevHref = `/?year=${prev.getFullYear()}&month=${prev.getMonth() + 1}`;
   const nextHref = `/?year=${next.getFullYear()}&month=${next.getMonth() + 1}`;
@@ -65,7 +82,11 @@ export default function CalendarHeader({ monthStart, levels, onAddClick, openChe
       if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT" || el?.isContentEditable) return;
       if (document.querySelector('[role="dialog"]')) return;
       const key = e.key.toLowerCase();
-      if (key === "t") router.push("/");
+      if (key === "escape" && searchActive) {
+        setQuery("");
+        setSearchOpen(false);
+      } else if (key === "/") openSearch();
+      else if (key === "t") router.push("/");
       else if (e.key === "ArrowLeft") router.push(prevHref);
       else if (e.key === "ArrowRight") router.push(nextHref);
       else if (key === "n" && isEditor && onAddClick) onAddClick();
@@ -74,7 +95,7 @@ export default function CalendarHeader({ monthStart, levels, onAddClick, openChe
     }
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [router, prevHref, nextHref, isEditor, onAddClick]);
+  }, [router, prevHref, nextHref, isEditor, onAddClick, searchActive, setQuery, openSearch]);
 
   // The title row sticks under the top bar while the month scrolls. A
   // sentinel above it tells us when it is stuck so a hairline can appear.
@@ -128,8 +149,40 @@ export default function CalendarHeader({ monthStart, levels, onAddClick, openChe
             <AttentionPill rows={openChecklistRows} onOpenEvent={onOpenEvent!} />
           </div>
         )}
-        {isEditor && (
-          <div className="ml-auto flex items-center gap-2">
+        <div className="ml-auto flex items-center gap-2">
+          {showSearch ? (
+            <div className="absolute inset-0 z-10 flex items-center gap-2 bg-canvas px-2 sm:static sm:inset-auto sm:bg-transparent sm:px-0">
+              <div className="relative min-w-0 flex-1 sm:w-56 sm:flex-none">
+                <SearchIcon className="pointer-events-none absolute left-2.5 top-1/2 !h-4 !w-4 -translate-y-1/2 text-ink-3" />
+                <input
+                  ref={searchInputRef}
+                  type="search"
+                  value={query}
+                  onChange={(e) => setQuery(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Escape") {
+                      e.preventDefault();
+                      clearSearch();
+                    }
+                  }}
+                  placeholder="Search events"
+                  aria-label="Search events"
+                  className="w-full min-h-[36px] rounded-pill border border-line-strong bg-white pl-8 pr-3 text-ui text-ink placeholder:text-ink-3 [@media(pointer:coarse)]:min-h-[44px] [&::-webkit-search-cancel-button]:hidden"
+                />
+              </div>
+              {searchActive && (
+                <span role="status" className="shrink-0 whitespace-nowrap text-body text-ink-2">
+                  {matchCount} {matchCount === 1 ? "match" : "matches"}
+                  <span className="hidden sm:inline"> this month</span>
+                </span>
+              )}
+              <IconButton label="Clear search (Esc)" icon={<XIcon />} onClick={clearSearch} />
+            </div>
+          ) : (
+            <IconButton label="Search events (/)" icon={<SearchIcon />} onClick={openSearch} />
+          )}
+          {isEditor && (
+            <>
             <Button
               variant="ghost"
               size="sm"
@@ -153,8 +206,9 @@ export default function CalendarHeader({ monthStart, levels, onAddClick, openChe
             >
               <span className="hidden sm:inline">Add event</span>
             </Button>
-          </div>
-        )}
+            </>
+          )}
+        </div>
       </div>
 
       {showAttention && (

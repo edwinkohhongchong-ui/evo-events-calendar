@@ -12,6 +12,7 @@ import { resolveSeasonColor } from "@/lib/seasonColor";
 import { SEASON_BAR_COLORS } from "@/lib/constants";
 import { parseDateStr, todayStr, toDateStr } from "@/lib/dates";
 import { occurrenceKey } from "@/lib/occurrenceKey";
+import { useEventSearch } from "@/lib/eventSearchContext";
 import { EventOccurrence, HolidayRow, SeasonRow } from "@/lib/types";
 
 interface MonthAgendaProps {
@@ -42,6 +43,8 @@ export default function MonthAgenda({
   const router = useRouter();
   const touchStart = useRef<{ x: number; y: number } | null>(null);
   const month = monthStart.getMonth();
+  // While searching, the agenda lists only matching events (no room to dim on a phone).
+  const { active: searching, matchedIds } = useEventSearch();
 
   // Horizontal swipe changes month (the arrows remain the fallback).
   function goTo(d: Date) {
@@ -61,7 +64,7 @@ export default function MonthAgenda({
     if (Math.abs(dx) < 60 || Math.abs(dx) < 2 * Math.abs(dy)) return;
     goTo(dx < 0 ? addMonths(monthStart, 1) : subMonths(monthStart, 1));
   }
-  const multiDay = occurrences.filter((o) => o.spanEndDate !== o.occurrenceDate);
+  const multiDay = occurrences.filter((o) => o.spanEndDate !== o.occurrenceDate && (!searching || matchedIds.has(o.event.id)));
 
   const seasons = new Map<string, SeasonRow>();
   for (const week of seasonSegmentsByWeek) for (const seg of week) seasons.set(seg.season.id, seg.season);
@@ -72,7 +75,8 @@ export default function MonthAgenda({
       const dateStr = toDateStr(d);
       const data = dayIndex.get(dateStr);
       const spanning = multiDay.filter((o) => o.occurrenceDate <= dateStr && dateStr <= o.spanEndDate);
-      return { d, dateStr, holidays: data?.holidays ?? [], events: data?.occurrences ?? [], spanning };
+      const events = (data?.occurrences ?? []).filter((o) => !searching || matchedIds.has(o.event.id));
+      return { d, dateStr, holidays: searching ? [] : data?.holidays ?? [], events, spanning };
     })
     .filter((r) => r.holidays.length || r.events.length || r.spanning.length);
 
@@ -94,7 +98,7 @@ export default function MonthAgenda({
       )}
 
       {rows.length === 0 && (
-        <p className="rounded-card bg-surface p-4 text-center text-body text-ink-2">Nothing scheduled this month.</p>
+        <p className="rounded-card bg-surface p-4 text-center text-body text-ink-2">{searching ? "No matching events this month." : "Nothing scheduled this month."}</p>
       )}
 
       {rows.map(({ d, dateStr, holidays, events, spanning }) => {

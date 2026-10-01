@@ -3,6 +3,7 @@
 import { useDraggable } from "@dnd-kit/core";
 import { EventBarSegment } from "@/lib/eventBars";
 import { LEVEL_COLOR_CLASSES } from "@/lib/constants";
+import { useIsDimmed } from "@/lib/eventSearchContext";
 import { useLevelColor } from "@/lib/levelColorContext";
 import { occurrenceKey } from "@/lib/occurrenceKey";
 import { useEventPreview } from "./EventPreviewCard";
@@ -16,6 +17,7 @@ function SegmentBlock({
   onClick: () => void;
 }) {
   const colorKey = useLevelColor(segment.occurrence.event.level);
+  const dimmed = useIsDimmed(segment.occurrence.event.id);
   // Same resize-handle mechanism as EventCard's single-day cards — only on
   // the segment containing the event's real last day, so a bar spanning
   // several weeks only offers one resize point per end (right handle at the
@@ -50,6 +52,7 @@ function SegmentBlock({
         LEVEL_COLOR_CLASSES[colorKey],
         segment.isSpanStart ? "rounded-l-full" : "border-l-0",
         segment.isSpanEnd ? "rounded-r-full" : "border-r-0",
+        dimmed ? "opacity-30" : "",
       ].join(" ")}
       style={{
         gridColumn: `${segment.startCol + 1} / ${segment.endCol + 2}`,

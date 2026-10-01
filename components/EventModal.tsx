@@ -89,7 +89,35 @@ function Seg({
   );
 }
 
-export default function EventModal({
+type EventModalInnerProps = EventModalProps & {
+  /** Edit mode, Editors only: reopen as an Add form pre-filled from this event. */
+  onDuplicate?: (source: EventRow) => void;
+  /** Add form pre-filled from an existing event: no checklist template pre-selected. */
+  isDuplicate?: boolean;
+};
+
+// "Duplicate" swaps the edit modal for an Add form pre-filled from the
+// event (no id, so Save goes through the normal createEvent path). Overrides
+// and exceptions are deliberately not copied: only the event row's own fields.
+export default function EventModal(props: EventModalProps) {
+  const [duplicateOf, setDuplicateOf] = useState<EventRow | null>(null);
+  if (duplicateOf) {
+    return (
+      <EventModalInner
+        key="duplicate"
+        {...props}
+        mode="add"
+        event={duplicateOf}
+        occurrence={undefined}
+        initialDate={duplicateOf.event_date}
+        isDuplicate
+      />
+    );
+  }
+  return <EventModalInner {...props} onDuplicate={setDuplicateOf} />;
+}
+
+function EventModalInner({
   mode,
   initialDate,
   event,
@@ -98,7 +126,9 @@ export default function EventModal({
   onClose,
   onSaved,
   onDeleted,
-}: EventModalProps) {
+  onDuplicate,
+  isDuplicate = false,
+}: EventModalInnerProps) {
   const { record } = useUndo();
   const isEditor = useIsEditor();
   const [eventType, setEventType] = useState<EventType>(event?.event_type ?? "Event");
@@ -182,7 +212,7 @@ export default function EventModal({
   // created. A suggested template is pre-selected (visibly) for Big Day and
   // Easter/XMAS gatherings until the user picks something themselves.
   const [checklistTemplates, setChecklistTemplates] = useState<ChecklistTemplateWithItems[]>([]);
-  const [checklistChoice, setChecklistChoice] = useState<string | null>(null); // null = untouched
+  const [checklistChoice, setChecklistChoice] = useState<string | null>(isDuplicate ? "" : null); // null = untouched; "" = explicitly none
   // Set once the event row exists, so a retry after a failed checklist step
   // doesn't create the event twice.
   const [createdEventId, setCreatedEventId] = useState<string | null>(null);
@@ -487,7 +517,22 @@ export default function EventModal({
     }
   }
 
-  const title = mode === "add" ? "Add Event" : step === "view" ? "Event Details" : "Edit Event";
+  // The event as it appears on the clicked date (post-override time/span), minus its id.
+  function duplicateSource(): EventRow | null {
+    if (!event) return null;
+    const date = occurrence?.occurrenceDate ?? event.event_date;
+    const spanEnd = occurrence?.spanEndDate ?? event.end_date;
+    return {
+      ...event,
+      id: "",
+      event_date: date,
+      end_date: spanEnd && spanEnd !== date ? spanEnd : null,
+      event_time: occurrence?.startTime ?? event.event_time,
+      end_time: occurrence?.endTime ?? event.end_time,
+    };
+  }
+
+  const title = mode === "add" ? (isDuplicate ? "Duplicate Event" : "Add Event") : step === "view" ? "Event Details" : "Edit Event";
   const subtitle =
     isRecurringSeries && step === "form" && !confirmDelete
       ? canChooseScope
@@ -510,6 +555,17 @@ export default function EventModal({
           <Button variant="ghost" onClick={onClose}>
             Close
           </Button>
+          {isEditor && onDuplicate && (
+            <Button
+              variant="ghost"
+              onClick={() => {
+                const source = duplicateSource();
+                if (source) onDuplicate(source);
+              }}
+            >
+              Duplicate
+            </Button>
+          )}
           <Button onClick={() => setStep("form")}>Edit</Button>
         </div>
       </>

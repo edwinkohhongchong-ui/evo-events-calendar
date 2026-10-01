@@ -6,6 +6,7 @@ import { endsNextDay } from "@/lib/timeMath";
 import { useEventChecklistProgress } from "@/lib/eventChecklistContext";
 import { progressOverdue } from "@/lib/eventChecklist";
 import { todayStr } from "@/lib/dates";
+import { useIsDimmed } from "@/lib/eventSearchContext";
 
 export default function EventCardContent({
   occurrence,
@@ -16,6 +17,7 @@ export default function EventCardContent({
   lifted?: boolean;
 }) {
   const { event } = occurrence;
+  const dimmed = useIsDimmed(event.id) && !lifted;
   const colorKey = useLevelColor(event.level);
   const checklist = useEventChecklistProgress(event.id);
   const checklistOverdue = checklist ? progressOverdue(checklist, event.event_date, todayStr()) : false;
@@ -57,6 +59,7 @@ export default function EventCardContent({
         "leading-tight rounded-chip pl-1.5 pr-1 py-0.5",
         LEVEL_CHIP_CLASSES[colorKey],
         lifted ? "shadow-pop scale-[1.03] cursor-grabbing" : "",
+        dimmed ? "opacity-30" : "",
       ].join(" ")}
     >
       <div className="text-chip font-medium truncate">
