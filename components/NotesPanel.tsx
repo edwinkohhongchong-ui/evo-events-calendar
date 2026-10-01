@@ -200,7 +200,10 @@ export default function NotesPanel({
   }
 
   return (
-    <div className="bg-white border border-gray-200 rounded-md p-3 flex flex-col gap-2">
+    <div
+      data-tour={scope === "general" ? "general-notes-panel" : "month-notes-panel"}
+      className="bg-white border border-gray-200 rounded-md p-3 flex flex-col gap-2"
+    >
       <span className="text-xs font-medium text-gray-500">{title}</span>
       <p className="text-[11px] text-gray-400 -mt-1">{subtitle}</p>
 

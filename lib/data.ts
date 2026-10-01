@@ -13,6 +13,7 @@ import {
   NoteCommentRow,
   ReminderTemplateRow,
   SeasonRow,
+  SeasonSourceDateRow,
   OverrideRow,
 } from "./types";
 import { expandEvents } from "./recurrence";
@@ -257,6 +258,53 @@ export async function getHolidaysForYear(year: number): Promise<HolidayRow[]> {
     return data ?? [];
   } catch (err) {
     console.error("getHolidaysForYear threw:", err);
+    return [];
+  }
+}
+
+// All entered institution dates for one year — backs the Seasons
+// "Update Calendar" (current year) and "Start a New Year" (next year) forms.
+// See migration 021 / lib/examScheduleSources.ts.
+export async function getSeasonSourceDates(year: number): Promise<SeasonSourceDateRow[]> {
+  try {
+    const { data, error } = await supabase
+      .from("season_source_dates")
+      .select("*")
+      .eq("year", year);
+    if (error) {
+      console.error("getSeasonSourceDates failed:", error.message);
+      return [];
+    }
+    return data ?? [];
+  } catch (err) {
+    console.error("getSeasonSourceDates threw:", err);
+    return [];
+  }
+}
+
+// Finds the most recent year with ANY entered data before `beforeYear` and
+// returns all its rows — used to prefill "Start a New Year"'s per-
+// institution inputs from whatever year was last actually entered, which
+// isn't necessarily beforeYear - 1 (a year could have been skipped).
+export async function getLatestSeasonSourceDatesBefore(
+  beforeYear: number
+): Promise<SeasonSourceDateRow[]> {
+  try {
+    const { data: yearRow, error: yearError } = await supabase
+      .from("season_source_dates")
+      .select("year")
+      .lt("year", beforeYear)
+      .order("year", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    if (yearError) {
+      console.error("getLatestSeasonSourceDatesBefore failed:", yearError.message);
+      return [];
+    }
+    if (!yearRow) return [];
+    return getSeasonSourceDates(yearRow.year);
+  } catch (err) {
+    console.error("getLatestSeasonSourceDatesBefore threw:", err);
     return [];
   }
 }

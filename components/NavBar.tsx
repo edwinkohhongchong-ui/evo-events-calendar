@@ -1,11 +1,12 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useUndo } from "@/lib/undo/UndoProvider";
 import { useIsEditor } from "@/lib/roleContext";
 import { useOnboardingTour } from "@/lib/useOnboardingTour";
+import { TOUR_STEPS } from "@/lib/tourSteps";
 import { useEscapeKey } from "@/lib/useEscapeKey";
 import ErrorBanner from "./ErrorBanner";
 
@@ -22,9 +23,20 @@ const LINKS = [
 export default function NavBar() {
   const pathname = usePathname();
   const isEditor = useIsEditor();
-  const { start: startTour } = useOnboardingTour();
+  const { start: startTour, isOpen: tourOpen, step: tourStep } = useOnboardingTour();
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
+
+  // While the onboarding tour is on a step that targets something inside
+  // this hamburger dropdown (e.g. "Export the event list"), force the menu
+  // open so the tour's highlight has something mounted to point at. This
+  // only ever opens the menu, never closes it — a Viewer/Editor who closes
+  // it manually mid-step just loses the highlight, not the tour itself.
+  useEffect(() => {
+    if (tourOpen && TOUR_STEPS[tourStep]?.requiresMenuOpen) {
+      setMenuOpen(true);
+    }
+  }, [tourOpen, tourStep]);
   const {
     undo,
     redo,
@@ -73,6 +85,7 @@ export default function NavBar() {
           <div className="flex items-center gap-1.5 shrink-0">
             <button
               type="button"
+              data-tour="undo-button"
               onClick={undo}
               disabled={!canUndo || isBusy}
               title={undoLabel ? `Undo: ${undoLabel} (Cmd/Ctrl+Z)` : "Nothing to undo"}
@@ -82,6 +95,7 @@ export default function NavBar() {
             </button>
             <button
               type="button"
+              data-tour="redo-button"
               onClick={redo}
               disabled={!canRedo || isBusy}
               title={redoLabel ? `Redo: ${redoLabel} (Cmd/Ctrl+Shift+Z)` : "Nothing to redo"}
@@ -95,6 +109,7 @@ export default function NavBar() {
         <div className="ml-auto relative shrink-0" ref={menuRef}>
           <button
             type="button"
+            data-tour="hamburger-menu-button"
             onClick={() => setMenuOpen((prev) => !prev)}
             aria-expanded={menuOpen}
             aria-label="Open menu"
@@ -113,7 +128,10 @@ export default function NavBar() {
                 onClick={closeMenu}
                 aria-hidden="true"
               />
-              <div className="absolute right-0 top-full mt-1 w-60 bg-white text-gray-800 rounded-md shadow-lg border border-gray-200 overflow-hidden z-50 py-1">
+              <div
+                data-tour="hamburger-menu-panel"
+                className="absolute right-0 top-full mt-1 w-60 bg-white text-gray-800 rounded-md shadow-lg border border-gray-200 overflow-hidden z-50 py-1"
+              >
                 {links.map((link) => {
                   const active = pathname === link.href;
                   return (
@@ -144,6 +162,7 @@ export default function NavBar() {
                     </a>
                     <Link
                       href="/export"
+                      data-tour="nav-export-document"
                       onClick={closeMenu}
                       className="block px-3 py-2 text-sm hover:bg-gray-50"
                     >

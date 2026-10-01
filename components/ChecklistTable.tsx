@@ -4,9 +4,10 @@ import { useEffect, useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import ChecklistModal from "./ChecklistModal";
 import ErrorBanner from "./ErrorBanner";
-import { ChecklistRow, ChecklistStatus, EventOption } from "@/lib/types";
+import { ChecklistRow, ChecklistStatus, EventOption, SeasonRow } from "@/lib/types";
 import { CHECKLIST_STATUSES, STATUS_COLORS, TARGET_MONTHS } from "@/lib/constants";
-import { updateChecklistStatus } from "@/lib/checklistActions";
+import { updateChecklistStatus, updateChecklistItem } from "@/lib/checklistActions";
+import { AUTO_CHECKS } from "@/lib/checklistAutoChecks";
 import { useUndo } from "@/lib/undo/UndoProvider";
 import { AffectedRow } from "@/lib/undo/types";
 
@@ -17,9 +18,11 @@ const ALL_MONTHS = "All";
 export default function ChecklistTable({
   checklist,
   eventOptions,
+  seasons,
 }: {
   checklist: ChecklistRow[];
   eventOptions: EventOption[];
+  seasons: SeasonRow[];
 }) {
   const router = useRouter();
   const { record } = useUndo();
@@ -80,6 +83,36 @@ export default function ChecklistTable({
         affected.push(...(await updateChecklistStatus(row.id, expected)));
       }
       if (affected.length > 0) record("Check Calendar", affected);
+
+      // Additive: run each item's tagged automated check (see
+      // lib/checklistAutoChecks.ts) and flag failures in its notes. Does not
+      // touch status, and never overwrites existing notes content — it only
+      // appends a line, and skips appending if that exact line is already
+      // present (e.g. from a previous "Check Calendar" run where the
+      // underlying problem hasn't been fixed yet).
+      const autoCheckAffected: AffectedRow[] = [];
+      for (const row of checklist) {
+        if (!row.auto_check_type) continue;
+        const checkFn = AUTO_CHECKS[row.auto_check_type];
+        if (!checkFn) continue;
+        const result = await checkFn(row, { seasons });
+        if (result.ok || !result.note) continue;
+        const existingNotes = row.notes ?? "";
+        if (existingNotes.includes(result.note)) continue;
+        const newNotes = existingNotes ? `${existingNotes}\n${result.note}` : result.note;
+        const values = {
+          category: row.category,
+          item: row.item,
+          status: row.status,
+          target_month: row.target_month,
+          notes: newNotes,
+          linked_event_id: row.linked_event_id,
+          auto_check_type: row.auto_check_type,
+        };
+        autoCheckAffected.push(...(await updateChecklistItem(row.id, values)));
+      }
+      if (autoCheckAffected.length > 0) record("Check Calendar (automated checks)", autoCheckAffected);
+
       router.refresh();
     } catch {
       setError("Couldn't finish checking the calendar. Please try again.");

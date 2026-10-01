@@ -198,23 +198,25 @@ export default function CalendarBoard({
           levels={levels}
           onAddClick={isEditor ? () => setModal({ type: "add", date: defaultAddDate }) : undefined}
         />
-        <CalendarGrid
-          weeks={weeks}
-          monthStart={monthStart}
-          dayIndex={dayIndex}
-          seasonSegmentsByWeek={seasonSegmentsByWeek}
-          eventSegmentsByWeek={eventSegmentsByWeek}
-          onDayClick={(date) => {
-            if (isDraggingRef.current || !isEditor) return;
-            setModal({ type: "add", date });
-          }}
-          onEventClick={(occ) => {
-            if (isDraggingRef.current) return;
-            setModal({ type: "edit", occurrence: occ });
-          }}
-          onHolidayClick={(holiday) => setHolidayModal({ type: "edit", holiday })}
-          onSeasonClick={(season) => setSeasonModal({ type: "edit", season })}
-        />
+        <div data-tour="calendar-grid">
+          <CalendarGrid
+            weeks={weeks}
+            monthStart={monthStart}
+            dayIndex={dayIndex}
+            seasonSegmentsByWeek={seasonSegmentsByWeek}
+            eventSegmentsByWeek={eventSegmentsByWeek}
+            onDayClick={(date) => {
+              if (isDraggingRef.current || !isEditor) return;
+              setModal({ type: "add", date });
+            }}
+            onEventClick={(occ) => {
+              if (isDraggingRef.current) return;
+              setModal({ type: "edit", occurrence: occ });
+            }}
+            onHolidayClick={(holiday) => setHolidayModal({ type: "edit", holiday })}
+            onSeasonClick={(season) => setSeasonModal({ type: "edit", season })}
+          />
+        </div>
         <DragOverlay>{activeOcc && <EventCardContent occurrence={activeOcc} />}</DragOverlay>
       </DndContext>
       {modal.type !== "closed" && (

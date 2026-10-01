@@ -5,13 +5,18 @@ import {
   useCallback,
   useContext,
   useEffect,
+  useRef,
   useState,
   ReactNode,
 } from "react";
+import { usePathname, useRouter } from "next/navigation";
 
 // Bumping this key (e.g. to v2) would re-trigger the auto-show for everyone,
 // which is useful if the tour content changes substantially later.
 const TOUR_SEEN_KEY = "evo_tour_seen_v1";
+// Skip/Escape lasts for this browser tab's session only (sessionStorage), so a
+// reload doesn't reopen the tour, but a new visit later still offers it.
+const TOUR_SKIPPED_KEY = "evo_tour_skipped_session";
 
 interface OnboardingTourContextValue {
   /** Open the tour modal. Ignores the localStorage "seen" check — always shows. */
@@ -39,36 +44,56 @@ const OnboardingTourContext = createContext<OnboardingTourContextValue | null>(n
 export function OnboardingTourProvider({ children }: { children: ReactNode }) {
   const [isOpen, setIsOpen] = useState(false);
   const [step, setStep] = useState(0);
+  const pathname = usePathname();
+  const router = useRouter();
 
-  // On mount, auto-start the tour once for anyone who hasn't seen it yet.
-  // Deferred to the next tick (setTimeout 0) rather than running synchronously
-  // during render/mount, so it never blocks or competes with initial paint.
+  // Auto-start the tour once for anyone who hasn't seen it yet. Never on the
+  // login page (nobody is signed in there, and the tour's steps point at the
+  // signed-in app) — the check re-runs on route change so it fires right
+  // after sign-in. Deferred a tick so it never competes with initial paint.
+  const autoStarted = useRef(false);
   useEffect(() => {
+    if (autoStarted.current || pathname.startsWith("/login")) return;
     const timer = setTimeout(() => {
       let seen: string | null = null;
+      let skippedThisSession: string | null = null;
       try {
         seen = window.localStorage.getItem(TOUR_SEEN_KEY);
+        skippedThisSession = window.sessionStorage.getItem(TOUR_SKIPPED_KEY);
       } catch {
-        // localStorage can throw (private browsing, blocked storage) —
-        // treat as "not seen" and just skip the auto-show rather than crash.
+        // Storage can throw (private browsing, blocked storage) — skip the
+        // auto-show rather than crash.
         return;
       }
-      if (!seen) {
+      autoStarted.current = true;
+      if (!seen && !skippedThisSession) {
         setStep(0);
         setIsOpen(true);
+        // Step 1 expects to be on the calendar page.
+        if (pathname !== "/") router.push("/");
       }
     }, 0);
     return () => clearTimeout(timer);
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pathname]);
 
-  // Manual trigger (e.g. a future "Replay tour" nav item) — always shows the
-  // tour from the start, regardless of whether it's been seen before.
+  // Manual trigger (e.g. the "Replay tour" nav item) — always shows the tour
+  // from the start, regardless of whether it's been seen before. Step 1
+  // expects to be on the calendar ("/"), so navigate there first if needed;
+  // the step-change effect in OnboardingTourModal takes over from there for
+  // every step after this one.
   const start = useCallback(() => {
     setStep(0);
     setIsOpen(true);
-  }, []);
+    if (pathname !== "/") router.push("/");
+  }, [pathname, router]);
 
   const skip = useCallback(() => {
+    try {
+      window.sessionStorage.setItem(TOUR_SKIPPED_KEY, "true");
+    } catch {
+      // Ignore — worst case the tour reopens on the next reload.
+    }
     setIsOpen(false);
   }, []);
 

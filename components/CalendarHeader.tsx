@@ -52,6 +52,7 @@ export default function CalendarHeader({ monthStart, levels, onAddClick }: Calen
             <>
               <button
                 type="button"
+                data-tour="add-event-button"
                 onClick={onAddClick}
                 className="px-2.5 py-1 rounded bg-navy text-white"
               >

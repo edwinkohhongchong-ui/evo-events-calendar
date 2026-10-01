@@ -1,4 +1,4 @@
-import { getAllChecklist, getEventOptions } from "@/lib/data";
+import { getAllChecklist, getEventOptions, getAllSeasons } from "@/lib/data";
 import ChecklistTable from "@/components/ChecklistTable";
 import InstructionsPanel from "@/components/InstructionsPanel";
 
@@ -13,13 +13,17 @@ const INSTRUCTIONS = [
 ];
 
 export default async function ChecklistPage() {
-  const [checklist, eventOptions] = await Promise.all([getAllChecklist(), getEventOptions()]);
+  const [checklist, eventOptions, seasons] = await Promise.all([
+    getAllChecklist(),
+    getEventOptions(),
+    getAllSeasons(),
+  ]);
 
   return (
     <main className="max-w-5xl mx-auto p-4 sm:p-6">
       <h1 className="text-xl font-semibold text-navy mb-4">Checklist</h1>
       <InstructionsPanel lines={INSTRUCTIONS} />
-      <ChecklistTable checklist={checklist} eventOptions={eventOptions} />
+      <ChecklistTable checklist={checklist} eventOptions={eventOptions} seasons={seasons} />
     </main>
   );
 }

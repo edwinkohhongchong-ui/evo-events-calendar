@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, FormEvent } from "react";
-import { ChecklistRow, ChecklistStatus, EventOption, TargetMonth } from "@/lib/types";
+import { ChecklistAutoCheckType, ChecklistRow, ChecklistStatus, EventOption, TargetMonth } from "@/lib/types";
 import { CHECKLIST_STATUSES, TARGET_MONTHS } from "@/lib/constants";
 import { formatDateDisplay } from "@/lib/dates";
 import {
@@ -28,6 +28,7 @@ interface ChecklistModalProps {
 
 const NO_MONTH = "";
 const NO_LINK = "";
+const NO_AUTO_CHECK = "";
 
 export default function ChecklistModal({
   mode,
@@ -47,6 +48,7 @@ export default function ChecklistModal({
     item?.linked_event_id ?? defaultLinkedEventId ?? NO_LINK
   );
   const [notes, setNotes] = useState(item?.notes ?? "");
+  const [autoCheckType, setAutoCheckType] = useState<string>(item?.auto_check_type ?? NO_AUTO_CHECK);
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
   const [confirmDelete, setConfirmDelete] = useState(false);
@@ -75,6 +77,7 @@ export default function ChecklistModal({
         target_month: (targetMonth || null) as TargetMonth | null,
         notes: notes.trim() || null,
         linked_event_id: linkedEventId || null,
+        auto_check_type: (autoCheckType || null) as ChecklistAutoCheckType | null,
       };
       if (mode === "add") {
         const affected = await createChecklistItem(values);
@@ -198,6 +201,23 @@ export default function ChecklistModal({
                 className="border rounded px-2 py-1"
                 rows={2}
               />
+            </label>
+            <label className="flex flex-col gap-1 text-sm">
+              Automated check
+              <select
+                value={autoCheckType}
+                onChange={(e) => setAutoCheckType(e.target.value)}
+                className="border rounded px-2 py-1"
+              >
+                <option value={NO_AUTO_CHECK}>None</option>
+                <option value="school_holidays_present">
+                  All school holidays present for this month
+                </option>
+              </select>
+              <span className="text-xs text-gray-400 font-normal">
+                Run by &ldquo;Check Calendar&rdquo; — flags this item&rsquo;s notes if the rule
+                doesn&rsquo;t pass.
+              </span>
             </label>
 
             {formError && <p className="text-sm text-red-600">{formError}</p>}

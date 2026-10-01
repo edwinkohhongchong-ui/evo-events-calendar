@@ -2,6 +2,7 @@
 
 import { useMemo, useState, MouseEvent } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import SeasonModal from "./SeasonModal";
 import ConfirmDialog from "./ConfirmDialog";
 import { useEscapeKey } from "@/lib/useEscapeKey";
@@ -86,12 +87,27 @@ export default function SeasonsTable({ seasons }: { seasons: SeasonRow[] }) {
             ))}
           </select>
         </label>
-        <button
-          onClick={() => setModal({ type: "add" })}
-          className="px-3 py-1.5 text-sm rounded bg-navy text-white"
-        >
-          Add Season
-        </button>
+        <div className="flex gap-2">
+          <Link
+            href="/seasons/update-calendar"
+            className="px-3 py-1.5 text-sm rounded border border-navy text-navy"
+            title="Manually enter this year's exam/term dates for each institution — there's no API for these, so this is an entry assist, not a live fetch"
+          >
+            Update Calendar
+          </Link>
+          <Link
+            href="/seasons/new-year"
+            className="px-3 py-1.5 text-sm rounded border border-navy text-navy"
+          >
+            Start a New Year
+          </Link>
+          <button
+            onClick={() => setModal({ type: "add" })}
+            className="px-3 py-1.5 text-sm rounded bg-navy text-white"
+          >
+            Add Season
+          </button>
+        </div>
       </div>
       <div className="border border-gray-200 rounded-md overflow-hidden overflow-x-auto">
         <table className="w-full text-sm whitespace-nowrap">

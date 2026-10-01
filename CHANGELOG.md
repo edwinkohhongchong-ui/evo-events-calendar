@@ -8,6 +8,35 @@ items (features/fixes) that push contains — a push with 1 item goes up by
 `1.05`). If MINOR would pass `.99`, MAJOR increments and MINOR carries the
 remainder (e.g. `1.99` + 2 items → `2.01`).
 
+## v1.55 — 2026-10-01
+
+- The onboarding tour is now a guided walkthrough: as it advances it
+  navigates to the right page, opens the menu when needed, and draws a gold
+  ring around the real button or panel it's explaining (Add Event, the
+  calendar grid, both notes panels, the menu, Export Document, Undo). The
+  explanation card moves out of the way so it never covers what it points
+  at, and a stray click on the dimmed area no longer ends the tour.
+- Fixed the tour appearing on the login page before anyone had signed in —
+  it now starts right after sign-in. Skip/Escape is also remembered for the
+  browser tab, so a reload doesn't reopen it (only finishing it marks it
+  permanently seen).
+- Seasons: added "Update Calendar" — quick links to MOE, each polytechnic,
+  and each university's official calendar, with start/end date fields per
+  institution. The app works out the aggregate (earliest start, latest end)
+  for Polytechnic and University exam periods and saves it as the season.
+  Dates are entered by hand because these institutions publish PDFs, not a
+  data feed. New `season_source_dates` table (migration 021).
+- Seasons: added "Start a New Year" — pick which of this year's seasons to
+  carry forward. Exam/term seasons are prefilled from last year's
+  per-institution dates (flagged where there's no prior data); other
+  seasons shift forward one year. Everything is shown for review and edit
+  before anything is saved.
+- Checklist: items can now be tagged with an "Automated check". First
+  check: "All school holidays present for this month" — "Check Calendar"
+  confirms a School Schedule season covers the item's target month and adds
+  a warning to the item's notes if not. Existing linked-event behavior is
+  unchanged. New `auto_check_type` column (migration 022).
+
 ## v1.50 — 2026-10-01
 
 - Added a first-run onboarding tour (14 steps: using the calendar, the

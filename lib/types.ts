@@ -136,6 +136,11 @@ export interface SeasonRow {
 
 export type ChecklistStatus = "Not Started" | "In Progress" | "Done";
 
+// Optional, curated "automated check" tag — each value is backed by one
+// concrete, reliable rule in lib/checklistAutoChecks.ts, picked explicitly
+// from a dropdown (not inferred from the item's title). See migration 022.
+export type ChecklistAutoCheckType = "school_holidays_present";
+
 export type TargetMonth =
   | "Jan"
   | "Feb"
@@ -161,6 +166,7 @@ export interface ChecklistRow {
   // back to null automatically if the linked event is deleted. "Check
   // Calendar" reconciles status against this (see migration 014).
   linked_event_id: string | null;
+  auto_check_type: ChecklistAutoCheckType | null;
 }
 
 // Slim shape for the "Link to event" picker — just enough to identify an
@@ -206,6 +212,20 @@ export interface SeasonFormValues {
   color: SeasonColorKey | null;
 }
 
+// One institution's entered exam/term dates for one year — see migration
+// 021. Manually typed in via the Seasons "Update Calendar"/"Start a New
+// Year" flows (lib/examScheduleSources.ts), aggregated (earliest start/
+// latest end) into a `seasons` row per group, and kept around year over
+// year so next year's entry can prefill from this year's.
+export interface SeasonSourceDateRow {
+  id: string;
+  group_name: string;
+  institution: string;
+  year: number;
+  start_date: string | null; // yyyy-MM-dd
+  end_date: string | null; // yyyy-MM-dd
+}
+
 export interface ChecklistFormValues {
   category: string;
   item: string;
@@ -213,6 +233,7 @@ export interface ChecklistFormValues {
   target_month: TargetMonth | null;
   notes: string | null;
   linked_event_id: string | null;
+  auto_check_type: ChecklistAutoCheckType | null;
 }
 
 // A reusable set of checklist items (see migration 018) — applying one to
