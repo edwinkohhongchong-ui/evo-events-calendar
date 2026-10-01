@@ -106,3 +106,163 @@ export const ChevronIcon = ({ open }: { open: boolean }) => (
     <path d="m6 9 6 6 6-6" />
   </Icon>
 );
+
+// ---- Calendar-phase icons (additive) ----
+export const PlusIcon = (p: P) => (
+  <Icon {...p}>
+    <path d="M12 5v14M5 12h14" />
+  </Icon>
+);
+export const ChevronLeftIcon = (p: P) => (
+  <Icon {...p}>
+    <path d="m15 18-6-6 6-6" />
+  </Icon>
+);
+export const ChevronRightIcon = (p: P) => (
+  <Icon {...p}>
+    <path d="m9 18 6-6-6-6" />
+  </Icon>
+);
+export const PencilIcon = (p: P) => (
+  <Icon {...p}>
+    <path d="M17 3a2.85 2.85 0 0 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z" />
+  </Icon>
+);
+export const TrashIcon = (p: P) => (
+  <Icon {...p}>
+    <path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M10 11v6M14 11v6" />
+  </Icon>
+);
+export const XIcon = (p: P) => (
+  <Icon {...p}>
+    <path d="M18 6 6 18M6 6l12 12" />
+  </Icon>
+);
+export const CheckIcon = (p: P) => (
+  <Icon {...p}>
+    <path d="M20 6 9 17l-5-5" />
+  </Icon>
+);
+export const UndoIcon = (p: P) => (
+  <Icon {...p}>
+    <path d="M9 14 4 9l5-5" />
+    <path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11" />
+  </Icon>
+);
+export const RedoIcon = (p: P) => (
+  <Icon {...p}>
+    <path d="m15 14 5-5-5-5" />
+    <path d="M20 9H9.5a5.5 5.5 0 0 0 0 11H13" />
+  </Icon>
+);
+export const SearchIcon = (p: P) => (
+  <Icon {...p}>
+    <circle cx="11" cy="11" r="8" />
+    <path d="m21 21-4.35-4.35" />
+  </Icon>
+);
+export const TagPlusIcon = (p: P) => (
+  <Icon {...p}>
+    <path d="M12.59 2.59A2 2 0 0 0 11.17 2H2v9.17a2 2 0 0 0 .59 1.41l8.82 8.82a2 2 0 0 0 2.83 0l7.18-7.18a2 2 0 0 0 0-2.83z" />
+    <circle cx="7" cy="7" r="1" />
+    <path d="M18 2v6M15 5h6" />
+  </Icon>
+);
+export const CopyIcon = (p: P) => (
+  <Icon {...p}>
+    <rect x="9" y="9" width="13" height="13" rx="2" />
+    <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+  </Icon>
+);
+export const RepeatIcon = (p: P) => (
+  <Icon {...p}>
+    <path d="m17 2 4 4-4 4" />
+    <path d="M3 11v-1a4 4 0 0 1 4-4h14M7 22l-4-4 4-4" />
+    <path d="M21 13v1a4 4 0 0 1-4 4H3" />
+  </Icon>
+);
+export const ClockIcon = (p: P) => (
+  <Icon {...p}>
+    <circle cx="12" cy="12" r="10" />
+    <path d="M12 6v6l4 2" />
+  </Icon>
+);
+export const MapPinIcon = (p: P) => (
+  <Icon {...p}>
+    <path d="M20 10c0 6-8 12-8 12S4 16 4 10a8 8 0 0 1 16 0z" />
+    <circle cx="12" cy="10" r="3" />
+  </Icon>
+);
+export const StickyNoteIcon = (p: P) => (
+  <Icon {...p}>
+    <path d="M15.5 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V8.5z" />
+    <path d="M15 3v6h6" />
+  </Icon>
+);
+export const FlagIcon = (p: P) => (
+  <Icon {...p}>
+    <path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z" />
+    <path d="M4 22v-7" />
+  </Icon>
+);
+export const ListChecksIcon = (p: P) => (
+  <Icon {...p}>
+    <path d="m3 17 2 2 4-4M3 7l2 2 4-4M13 6h8M13 12h8M13 18h8" />
+  </Icon>
+);
+export const DownloadIcon = (p: P) => (
+  <Icon {...p}>
+    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+    <path d="m7 10 5 5 5-5M12 15V3" />
+  </Icon>
+);
+export const HelpCircleIcon = (p: P) => (
+  <Icon {...p}>
+    <circle cx="12" cy="12" r="10" />
+    <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3M12 17h.01" />
+  </Icon>
+);
+export const GripVerticalIcon = (p: P) => (
+  <Icon {...p}>
+    <circle cx="9" cy="5" r="1" />
+    <circle cx="9" cy="12" r="1" />
+    <circle cx="9" cy="19" r="1" />
+    <circle cx="15" cy="5" r="1" />
+    <circle cx="15" cy="12" r="1" />
+    <circle cx="15" cy="19" r="1" />
+  </Icon>
+);
+export const LockIcon = (p: P) => (
+  <Icon {...p}>
+    <rect x="3" y="11" width="18" height="11" rx="2" />
+    <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+  </Icon>
+);
+export const CircleIcon = (p: P) => (
+  <Icon {...p}>
+    <circle cx="12" cy="12" r="10" />
+  </Icon>
+);
+export const CircleDotIcon = (p: P) => (
+  <Icon {...p}>
+    <circle cx="12" cy="12" r="10" />
+    <circle cx="12" cy="12" r="1" />
+  </Icon>
+);
+export const CheckCircleIcon = (p: P) => (
+  <Icon {...p}>
+    <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
+    <path d="m9 11 3 3L22 4" />
+  </Icon>
+);
+export const SlidersIcon = (p: P) => (
+  <Icon {...p}>
+    <path d="M4 21v-7M4 10V3M12 21v-9M12 8V3M20 21v-5M20 12V3M1 14h6M9 8h6M17 16h6" />
+  </Icon>
+);
+export const NotebookPenIcon = (p: P) => (
+  <Icon {...p}>
+    <path d="M13.4 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-7.4M2 6h4M2 10h4M2 14h4M2 18h4" />
+    <path d="M21.4 5.6a2 2 0 0 0-2.8-2.8L12 9.4V12h2.6z" />
+  </Icon>
+);

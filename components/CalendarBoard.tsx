@@ -20,6 +20,7 @@ import SeasonModal from "./SeasonModal";
 import ErrorBanner from "./ErrorBanner";
 import { buildDayIndex } from "@/lib/dayIndex";
 import { occurrenceKey } from "@/lib/occurrenceKey";
+import { withOptimisticMove } from "@/lib/optimisticMove";
 import { moveOccurrence, extendOccurrenceSpan } from "@/lib/actions";
 import { SeasonSegment } from "@/lib/seasonBars";
 import { computeEventBarSegments } from "@/lib/eventBars";
@@ -100,7 +101,7 @@ export default function CalendarBoard({
     if (optimisticMove) {
       next = next.map((occ) =>
         occurrenceKey(occ) === optimisticMove.key
-          ? { ...occ, occurrenceDate: optimisticMove.newDate }
+          ? withOptimisticMove(occ, optimisticMove.newDate)
           : occ
       );
     }
@@ -217,7 +218,7 @@ export default function CalendarBoard({
             onSeasonClick={(season) => setSeasonModal({ type: "edit", season })}
           />
         </div>
-        <DragOverlay>{activeOcc && <EventCardContent occurrence={activeOcc} />}</DragOverlay>
+        <DragOverlay>{activeOcc && <EventCardContent occurrence={activeOcc} lifted />}</DragOverlay>
       </DndContext>
       {modal.type !== "closed" && (
         <EventModal

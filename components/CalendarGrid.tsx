@@ -34,12 +34,12 @@ export default function CalendarGrid({
   onSeasonClick,
 }: CalendarGridProps) {
   return (
-    <div className="border border-gray-200 rounded-md overflow-hidden">
-      <div className="grid grid-cols-7 bg-navy text-white text-xs font-semibold">
+    <div className="border border-line bg-surface rounded-card overflow-hidden">
+      <div className="grid grid-cols-7 bg-surface border-b border-line text-micro font-medium text-ink-2">
         {WEEKDAY_LABELS.map((label, i) => (
           <div
             key={label}
-            className={["py-1.5 text-center", i === 6 ? "bg-gold/30" : ""].join(" ")}
+            className={["py-1 text-center", i === 6 ? "bg-gold-50 text-ink" : ""].join(" ")}
           >
             {label}
           </div>

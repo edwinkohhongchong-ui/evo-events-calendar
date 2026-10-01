@@ -9,6 +9,9 @@ import { useIsEditor } from "@/lib/roleContext";
 import { NoteCommentRow, NoteScope } from "@/lib/types";
 import { useEscapeKey } from "@/lib/useEscapeKey";
 import ConfirmDialog from "./ConfirmDialog";
+import Card from "./ui/Card";
+import Button from "./ui/Button";
+import { XIcon } from "./icons";
 
 const AUTHOR_NAME_KEY = "evo-author-name";
 
@@ -162,11 +165,11 @@ export default function NotesPanel({
 
   function renderComment(c: NoteCommentRow, isReply: boolean) {
     return (
-      <div key={c.id} className={["text-xs group", isReply ? "pl-3 border-l-2 border-gray-100" : ""].join(" ")}>
-        <div className="flex items-baseline justify-between gap-2">
-          <span className="font-medium text-navy truncate">{c.author_name}</span>
-          <div className="flex items-center gap-1.5 shrink-0">
-            <span className="text-gray-400 text-[10px] whitespace-nowrap">
+      <div key={c.id} className={["group", isReply ? "pl-3 border-l-2 border-line" : ""].join(" ")}>
+        <div className="flex items-center justify-between gap-2">
+          <span className="text-chip font-medium text-navy truncate">{c.author_name}</span>
+          <div className="flex items-center gap-1 shrink-0">
+            <span className="text-micro text-ink-2 whitespace-nowrap">
               {format(parseISO(c.created_at), "d MMM, h:mm a")}
             </span>
             {isEditor && (
@@ -175,14 +178,15 @@ export default function NotesPanel({
                 onClick={() => handleRemove(c.id)}
                 disabled={removingId === c.id}
                 title="Delete this note"
-                className="leading-none text-gray-300 hover:text-red-600 disabled:opacity-30"
+                aria-label="Delete this note"
+                className="inline-flex h-5 w-5 items-center justify-center rounded-full text-ink-3 hover:bg-fill hover:text-danger disabled:opacity-30"
               >
-                ×
+                <XIcon className="!h-3.5 !w-3.5" />
               </button>
             )}
           </div>
         </div>
-        <p className="text-gray-700 whitespace-pre-wrap break-words">{c.content}</p>
+        <p className="text-chip text-ink whitespace-pre-wrap break-words">{c.content}</p>
         {!isReply && (
           <button
             type="button"
@@ -190,7 +194,7 @@ export default function NotesPanel({
               setReplyingTo(replyingTo === c.id ? null : c.id);
               setReplyDraft("");
             }}
-            className="text-[10px] text-gray-400 hover:text-navy hover:underline"
+            className="text-micro font-medium text-ink-2 hover:text-navy hover:underline"
           >
             Reply
           </button>
@@ -200,17 +204,20 @@ export default function NotesPanel({
   }
 
   return (
-    <div
+    <Card
       data-tour={scope === "general" ? "general-notes-panel" : "month-notes-panel"}
-      className="bg-white border border-gray-200 rounded-md p-3 flex flex-col gap-2"
+      padding="p-4"
+      className="flex flex-col gap-3"
     >
-      <span className="text-xs font-medium text-gray-500">{title}</span>
-      <p className="text-[11px] text-gray-400 -mt-1">{subtitle}</p>
+      <div className="flex items-baseline justify-between gap-2">
+        <h2 className="text-ui font-semibold text-ink">{title}</h2>
+        <span className="text-micro text-ink-2 whitespace-nowrap">{subtitle}</span>
+      </div>
 
-      <div className="flex flex-col gap-2.5">
-        {topLevel.length === 0 && <p className="text-xs text-gray-400">No notes yet.</p>}
+      <div className="flex flex-col gap-3">
+        {topLevel.length === 0 && <p className="text-chip text-ink-2">No notes yet.</p>}
         {topLevel.map((c) => (
-          <div key={c.id} className="flex flex-col gap-1.5 border-b border-gray-100 pb-2">
+          <div key={c.id} className="flex flex-col gap-1.5 border-b border-line pb-3 last:border-b-0 last:pb-0">
             {renderComment(c, false)}
             {(repliesByParent.get(c.id) ?? []).map((reply) => renderComment(reply, true))}
             {replyingTo === c.id && authorName && (
@@ -220,24 +227,19 @@ export default function NotesPanel({
                   onChange={(e) => setReplyDraft(e.target.value)}
                   placeholder={`Reply to ${c.author_name}…`}
                   rows={2}
-                  className="border rounded px-2 py-1 text-xs resize-none"
+                  className="border border-line-strong rounded-ctl px-2.5 py-1.5 text-chip resize-none"
                 />
                 <div className="self-end flex gap-1.5">
-                  <button
-                    type="button"
-                    onClick={() => setReplyingTo(null)}
-                    className="px-2 py-0.5 text-[11px] rounded border border-gray-300"
-                  >
+                  <Button variant="ghost" size="sm" onClick={() => setReplyingTo(null)}>
                     Cancel
-                  </button>
-                  <button
-                    type="button"
+                  </Button>
+                  <Button
+                    size="sm"
                     onClick={() => handleReplySubmit(c.id)}
                     disabled={saving || !replyDraft.trim()}
-                    className="px-2 py-0.5 text-[11px] rounded bg-navy text-white disabled:opacity-50"
                   >
                     {saving ? "Saving…" : "Reply"}
-                  </button>
+                  </Button>
                 </div>
               </div>
             )}
@@ -245,14 +247,14 @@ export default function NotesPanel({
         ))}
       </div>
 
-      <div className="border-t border-gray-200 pt-2 flex flex-col gap-1.5">
+      <div className="border-t border-line pt-3 flex flex-col gap-2">
         {authorName ? (
-          <div className="flex items-center gap-1 text-[10px] text-gray-400">
-            Commenting as <span className="font-medium text-gray-600">{authorName}</span>
+          <div className="flex items-center gap-1 text-micro text-ink-2">
+            Commenting as <span className="font-medium text-ink">{authorName}</span>
             <button
               type="button"
               onClick={() => setAuthorNameState(null)}
-              className="underline hover:no-underline"
+              className="underline hover:no-underline hover:text-navy"
             >
               change
             </button>
@@ -263,16 +265,11 @@ export default function NotesPanel({
               value={nameDraft}
               onChange={(e) => setNameDraft(e.target.value)}
               placeholder="Your name"
-              className="border rounded px-2 py-1 text-xs flex-1 min-w-0"
+              className="border border-line-strong rounded-pill px-3 py-1 text-chip flex-1 min-w-0"
             />
-            <button
-              type="button"
-              onClick={() => saveAuthorName(nameDraft)}
-              disabled={!nameDraft.trim()}
-              className="px-2 py-1 text-xs rounded bg-navy text-white disabled:opacity-50"
-            >
+            <Button size="sm" onClick={() => saveAuthorName(nameDraft)} disabled={!nameDraft.trim()}>
               Set
-            </button>
+            </Button>
           </div>
         )}
 
@@ -283,19 +280,15 @@ export default function NotesPanel({
               onChange={(e) => setContent(e.target.value)}
               placeholder={placeholder}
               rows={2}
-              className="border rounded px-2 py-1.5 text-sm resize-none"
+              className="border border-line-strong rounded-ctl px-2.5 py-1.5 text-body resize-none"
             />
-            <button
-              type="submit"
-              disabled={saving || !content.trim()}
-              className="self-end px-2.5 py-1 text-xs rounded bg-navy text-white disabled:opacity-50"
-            >
+            <Button type="submit" size="sm" className="self-end" disabled={saving || !content.trim()}>
               {saving ? "Saving…" : "Save"}
-            </button>
+            </Button>
           </form>
         )}
       </div>
-      {error && <p className="text-xs text-red-600">{error}</p>}
+      {error && <p className="text-micro text-danger">{error}</p>}
 
       {pendingDeleteId && (
         <div
@@ -316,6 +309,6 @@ export default function NotesPanel({
           </div>
         </div>
       )}
-    </div>
+    </Card>
   );
 }

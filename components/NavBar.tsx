@@ -241,7 +241,13 @@ export default function NavBar() {
         </div>
       )}
       <div className="max-w-6xl mx-auto px-4 sm:px-6 flex items-center h-12 gap-3">
-        <span className="font-semibold text-sm whitespace-nowrap shrink-0">+EVO Events</span>
+        <Link
+          href="/"
+          aria-label="+EVO Events — back to the calendar"
+          className="font-semibold text-sm whitespace-nowrap shrink-0 rounded-md px-1 -mx-1 hover:opacity-80 transition-opacity duration-fast"
+        >
+          +EVO Events
+        </Link>
 
         {isEditor && (
           <div className="flex items-center gap-1.5 shrink-0">

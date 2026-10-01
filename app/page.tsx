@@ -58,12 +58,12 @@ export default async function Home({ searchParams }: HomeProps) {
   );
 
   return (
-    <main className="max-w-[1600px] mx-auto p-4 sm:p-6">
-      <div className="grid grid-cols-1 lg:grid-cols-[220px_1fr_220px] gap-4 items-start">
+    <main className="max-w-[1600px] mx-auto px-4 py-4 sm:px-6 sm:py-5">
+      <div className="grid grid-cols-1 lg:grid-cols-[232px_minmax(0,1fr)_232px] gap-4 lg:gap-6 items-start">
         <div className="order-2 lg:order-1">
           <NotesPanel
             title="General Notes"
-            subtitle="Shown for every month."
+            subtitle="Every month"
             placeholder="Add a note…"
             scope="general"
             comments={generalComments}
@@ -86,7 +86,7 @@ export default async function Home({ searchParams }: HomeProps) {
           <NotesPanel
             key={`${year}-${month}`}
             title="Month Notes"
-            subtitle="Specific to this month only."
+            subtitle="This month only"
             placeholder="Add a note for this month…"
             scope="month"
             year={year}

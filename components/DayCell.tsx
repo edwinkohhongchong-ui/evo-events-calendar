@@ -6,6 +6,7 @@ import { useDroppable } from "@dnd-kit/core";
 import Link from "next/link";
 import EventCard from "./EventCard";
 import DayNotes from "./DayNotes";
+import { FlagIcon } from "./icons";
 import { DayData } from "@/lib/dayIndex";
 import { toDateStr } from "@/lib/dates";
 import { occurrenceKey } from "@/lib/occurrenceKey";
@@ -52,20 +53,24 @@ export default function DayCell({
       ref={setNodeRef}
       onClick={() => onDayClick(dateStr)}
       className={[
-        "min-h-[160px] border border-gray-200 p-1.5 flex flex-col gap-1 cursor-pointer",
-        isCurrentMonth ? "bg-white" : "bg-gray-50",
-        isSunday && isCurrentMonth ? "bg-gold/10" : "",
-        isOver ? "ring-2 ring-inset ring-gold" : "",
+        "group/cell min-h-[160px] border-b border-r border-line [&:nth-child(7n)]:border-r-0 p-1.5 flex flex-col gap-1 cursor-pointer transition-[filter] duration-fast hover:brightness-[0.97]",
+        !isCurrentMonth ? "bg-canvas" : isSunday ? "bg-gold-50" : "bg-surface",
+        isOver ? "ring-2 ring-inset ring-navy !bg-navy-50" : "",
       ].join(" ")}
     >
-      <div className="flex items-baseline gap-1.5 flex-wrap">
+      <div className="flex items-center gap-x-1.5 gap-y-0.5 flex-wrap min-w-0">
         <Link
           href={`/day/${dateStr}`}
           onClick={(e) => e.stopPropagation()}
+          aria-label={today ? `${dayNumber} (today)` : undefined}
+          title={today ? "Today" : undefined}
           className={[
-            "text-xs font-medium leading-none hover:underline shrink-0",
-            isCurrentMonth ? "text-navy" : "text-gray-400",
-            today ? "flex items-center justify-center w-5 h-5 rounded-full bg-navy text-white" : "",
+            "flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-chip leading-none hover:underline",
+            today
+              ? "bg-navy font-bold text-white ring-2 ring-gold ring-offset-1 ring-offset-surface"
+              : isCurrentMonth
+                ? "font-medium text-navy"
+                : "font-normal text-ink-3/60",
           ].join(" ")}
         >
           {dayNumber}
@@ -78,10 +83,14 @@ export default function DayCell({
               e.stopPropagation();
               onHolidayClick(holiday);
             }}
-            className="text-[11px] font-medium text-red-600 truncate hover:underline"
+            className={[
+              "inline-flex max-w-full min-w-0 items-center gap-0.5 text-micro hover:underline",
+              isCurrentMonth ? "text-ink-2" : "text-ink-3/60",
+            ].join(" ")}
             title={`Edit "${holiday.name}"`}
           >
-            {holiday.name}
+            <FlagIcon className="!h-3 !w-3 text-danger/70" />
+            <span className="truncate">{holiday.name}</span>
           </button>
         ))}
       </div>
@@ -103,7 +112,7 @@ export default function DayCell({
             e.stopPropagation();
             setExpanded((prev) => !prev);
           }}
-          className="text-[11px] text-navy hover:underline text-left"
+          className="text-micro text-ink-2 hover:text-navy hover:underline text-left"
         >
           {expanded ? "Show less" : `+${occurrences.length - MAX_VISIBLE} more`}
         </button>

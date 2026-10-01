@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { format, addMonths, subMonths } from "date-fns";
@@ -8,6 +8,30 @@ import { LevelRow } from "@/lib/types";
 import { useIsEditor } from "@/lib/roleContext";
 import LevelModal from "./LevelModal";
 import LevelChips from "./LevelChips";
+import Button from "./ui/Button";
+import { ChevronLeftIcon, ChevronRightIcon, PlusIcon, TagPlusIcon } from "./icons";
+
+// Prev/next stay real links (middle-click, open in new tab) styled as
+// icon-only buttons with a CSS tooltip, since IconButton renders a <button>.
+function NavChevron({ href, label, icon }: { href: string; label: string; icon: ReactNode }) {
+  return (
+    <span className="group relative inline-flex">
+      <Link
+        href={href}
+        aria-label={label}
+        className="inline-flex h-8 w-8 items-center justify-center rounded-full text-ink-2 transition-colors duration-fast ease-apple hover:bg-fill hover:text-navy"
+      >
+        {icon}
+      </Link>
+      <span
+        aria-hidden="true"
+        className="pointer-events-none absolute left-1/2 top-full z-50 mt-1.5 -translate-x-1/2 whitespace-nowrap rounded-chip bg-ink px-2 py-1 text-micro font-medium text-white opacity-0 transition-opacity delay-300 duration-fast group-hover:opacity-100 group-focus-within:opacity-100"
+      >
+        {label}
+      </span>
+    </span>
+  );
+}
 
 interface CalendarHeaderProps {
   monthStart: Date;
@@ -26,48 +50,52 @@ export default function CalendarHeader({ monthStart, levels, onAddClick }: Calen
   const nextSortOrder = levels.length > 0 ? Math.max(...levels.map((l) => l.sort_order)) + 1 : 0;
 
   return (
-    <div className="flex flex-col gap-3 mb-4">
-      <div className="flex items-center justify-between flex-wrap gap-2">
-        <h1 className="text-xl font-semibold text-navy">{format(monthStart, "MMMM yyyy")}</h1>
-        <div className="flex items-center gap-2 text-sm">
-          <Link
-            href={`/?year=${prev.getFullYear()}&month=${prev.getMonth() + 1}`}
-            className="px-2.5 py-1 rounded border border-gray-300 hover:bg-gray-50 text-navy"
-          >
-            ← Prev
-          </Link>
+    <div className="flex flex-col gap-3 mb-3">
+      <div className="flex items-center justify-between flex-wrap gap-x-4 gap-y-2">
+        <div className="flex items-center gap-2 flex-wrap">
+          <h1 className="text-display text-navy mr-1">{format(monthStart, "MMMM yyyy")}</h1>
+          <div className="flex items-center gap-0.5">
+            <NavChevron
+              href={`/?year=${prev.getFullYear()}&month=${prev.getMonth() + 1}`}
+              label="Previous month"
+              icon={<ChevronLeftIcon />}
+            />
+            <NavChevron
+              href={`/?year=${next.getFullYear()}&month=${next.getMonth() + 1}`}
+              label="Next month"
+              icon={<ChevronRightIcon />}
+            />
+          </div>
           <Link
             href="/"
-            className="px-2.5 py-1 rounded border border-gray-300 hover:bg-gray-50 text-navy"
+            className="inline-flex min-h-[28px] items-center rounded-pill bg-fill px-3 text-body font-medium text-navy transition-colors duration-fast ease-apple hover:bg-line"
           >
             Today
           </Link>
-          <Link
-            href={`/?year=${next.getFullYear()}&month=${next.getMonth() + 1}`}
-            className="px-2.5 py-1 rounded border border-gray-300 hover:bg-gray-50 text-navy"
-          >
-            Next →
-          </Link>
-          {isEditor && (
-            <>
-              <button
-                type="button"
-                data-tour="add-event-button"
-                onClick={onAddClick}
-                className="px-2.5 py-1 rounded bg-navy text-white"
-              >
-                + Add Event
-              </button>
-              <button
-                type="button"
-                onClick={() => setLevelModal({ type: "add" })}
-                className="px-2.5 py-1 rounded border border-navy text-navy hover:bg-gray-50"
-              >
-                + Add Category
-              </button>
-            </>
-          )}
         </div>
+        {isEditor && (
+          <div className="flex items-center gap-2">
+            <Button
+              variant="ghost"
+              size="sm"
+              icon={<TagPlusIcon />}
+              onClick={() => setLevelModal({ type: "add" })}
+              aria-label="Add category"
+              title="Add category"
+            >
+              <span className="hidden md:inline">Category</span>
+            </Button>
+            <Button
+              variant="primary"
+              size="sm"
+              icon={<PlusIcon />}
+              data-tour="add-event-button"
+              onClick={onAddClick}
+            >
+              Add event
+            </Button>
+          </div>
+        )}
       </div>
 
       <LevelChips

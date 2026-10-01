@@ -30,7 +30,7 @@ export default function SeasonBarRow({ segments, onSeasonClick }: SeasonBarRowPr
               onSeasonClick(segment.season);
             }}
             className={[
-              "text-[10px] leading-[18px] px-1.5 truncate border text-left hover:brightness-95",
+              "text-micro leading-[18px] px-1.5 truncate border text-left hover:brightness-95",
               SEASON_BAR_COLORS[colorKey],
               segment.isSeasonStart ? "rounded-l-full" : "border-l-0",
               segment.isSeasonEnd ? "rounded-r-full" : "border-r-0",

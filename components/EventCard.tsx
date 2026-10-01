@@ -40,9 +40,10 @@ export default function EventCard({ occurrence, onClick }: EventCardProps) {
         e.stopPropagation();
         onClick();
       }}
-      className={["relative group cursor-grab active:cursor-grabbing", isDragging ? "opacity-30" : ""].join(
-        " "
-      )}
+      className={[
+        "relative group cursor-grab active:cursor-grabbing rounded-chip hover:brightness-95 transition-[filter] duration-fast",
+        isDragging ? "opacity-30" : "",
+      ].join(" ")}
     >
       <EventCardContent occurrence={occurrence} />
       <div
@@ -54,7 +55,7 @@ export default function EventCard({ occurrence, onClick }: EventCardProps) {
         }}
         title="Drag to make this a multi-day event"
         className={[
-          "absolute top-0 right-0 h-full w-1.5 cursor-ew-resize bg-black/25 opacity-0 group-hover:opacity-100",
+          "absolute top-0 right-0 h-full w-1.5 rounded-r-chip cursor-ew-resize bg-black/25 opacity-0 group-hover:opacity-100",
           isResizing ? "opacity-100" : "",
         ].join(" ")}
       />

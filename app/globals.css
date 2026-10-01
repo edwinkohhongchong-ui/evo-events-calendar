@@ -3,14 +3,61 @@
 @tailwind utilities;
 
 :root {
-  --background: #f3f4f6;
-  --foreground: #171717;
+  --background: #f5f5f7; /* canvas */
+  --foreground: #1d1d1f; /* ink */
+}
+
+html {
+  scroll-behavior: smooth;
 }
 
 body {
   color: var(--foreground);
   background: var(--background);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Inter",
+    "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  letter-spacing: -0.01em;
+}
+
+h1, h2, h3, h4 {
+  letter-spacing: -0.02em;
+}
+
+::selection {
+  background: rgba(31, 42, 68, 0.18);
+}
+
+/* Keyboard focus ring: navy on light surfaces, gold on dark ones. */
+:focus-visible {
+  outline: 2px solid #1f2a44;
+  outline-offset: 2px;
+}
+nav.bg-navy :focus-visible,
+[data-surface="dark"] :focus-visible {
+  outline-color: #d9a441;
+}
+
+/* Legibility: very light grays used for real text are too faint on the
+   new canvas. Text only; borders/backgrounds are unaffected. */
+.text-gray-400 {
+  color: #6e6e73;
+}
+.text-gray-300 {
+  color: #86868b;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }
 
 @layer utilities {

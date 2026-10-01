@@ -63,7 +63,7 @@ export default function DayNotes({ dateStr, notes }: DayNotesProps) {
       {notes.map((n) => (
         <span
           key={n.id}
-          className="text-[11px] font-medium text-green-700 truncate"
+          className="text-micro font-medium text-green-700 truncate"
           title={n.content}
         >
           {n.content}
@@ -75,17 +75,24 @@ export default function DayNotes({ dateStr, notes }: DayNotesProps) {
           type="button"
           onClick={() => setOpen((prev) => !prev)}
           title="Add a note to this day"
-          className="self-start text-[10px] text-gray-300 hover:text-green-700 leading-none"
+          className={[
+            "self-start text-micro text-ink-3 hover:text-green-700 leading-none rounded-chip px-0.5 py-0.5 transition-opacity duration-fast",
+            // Quiet until the cell is hovered/focused; always visible when open
+            // or on touch devices. Still reachable by keyboard (focus reveals it).
+            open
+              ? "opacity-100"
+              : "opacity-0 group-hover/cell:opacity-100 group-focus-within/cell:opacity-100 focus-visible:opacity-100 [@media(hover:none)]:opacity-60",
+          ].join(" ")}
         >
           {open ? "▾ note" : "+ note"}
         </button>
       )}
 
       {isEditor && open && (
-        <div className="flex flex-col gap-1 border border-gray-200 rounded p-1.5 bg-white">
+        <div className="flex flex-col gap-1 border border-line rounded-chip p-1.5 bg-surface">
           {notes.map((n) => (
             <div key={n.id} className="flex items-start justify-between gap-1">
-              <span className="text-[11px] text-green-700 flex-1 break-words">{n.content}</span>
+              <span className="text-micro text-green-700 flex-1 break-words">{n.content}</span>
               <button
                 type="button"
                 onClick={() => handleRemove(n.id)}
@@ -102,17 +109,17 @@ export default function DayNotes({ dateStr, notes }: DayNotesProps) {
               value={draft}
               onChange={(e) => setDraft(e.target.value)}
               placeholder="Send a card to friends…"
-              className="border rounded px-1.5 py-0.5 text-[11px] flex-1 min-w-0"
+              className="border border-line-strong rounded-chip px-1.5 py-0.5 text-micro flex-1 min-w-0"
             />
             <button
               type="submit"
               disabled={saving || !draft.trim()}
-              className="px-1.5 py-0.5 text-[11px] rounded bg-navy text-white disabled:opacity-50 shrink-0"
+              className="px-2 py-0.5 text-micro rounded-pill bg-navy text-white disabled:opacity-50 shrink-0"
             >
               {saving ? "…" : "Add"}
             </button>
           </form>
-          {error && <p className="text-[10px] text-red-600">{error}</p>}
+          {error && <p className="text-micro text-danger">{error}</p>}
         </div>
       )}
     </div>

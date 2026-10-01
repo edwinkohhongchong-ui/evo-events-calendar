@@ -2,7 +2,8 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { LEVEL_COLOR_CLASSES } from "@/lib/constants";
+import { LEVEL_DOT_CLASSES } from "@/lib/constants";
+import { PencilIcon, XIcon } from "./icons";
 import { resolveLevelColor } from "@/lib/levelColor";
 import { useEventFilter } from "@/lib/eventFilterContext";
 import { deleteLevel } from "@/lib/levelActions";
@@ -63,56 +64,80 @@ export default function LevelChips({ levels, onEdit }: LevelChipsProps) {
 
   return (
     <div className="flex flex-col gap-1">
-      <div className="flex flex-wrap gap-2 items-center">
+      <div className="flex flex-wrap gap-1.5 items-center">
         {levels.map((level) => {
           const visible = isVisible(level.name);
+          const colorKey = resolveLevelColor(level);
           return (
             <span
               key={level.id}
-              className={[
-                "group flex items-center gap-1 text-[11px] pl-1.5 pr-1 py-0.5 rounded border",
-                LEVEL_COLOR_CLASSES[resolveLevelColor(level)],
-                visible ? "" : "opacity-40",
-              ].join(" ")}
+              className="group inline-flex items-center rounded-pill bg-surface pl-2.5 pr-2.5 h-7 text-chip transition-colors duration-fast ease-apple hover:bg-fill focus-within:bg-fill"
             >
               <button
                 type="button"
                 onClick={() => toggleLevel(level.name, allNames)}
                 title={visible ? `Hide "${level.name}"` : `Show "${level.name}"`}
+                aria-pressed={visible}
+                className={[
+                  "inline-flex items-center gap-1.5 rounded-pill font-medium",
+                  visible ? "text-ink" : "text-ink-3 line-through",
+                ].join(" ")}
               >
+                <span
+                  aria-hidden="true"
+                  className={[
+                    "h-2.5 w-2.5 shrink-0 rounded-full",
+                    visible ? LEVEL_DOT_CLASSES[colorKey] : "border-[1.5px] border-ink-3 bg-transparent",
+                  ].join(" ")}
+                />
                 {level.name}
               </button>
               {onEdit && (
-                <>
+                <span
+                  className={[
+                    "inline-flex items-center overflow-hidden transition-all duration-fast ease-apple",
+                    // Narrow/touch: always visible. Desktop: revealed on hover/focus.
+                    "max-w-[48px] opacity-100 ml-1",
+                    "md:[@media(hover:hover)]:max-w-0 md:[@media(hover:hover)]:opacity-0 md:[@media(hover:hover)]:ml-0",
+                    "md:[@media(hover:hover)]:group-hover:max-w-[48px] md:[@media(hover:hover)]:group-hover:opacity-100 md:[@media(hover:hover)]:group-hover:ml-1",
+                    "md:[@media(hover:hover)]:group-focus-within:max-w-[48px] md:[@media(hover:hover)]:group-focus-within:opacity-100 md:[@media(hover:hover)]:group-focus-within:ml-1",
+                  ].join(" ")}
+                >
                   <button
                     type="button"
                     onClick={() => onEdit(level)}
                     title="Edit category"
-                    className="leading-none opacity-50 hover:opacity-100 px-0.5"
+                    aria-label={`Edit category "${level.name}"`}
+                    className="inline-flex h-5 w-5 items-center justify-center rounded-full text-ink-2 hover:bg-line hover:text-navy"
                   >
-                    ✎
+                    <PencilIcon className="!h-3.5 !w-3.5" />
                   </button>
                   <button
                     type="button"
                     onClick={() => handleRemove(level)}
                     disabled={removingId === level.id}
                     title={`Remove "${level.name}"`}
-                    className="leading-none opacity-50 hover:opacity-100 disabled:opacity-30 px-0.5"
+                    aria-label={`Delete category "${level.name}"`}
+                    className="inline-flex h-5 w-5 items-center justify-center rounded-full text-ink-2 hover:bg-line hover:text-danger disabled:opacity-30"
                   >
-                    ×
+                    <XIcon className="!h-3.5 !w-3.5" />
                   </button>
-                </>
+                </span>
               )}
             </span>
           );
         })}
         {activeLevels && (
-          <button type="button" onClick={showAll} className="text-[11px] text-navy hover:underline">
+          <button
+            type="button"
+            onClick={showAll}
+            className="px-2 text-chip font-medium text-navy hover:underline"
+          >
             Show all
           </button>
         )}
       </div>
-      {removeError && !pendingDelete && <p className="text-xs text-red-600">{removeError}</p>}
+      {removeError && !pendingDelete && <p className="text-micro text-danger">{removeError}</p>}
 
       {pendingDelete && (
         <div

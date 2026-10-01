@@ -4,7 +4,10 @@ import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import EventModal from "./EventModal";
 import { EventOccurrence, LevelRow } from "@/lib/types";
-import { LEVEL_COLOR_CLASSES } from "@/lib/constants";
+import { LEVEL_CHIP_CLASSES } from "@/lib/constants";
+import Pill from "./ui/Pill";
+import Button from "./ui/Button";
+import { ChevronIcon, PlusIcon } from "./icons";
 import { resolveLevelColor } from "@/lib/levelColor";
 import { formatDateDisplay, formatEventTimeRange } from "@/lib/dates";
 import { useEventFilter } from "@/lib/eventFilterContext";
@@ -70,43 +73,39 @@ export default function CategoryListView({ occurrences, levels, defaultAddDate }
   return (
     <div className="mt-6 flex flex-col gap-2">
       <div className="flex items-center justify-between">
-        <h2 className="text-lg font-semibold text-navy">Events by Category</h2>
+        <h2 className="text-title text-navy">Events by category</h2>
         {isEditor && (
-          <button
-            type="button"
-            onClick={() => setModal({ type: "add" })}
-            className="px-3 py-1.5 text-sm rounded bg-navy text-white"
-          >
-            + Add Event
-          </button>
+          <Button size="sm" icon={<PlusIcon />} onClick={() => setModal({ type: "add" })}>
+            Add event
+          </Button>
         )}
       </div>
       {Array.from(grouped.entries()).map(([name, occs]) => {
         const level = levels.find((l) => l.name === name);
         const isCollapsed = collapsed.has(name);
-        const colorClass = LEVEL_COLOR_CLASSES[
+        const colorClass = LEVEL_CHIP_CLASSES[
           level ? resolveLevelColor(level) : resolveLevelColor({ name, color_key: null })
         ];
 
         return (
-          <div key={name} className="border border-gray-200 rounded-md overflow-hidden">
+          <div key={name} className="bg-surface rounded-card overflow-hidden">
             <button
               type="button"
               onClick={() => toggle(name)}
-              className="w-full flex items-center justify-between gap-2 px-3 py-2 bg-gray-50 hover:bg-gray-100 text-sm font-medium text-navy"
+              className="w-full flex items-center justify-between gap-2 px-4 py-2.5 hover:bg-fill text-ui font-semibold text-navy transition-colors duration-fast"
             >
               <span className="flex items-center gap-2">
-                <span className={["text-[11px] px-1.5 py-0.5 rounded border", colorClass].join(" ")}>
+                <span className={["text-chip font-medium rounded-chip pl-1.5 pr-2 py-0.5", colorClass].join(" ")}>
                   {name}
                 </span>
-                <span className="text-gray-500 font-normal">({occs.length})</span>
+                <Pill>{occs.length}</Pill>
               </span>
-              <span className="text-gray-400">{isCollapsed ? "▸" : "▾"}</span>
+              <span className="text-ink-3"><ChevronIcon open={!isCollapsed} /></span>
             </button>
             {!isCollapsed && (
-              <ul className="divide-y divide-gray-100">
+              <ul className="divide-y divide-line border-t border-line">
                 {occs.length === 0 && (
-                  <li className="px-3 py-2 text-sm text-gray-400">No events this month.</li>
+                  <li className="px-4 py-2 text-body text-ink-2">No events this month.</li>
                 )}
                 {occs.map((occ) => {
                   // Same Series — Sermon Title subtitle shown on the calendar's
@@ -122,15 +121,15 @@ export default function CategoryListView({ occurrences, levels, defaultAddDate }
                       <button
                         type="button"
                         onClick={() => setModal({ type: "edit", occurrence: occ })}
-                        className="w-full px-3 py-2 text-sm flex items-center justify-between gap-3 text-left hover:bg-gray-50"
+                        className="w-full px-4 py-2 text-body flex items-center justify-between gap-3 text-left hover:bg-canvas"
                       >
                         <span className="min-w-0 flex flex-col">
                           <span className="truncate">{occ.event.name}</span>
                           {subtitle && (
-                            <span className="truncate text-xs text-gray-500">{subtitle}</span>
+                            <span className="truncate text-micro text-ink-2">{subtitle}</span>
                           )}
                         </span>
-                        <span className="text-gray-500 whitespace-nowrap text-xs">
+                        <span className="text-ink-2 whitespace-nowrap text-micro">
                           {formatDateDisplay(occ.occurrenceDate)}
                           {formatEventTimeRange(occ.startTime, occ.endTime)
                             ? ` · ${formatEventTimeRange(occ.startTime, occ.endTime)}`

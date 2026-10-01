@@ -30,7 +30,7 @@ function SegmentBlock({
   return (
     <div
       className={[
-        "relative group text-[11px] leading-[20px] border",
+        "relative group text-chip font-medium leading-[20px] border",
         LEVEL_COLOR_CLASSES[colorKey],
         segment.isSpanStart ? "rounded-l-full" : "border-l-0",
         segment.isSpanEnd ? "rounded-r-full" : "border-r-0",

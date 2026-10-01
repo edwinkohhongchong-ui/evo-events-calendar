@@ -8,6 +8,25 @@ items (features/fixes) that push contains — a push with 1 item goes up by
 `1.05`). If MINOR would pass `.99`, MAJOR increments and MINOR carries the
 remainder (e.g. `1.99` + 2 items → `2.01`).
 
+## v1.60 — 2026-10-01
+
+- New look foundation, following apple.sg: quieter grey text hierarchy,
+  system font with tighter lettering, light grey page with white cards,
+  visible keyboard focus, and reduced-motion support. Added reusable
+  building blocks (pill buttons, icon buttons with tooltips, status pills,
+  cards, toasts) and more simple line icons for later screens. Very light
+  grey text used for real information was darkened so it stays readable.
+- Calendar screen redesigned: icon-only previous/next arrows, a small Today
+  button, one filled "Add event" button, a compact category legend with
+  colour dots (edit/delete appear on hover), soft tinted event chips with a
+  coloured left bar (multi-day and season bars keep full colour), a clearer
+  today marker, quieter holiday badges and "+ note" prompts, and the two
+  notes panels as cards with larger, easier-to-read text.
+- Clicking the "+EVO Events" logo now returns to the calendar from any page.
+- Fixed a flicker when dragging an event to another day: for a moment it was
+  drawn as a multi-day bar until the save finished. The saved data was
+  already correct; only the in-between drawing was wrong.
+
 ## v1.56 — 2026-10-01
 
 - Reorganised the menu into four groups: Main (Calendar — highlighted as
