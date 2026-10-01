@@ -8,6 +8,15 @@ items (features/fixes) that push contains — a push with 1 item goes up by
 `1.05`). If MINOR would pass `.99`, MAJOR increments and MINOR carries the
 remainder (e.g. `1.99` + 2 items → `2.01`).
 
+## v1.74 — 2026-10-01
+
+- Refreshed the first-run tour: new "See what changed" step highlighting the
+  notification bell, updated menu wording for the four groups (Tools, Admin,
+  Export), and a note that the notes icon opens General Notes on other tabs.
+  The tour now has 15 steps. Checked every highlight at desktop width.
+- The tour now closes the ☰ menu when it moves on to a step that isn't about
+  the menu, so it no longer sits on top of the next highlight.
+
 ## v1.73 — 2026-10-01
 
 - Checklist, message-snippet (Reminders), notes and day-note actions, plus

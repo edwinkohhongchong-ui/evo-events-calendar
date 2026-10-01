@@ -5,9 +5,9 @@
 //
 // Groups:
 //   1. Calendar basics       (steps 0-3)
-//   2. Sidebar notes         (steps 4-5)
-//   3. Editor vs Viewer      (steps 6-9)
-//   4. Do's and don'ts       (steps 10-13)
+//   2. Notes and updates     (steps 4-6)
+//   3. Editor vs Viewer      (steps 7-10)
+//   4. Do's and don'ts       (steps 11-14)
 export interface TourStep {
   title: string;
   body: string;
@@ -55,16 +55,16 @@ export const TOUR_STEPS: TourStep[] = [
   },
   {
     title: "Export the event list",
-    body: 'Open the ☰ menu at the top right, then click "Export Document" to download the event list as a PDF or Word file for any date range and category you pick.',
+    body: 'Open the ☰ menu at the top right, open the Export group, then click "Export Document" to download the event list as a PDF or Word file for any date range and category you pick.',
     route: "/",
     targetSelector: '[data-tour="nav-export-document"]',
     requiresMenuOpen: true,
   },
 
-  // --- Part 2 of 4: Notes on the Calendar page ---
+  // --- Part 2 of 4: Notes and updates ---
   {
     title: "General Notes (left panel)",
-    body: "Use this for notes that should show up every month, no matter which month you're viewing. Anyone can add a note or reply here.",
+    body: "Use this for notes that should show up every month, no matter which month you're viewing. Anyone can add a note or reply here. On every other tab, tap the notes icon beside the bell to open the same notes.",
     route: "/",
     targetSelector: '[data-tour="general-notes-panel"]',
   },
@@ -74,11 +74,17 @@ export const TOUR_STEPS: TourStep[] = [
     route: "/",
     targetSelector: '[data-tour="month-notes-panel"]',
   },
+  {
+    title: "See what changed",
+    body: "The bell at the top right shows what other people added, edited, moved or deleted. A red number means something new. Tap an update to jump straight to that item.",
+    route: "/",
+    targetSelector: '[data-tour="notification-bell"]',
+  },
 
   // --- Part 3 of 4: Editor vs. Viewer access ---
   {
     title: "What a Viewer can do",
-    body: "View the calendar and its notes, open and edit any existing event's details, and add notes or replies.",
+    body: "View the calendar and its notes, open and edit any existing event's details, add notes or replies, and check the bell for recent changes.",
     route: "/",
   },
   {
@@ -88,7 +94,7 @@ export const TOUR_STEPS: TourStep[] = [
   },
   {
     title: "Other tabs need Editor access",
-    body: "Holidays, Seasons, Checklist, Categories, Reminders, Backup, and Export don't even appear for a Viewer — only the Calendar tab does.",
+    body: "In the ☰ menu, Tools (Holidays, Seasons, Categories), Checklist, Admin (Reminders, Backup) and Export don't even appear for a Viewer — only the Calendar does.",
     route: "/",
     targetSelector: '[data-tour="hamburger-menu-panel"]',
     requiresMenuOpen: true,

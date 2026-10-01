@@ -136,6 +136,10 @@ export default function NavBar({ generalComments = [] }: { generalComments?: Not
       setMenuOpen(true);
       // Expand every group so the tour's target (e.g. Export Document) is mounted.
       setOpenGroups({ tools: true, admin: true, export: true });
+    } else if (tourOpen) {
+      // Moving on to a step that isn't about the menu: close it so it
+      // doesn't linger over the next highlight (e.g. the bell).
+      setMenuOpen(false);
     }
   }, [tourOpen, tourStep]);
   const {
