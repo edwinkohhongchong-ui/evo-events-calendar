@@ -8,6 +8,10 @@ items (features/fixes) that push contains — a push with 1 item goes up by
 `1.05`). If MINOR would pass `.99`, MAJOR increments and MINOR carries the
 remainder (e.g. `1.99` + 2 items → `2.01`).
 
+## v2.32 — 2026-10-01
+
+- Event type in the Add/Edit Event form is now Churchwide, Zone, TG Meetings, COW/Thirdspace. COW/Thirdspace moved out of the Zone dropdown into its own button (Zone now lists Youth, Poly, Uni, Adults); "TG" is shown as "TG Meetings". No database change: stored category names are unchanged.
+
 ## v2.31 — 2026-10-01
 
 - Keyboard access: event chips open with Enter/Space; bar rows carry the event name for screen readers; windows and the tour trap Tab focus and return focus on close.

@@ -118,13 +118,14 @@ export const LEVEL_DOT_CLASSES: Record<SeasonColorKey, string> = {
 
 // The "Event Type" grouping shown in the Add/Edit Event form for Event-type
 // entries (Gatherings keep their own separate, unchanged Level picker — see
-// EventModal.tsx). Churchwide and TG are picked directly; Zone expands into
+// EventModal.tsx). Churchwide, TG (shown as "TG Meetings") and COW/Thirdspace are picked directly; Zone expands into
 // one of ZONE_LEVEL_NAMES. These are Level names (rows in the `levels`
 // table, migration 016) — this is a UI grouping over the existing flat
 // Level field, not a new column.
 export const CHURCHWIDE_LEVEL_NAME = "Churchwide";
 export const TG_LEVEL_NAME = "TG";
-export const ZONE_LEVEL_NAMES = ["Youth", "Poly", "Uni", "Adults", "COW/Thirdspace"];
+export const COW_LEVEL_NAME = "COW/Thirdspace";
+export const ZONE_LEVEL_NAMES = ["Youth", "Poly", "Uni", "Adults"];
 
 export const TARGET_MONTHS: TargetMonth[] = [
   "Jan",

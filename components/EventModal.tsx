@@ -20,7 +20,7 @@ import { isEventConflict } from "@/lib/eventConflict";
 import { computeDuration, computeEndTime, endsNextDay } from "@/lib/timeMath";
 import { formatDateDisplay, formatEventTimeRange } from "@/lib/dates";
 import { PastoralFocus, applyTitlePrefix, stripTitlePrefix } from "@/lib/pastoralFocus";
-import { CHURCHWIDE_LEVEL_NAME, GATHERING_TYPES, TG_LEVEL_NAME, ZONE_LEVEL_NAMES } from "@/lib/constants";
+import { CHURCHWIDE_LEVEL_NAME, COW_LEVEL_NAME, GATHERING_TYPES, TG_LEVEL_NAME, ZONE_LEVEL_NAMES } from "@/lib/constants";
 import { useUndo } from "@/lib/undo/UndoProvider";
 import { useIsEditor } from "@/lib/roleContext";
 import { useEscapeKey } from "@/lib/useEscapeKey";
@@ -348,10 +348,11 @@ function EventModalInner({
   // same underlying `level` field, not a separate one — derived from its
   // current value rather than tracked as its own state, so there's only
   // ever one source of truth for which Level is actually selected.
-  function topCategoryFor(levelName: string): "Churchwide" | "Zone" | "TG" | "" {
+  function topCategoryFor(levelName: string): "Churchwide" | "Zone" | "TG" | "COW" | "" {
     if (!levelName) return "";
     if (levelName === CHURCHWIDE_LEVEL_NAME) return "Churchwide";
     if (levelName === TG_LEVEL_NAME) return "TG";
+    if (levelName === COW_LEVEL_NAME) return "COW";
     return "Zone";
   }
 
@@ -359,19 +360,26 @@ function EventModalInner({
   // Zone as the top category yet hasn't picked a specific zone Level yet
   // (level is still "" in that state) — topCategoryFor("") alone can't
   // distinguish "Zone, undecided" from "nothing picked at all".
-  function displayCategoryFor(levelName: string): "Churchwide" | "Zone" | "TG" | "" {
+  function displayCategoryFor(levelName: string): "Churchwide" | "Zone" | "TG" | "COW" | "" {
     const cat = topCategoryFor(levelName);
     if (cat) return cat;
     return zonePickedWithoutLevel ? "Zone" : "";
   }
 
-  function handleEventTypeCategoryChange(category: "Churchwide" | "Zone" | "TG") {
+  function typeLevelName(cat: "Churchwide" | "TG" | "COW"): string {
+    return cat === "Churchwide" ? CHURCHWIDE_LEVEL_NAME : cat === "TG" ? TG_LEVEL_NAME : COW_LEVEL_NAME;
+  }
+
+  function handleEventTypeCategoryChange(category: "Churchwide" | "Zone" | "TG" | "COW") {
     if (category === "Churchwide") {
       setZonePickedWithoutLevel(false);
       setLevel(CHURCHWIDE_LEVEL_NAME);
     } else if (category === "TG") {
       setZonePickedWithoutLevel(false);
       setLevel(TG_LEVEL_NAME);
+    } else if (category === "COW") {
+      setZonePickedWithoutLevel(false);
+      setLevel(COW_LEVEL_NAME);
     } else if (!ZONE_LEVEL_NAMES.includes(level)) {
       // Zone: do NOT auto-select whichever zone Level happens to sort
       // first — leave the choice unset and force the user to explicitly
@@ -637,7 +645,7 @@ function EventModalInner({
   }
 
   const zoneLevels = levels.filter((l) => ZONE_LEVEL_NAMES.includes(l.name));
-  const missingTypeNames = [TG_LEVEL_NAME, CHURCHWIDE_LEVEL_NAME].filter((n) => !levels.some((l) => l.name === n));
+  const missingTypeNames = [TG_LEVEL_NAME, CHURCHWIDE_LEVEL_NAME, COW_LEVEL_NAME].filter((n) => !levels.some((l) => l.name === n));
 
   return (
     <ModalShell title={title} subtitle={subtitle} onClose={onClose} footer={footer}>
@@ -909,14 +917,14 @@ function EventModalInner({
             <div className="flex flex-col gap-2">
               <span className={LABEL}>Event type</span>
               <div className="flex gap-2" role="group" aria-label="Event type">
-                {(["Churchwide", "Zone", "TG"] as const).map((cat) => {
+                {(["Churchwide", "Zone", "TG", "COW"] as const).map((cat) => {
                   // A type whose category row is missing from Categories can
                   // never save (the database rejects it), so don't offer it.
                   const missing =
                     cat === "Zone"
                       ? zoneLevels.length === 0
-                      : !levels.some((l) => l.name === (cat === "TG" ? TG_LEVEL_NAME : CHURCHWIDE_LEVEL_NAME));
-                  const dotLevel = cat === "Churchwide" ? CHURCHWIDE_LEVEL_NAME : cat === "TG" ? TG_LEVEL_NAME : level;
+                      : !levels.some((l) => l.name === typeLevelName(cat));
+                  const dotLevel = cat === "Zone" ? level : typeLevelName(cat);
                   return (
                     <Seg
                       key={cat}
@@ -928,7 +936,7 @@ function EventModalInner({
                       {!missing && (cat !== "Zone" || ZONE_LEVEL_NAMES.includes(level)) && (
                         <CategoryDot levelName={dotLevel} />
                       )}
-                      {cat}
+                      {cat === "TG" ? "TG Meetings" : cat === "COW" ? COW_LEVEL_NAME : cat}
                     </Seg>
                   );
                 })}
