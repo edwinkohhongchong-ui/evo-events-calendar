@@ -8,6 +8,8 @@ import { useLevelColor } from "@/lib/levelColorContext";
 import { formatDateDisplay, formatEventTimeRange } from "@/lib/dates";
 import { CheckSquareIcon, ClockIcon, MapPinIcon, RepeatIcon, StickyNoteIcon } from "./icons";
 import { useEventChecklistProgress } from "@/lib/eventChecklistContext";
+import { progressOverdue } from "@/lib/eventChecklist";
+import { toDateStr } from "@/lib/dates";
 
 const SHOW_DELAY_MS = 150;
 const CARD_WIDTH = 280;
@@ -122,9 +124,15 @@ function PreviewCard({ occurrence, anchor }: { occurrence: EventOccurrence; anch
         </div>
       )}
       {checklist && checklist.total > 0 && (
-        <div className="flex items-center gap-1.5 text-ink-2">
+        <div
+          className={[
+            "flex items-center gap-1.5",
+            progressOverdue(checklist, event.event_date, toDateStr(new Date())) ? "font-medium text-danger" : "text-ink-2",
+          ].join(" ")}
+        >
           <CheckSquareIcon className="!h-4 !w-4" />
           Checklist {checklist.done}/{checklist.total}
+          {progressOverdue(checklist, event.event_date, toDateStr(new Date())) && " · overdue"}
         </div>
       )}
       {event.recurring !== "None" && (

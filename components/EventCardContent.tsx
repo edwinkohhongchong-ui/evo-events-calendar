@@ -30,15 +30,23 @@ export default function EventCardContent({
   const subtitle =
     event.event_type === "Gathering" ? [event.series, event.sermon_title].filter(Boolean).join(" — ") : "";
 
+  // 13px (the chip text floor); neutral = plain text, complete = check + dark
+  // green (passes contrast on the chip tint), overdue = "!" + red so colour is
+  // never the only signal.
   const badge =
     checklist && checklist.total > 0 ? (
       <span
         className={[
-          "shrink-0 rounded-pill px-1.5 text-micro font-medium tabular-nums",
-          checklistOverdue ? "bg-danger/15 text-danger" : checklist.done === checklist.total ? "bg-ok/15 text-ok" : "bg-black/5 text-ink-2",
+          "shrink-0 rounded-pill text-chip font-medium tabular-nums",
+          checklistOverdue
+            ? "bg-danger/15 px-1.5 text-danger"
+            : checklist.done === checklist.total
+              ? "text-[#176C30]"
+              : "text-ink-2",
         ].join(" ")}
         title={checklistOverdue ? "Checklist: something is overdue" : "Checklist progress"}
       >
+        {checklistOverdue ? "!" : checklist.done === checklist.total ? "✓ " : ""}
         {checklist.done}/{checklist.total}
       </span>
     ) : null;

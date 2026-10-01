@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { format } from "date-fns";
 import { EventRow, EventChecklistItemRow, ChecklistTemplateWithItems } from "@/lib/types";
@@ -42,13 +42,20 @@ export default function EventChecklist({ event }: { event: EventRow }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [confirmRemove, setConfirmRemove] = useState(false);
+  const [showPicker, setShowPicker] = useState(false);
+  const autoOpened = useRef(false);
 
   const repeating = event.recurring !== "None";
   const today = toDateStr(new Date());
 
   const load = useCallback(async () => {
     try {
-      setItems(unwrap(await getEventChecklist(event.id)));
+      const loaded = unwrap(await getEventChecklist(event.id));
+      setItems(loaded);
+      // Reopening an event with unfinished work shows the list straight away,
+      // so overdue items are never hidden behind a collapsed row.
+      if (!autoOpened.current && loaded.some((i) => !i.done)) setOpen(true);
+      autoOpened.current = true;
     } catch (err) {
       setItems([]);
       setError(err instanceof Error ? err.message : "Couldn't load this checklist.");
@@ -85,7 +92,12 @@ export default function EventChecklist({ event }: { event: EventRow }) {
 
   const progress = progressOf(items);
   const hasItems = items.length > 0;
+  // A Viewer has nothing to do on an event without a checklist.
+  if (!hasItems && !isEditor) return null;
+  const overdueCount = items.filter((i) => isOverdue(event.event_date, i.weeks_before, i.done, today)).length;
   const suggestedName = event.gathering_type ? SUGGESTED_TEMPLATE_BY_GATHERING_TYPE[event.gathering_type] : undefined;
+  const listId = `event-checklist-${event.id}`;
+  const coarse = "[@media(pointer:coarse)]:min-h-[44px]";
 
   async function add() {
     if (!templateId) return;
@@ -95,6 +107,7 @@ export default function EventChecklist({ event }: { event: EventRow }) {
       unwrap(await applyChecklistTemplate(event.id, templateId));
       await load();
       setOpen(true);
+      setShowPicker(false);
       router.refresh();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Couldn't add the checklist.");
@@ -111,6 +124,7 @@ export default function EventChecklist({ event }: { event: EventRow }) {
     setItems((prev) => prev && prev.map((i) => (i.id === item.id ? { ...i, done: next, done_at: stamp, done_by: by } : i)));
     try {
       unwrap(await setChecklistItemDone(item.id, next, authorName()));
+      setError(null);
       router.refresh();
     } catch (err) {
       setItems((prev) => prev && prev.map((i) => (i.id === item.id ? item : i)));
@@ -124,6 +138,8 @@ export default function EventChecklist({ event }: { event: EventRow }) {
     try {
       unwrap(await removeEventChecklist(event.id));
       setConfirmRemove(false);
+      setOpen(false);
+      autoOpened.current = false;
       await load();
       router.refresh();
     } catch (err) {
@@ -133,6 +149,27 @@ export default function EventChecklist({ event }: { event: EventRow }) {
     }
   }
 
+  const picker = (
+    <div className="flex flex-wrap items-center gap-2">
+      <select
+        value={templateId}
+        onChange={(e) => setTemplateId(e.target.value)}
+        aria-label="Checklist template"
+        className={`${INPUT} !min-h-[36px] max-w-[240px] flex-1 ${coarse}`}
+      >
+        <option value="">Choose a template…</option>
+        {templates.map((t) => (
+          <option key={t.id} value={t.id}>
+            {t.name}
+          </option>
+        ))}
+      </select>
+      <Button size="sm" variant="secondary" className={coarse} onClick={add} disabled={!templateId} loading={busy}>
+        {hasItems ? "Add missing items" : "Add checklist"}
+      </Button>
+    </div>
+  );
+
   return (
     <div className="rounded-card border border-line">
       {hasItems ? (
@@ -140,14 +177,20 @@ export default function EventChecklist({ event }: { event: EventRow }) {
           type="button"
           onClick={() => setOpen((o) => !o)}
           aria-expanded={open}
-          className="flex w-full items-center justify-between gap-2 px-4 py-2.5 text-ui font-medium text-ink"
+          aria-controls={listId}
+          className={`flex w-full items-center justify-between gap-2 px-4 py-2.5 text-ui font-medium text-ink ${coarse}`}
         >
-          <span className="flex items-center gap-2">
+          <span className="flex flex-wrap items-center gap-2">
             <CheckSquareIcon className="!h-[18px] !w-[18px] text-ink-2" />
             Checklist
-            <span className="rounded-pill bg-fill px-2 text-micro tabular-nums text-ink-2">
+            <span className="rounded-pill bg-fill px-2 text-chip tabular-nums text-ink-2">
               {progress.done}/{progress.total}
             </span>
+            {overdueCount > 0 && (
+              <span className="rounded-pill bg-danger/10 px-2 text-chip font-medium text-danger">
+                {overdueCount} overdue
+              </span>
+            )}
           </span>
           <span className="text-ink-3">
             <ChevronIcon open={open} />
@@ -159,41 +202,45 @@ export default function EventChecklist({ event }: { event: EventRow }) {
           Checklist
         </div>
       )}
+      <span className="sr-only" aria-live="polite">
+        {hasItems ? `${progress.done} of ${progress.total} done` : ""}
+      </span>
 
       {hasItems && open && (
-        <ul className="flex flex-col border-t border-line">
+        <ul id={listId} className="flex flex-col border-t border-line">
           {items.map((it) => {
             const due = dueDate(event.event_date, it.weeks_before);
             const overdue = isOverdue(event.event_date, it.weeks_before, it.done, today);
             return (
-              <li key={it.id} className="flex items-start gap-3 border-b border-line px-4 py-2 last:border-b-0">
-                <input
-                  type="checkbox"
-                  checked={it.done}
-                  onChange={() => toggle(it)}
-                  aria-label={`Done: ${it.item}`}
-                  className="mt-1 h-4 w-4 shrink-0 accent-[#1F2A44]"
-                />
-                <div className="min-w-0 flex-1">
-                  <div className={it.done ? "text-ui text-ink-3 line-through" : "text-ui text-ink"}>{it.item}</div>
-                  <div className="text-micro text-ink-2">
-                    {it.done && it.done_at ? (
-                      <>
-                        Done{it.done_by ? ` by ${it.done_by}` : ""} · {format(new Date(it.done_at), "d MMM")}
-                      </>
-                    ) : due ? (
-                      <span className={overdue ? "font-medium text-danger" : ""}>
-                        {overdue ? "Overdue · " : "Due "}
-                        {format(parseDateStr(due), "d MMM")}
-                      </span>
-                    ) : null}
-                  </div>
-                </div>
+              <li key={it.id} className="border-b border-line last:border-b-0">
+                <label className="flex min-h-[44px] cursor-pointer items-start gap-3 px-4 py-2.5 hover:bg-canvas">
+                  <input
+                    type="checkbox"
+                    checked={it.done}
+                    onChange={() => toggle(it)}
+                    className="mt-0.5 h-5 w-5 shrink-0 accent-[#1F2A44]"
+                  />
+                  <span className="min-w-0 flex-1">
+                    <span className={`block text-ui ${it.done ? "text-ink-2 line-through" : "text-ink"}`}>{it.item}</span>
+                    <span className="block text-chip text-ink-2">
+                      {it.done && it.done_at ? (
+                        <>
+                          Done{it.done_by ? ` by ${it.done_by}` : ""} · {format(new Date(it.done_at), "d MMM")}
+                        </>
+                      ) : due ? (
+                        <span className={overdue ? "font-medium text-danger" : ""}>
+                          {overdue ? "Overdue · " : "Due "}
+                          {format(parseDateStr(due), "d MMM")}
+                        </span>
+                      ) : null}
+                    </span>
+                  </span>
+                </label>
               </li>
             );
           })}
           {items[0]?.source_template && (
-            <li className="px-4 py-2 text-micro text-ink-3">
+            <li className="px-4 py-2 text-micro text-ink-2">
               Copied from &ldquo;{items[0].source_template}&rdquo;. Changing the template later does not change this list.
             </li>
           )}
@@ -202,40 +249,37 @@ export default function EventChecklist({ event }: { event: EventRow }) {
 
       {isEditor && (
         <div className="flex flex-col gap-2 border-t border-line px-4 py-3">
-          <div className="flex flex-wrap items-center gap-2">
-            <select
-              value={templateId}
-              onChange={(e) => setTemplateId(e.target.value)}
-              aria-label="Checklist template"
-              className={`${INPUT} !min-h-[36px] max-w-[220px] flex-1`}
-            >
-              <option value="">Choose a template…</option>
-              {templates.map((t) => (
-                <option key={t.id} value={t.id}>
-                  {t.name}
-                </option>
-              ))}
-            </select>
-            <Button size="sm" variant="secondary" onClick={add} disabled={!templateId} loading={busy}>
-              {hasItems ? "Re-add missing items" : "Add checklist"}
-            </Button>
-            {hasItems && (
-              <Button
-                size="sm"
-                variant="ghost"
-                className="!text-danger hover:!bg-danger/10"
+          {!hasItems ? (
+            <>
+              {picker}
+              {suggestedName && templateId && (
+                <p className="text-micro text-ink-2">Suggested for this type of event: {suggestedName}.</p>
+              )}
+            </>
+          ) : (
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              {showPicker ? (
+                picker
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => setShowPicker(true)}
+                  className={`text-body font-medium text-navy hover:underline ${coarse}`}
+                >
+                  Add missing items from a template…
+                </button>
+              )}
+              <button
+                type="button"
                 onClick={() => setConfirmRemove(true)}
+                className={`text-micro text-ink-2 hover:text-danger hover:underline ${coarse}`}
               >
-                Remove
-              </Button>
-            )}
-          </div>
-          {!hasItems && suggestedName && templateId && (
-            <p className="text-micro text-ink-2">Suggested for this type of event: {suggestedName}.</p>
+                Remove checklist
+              </button>
+            </div>
           )}
         </div>
       )}
-      {!isEditor && !hasItems && <p className="px-4 pb-3 text-micro text-ink-2">No checklist on this event.</p>}
 
       {error && (
         <p role="alert" className="mx-4 mb-3 rounded-ctl bg-danger/10 px-3 py-2 text-body text-danger">

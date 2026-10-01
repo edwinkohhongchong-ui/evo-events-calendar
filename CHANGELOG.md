@@ -8,6 +8,26 @@ items (features/fixes) that push contains — a push with 1 item goes up by
 `1.05`). If MINOR would pass `.99`, MAJOR increments and MINOR carries the
 remainder (e.g. `1.99` + 2 items → `2.01`).
 
+## v2.05 — 2026-10-02
+
+- Event checklist is easier to read and use. Reopening an event with unfinished
+  items now shows the list open, and the header says "1 overdue" in red instead
+  of hiding it. Each row is one big tap target (44px, bigger box) with the whole
+  row clickable. Once a checklist exists, the template picker is tucked behind
+  "Add missing items from a template…" and "Remove checklist" is a quiet link
+  at the foot, so the two aren't confused. Viewers no longer see an empty
+  checklist box on events without one, and the screen-reader count updates as
+  items are ticked.
+- Calendar chip badge is clearer: 13px text, a check mark when complete, a "!"
+  when overdue (so colour isn't the only signal), darker green for contrast.
+  The hover preview shows "· overdue" in red too. The phone month list shows
+  the badge.
+- Checklist template editor: each item is now a labelled card with "Repeat
+  (times)" and "Due (weeks before event)" fields, a live line such as "Due 4,
+  3, 2, 1 weeks before the event, one row each" for repeated items, and a
+  proper remove button. Works at phone width.
+- Small contrast fix: the "Copied from…" note and completed items use darker text.
+
 ## v1.99 — 2026-10-02
 
 - Add Event now has an optional Checklist picker (below Date and Time): choose a

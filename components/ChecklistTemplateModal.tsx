@@ -8,6 +8,8 @@ import { useEscapeKey } from "@/lib/useEscapeKey";
 import ConfirmDialog from "./ConfirmDialog";
 import { unwrap } from "@/lib/actionResult";
 import ModalShell from "./ui/ModalShell";
+import IconButton from "./ui/IconButton";
+import { XIcon } from "./icons";
 import Button from "./ui/Button";
 import { INPUT, LABEL } from "./ui/fieldStyles";
 
@@ -150,51 +152,64 @@ export default function ChecklistTemplateModal({
               />
             </label>
 
-            <div className="flex flex-col gap-2">
+            <div className="flex flex-col gap-3">
               <span className={LABEL}>Items</span>
-              {items.map((it, index) => (
-                <div key={index} className="flex items-start gap-2">
-                  <input
-                    value={it.item}
-                    onChange={(e) => updateItem(index, { item: e.target.value })}
-                    placeholder="Invite / e-invite (at least 4 weeks before event)"
-                    className={`${INPUT} flex-1`}
-                  />
-                  <label className="flex items-center gap-1 text-xs text-gray-500 shrink-0">
-                    ×
-                    <input
-                      type="number"
-                      min={1}
-                      value={it.repeat_count}
-                      onChange={(e) => updateItem(index, { repeat_count: e.target.value })}
-                      title="Repeat this many times (e.g. 4 for a weekly check-in over 4 weeks) — each gets its own numbered checklist row when applied"
-                      className={`${INPUT} !w-16 px-2`}
-                    />
-                  </label>
-                  <label className="flex shrink-0 items-center gap-1 text-micro text-ink-2">
-                    Due
-                    <input
-                      type="number"
-                      min={0}
-                      value={it.weeks_before}
-                      onChange={(e) => updateItem(index, { weeks_before: e.target.value })}
-                      placeholder="–"
-                      title="Weeks before the event this is due (blank = no due date). For a repeated item, the first row is due this many weeks before and each later row one week later."
-                      className={`${INPUT} !w-14 px-2`}
-                    />
-                    wk
-                  </label>
-                  <button
-                    type="button"
-                    onClick={() => removeRow(index)}
-                    disabled={items.length === 1}
-                    title="Remove this item"
-                    className="text-gray-300 hover:text-red-600 disabled:opacity-30 leading-none shrink-0 px-1"
-                  >
-                    ×
-                  </button>
-                </div>
-              ))}
+              {items.map((it, index) => {
+                const count = Math.max(1, Number(it.repeat_count) || 1);
+                const first = it.weeks_before.trim() === "" ? null : Math.max(0, Math.floor(Number(it.weeks_before) || 0));
+                const steps =
+                  first !== null && count > 1
+                    ? Array.from({ length: count }, (_, i) => Math.max(0, first - i))
+                    : null;
+                return (
+                  <div key={index} className="flex flex-col gap-2 rounded-ctl border border-line p-3">
+                    <div className="flex items-start gap-2">
+                      <input
+                        value={it.item}
+                        onChange={(e) => updateItem(index, { item: e.target.value })}
+                        placeholder="e.g. Send the e-invite"
+                        aria-label={`Item ${index + 1}`}
+                        className={`${INPUT} flex-1`}
+                      />
+                      <IconButton
+                        label="Remove this item"
+                        icon={<XIcon className="!h-4 !w-4" />}
+                        onClick={() => removeRow(index)}
+                        disabled={items.length === 1}
+                        className="mt-0.5 hover:!text-danger [@media(pointer:coarse)]:!h-11 [@media(pointer:coarse)]:!w-11"
+                      />
+                    </div>
+                    <div className="grid grid-cols-2 gap-3">
+                      <label className="flex flex-col gap-1">
+                        <span className="text-micro text-ink-2">Repeat (times)</span>
+                        <input
+                          type="number"
+                          min={1}
+                          value={it.repeat_count}
+                          onChange={(e) => updateItem(index, { repeat_count: e.target.value })}
+                          className={INPUT}
+                        />
+                      </label>
+                      <label className="flex flex-col gap-1">
+                        <span className="text-micro text-ink-2">Due (weeks before event)</span>
+                        <input
+                          type="number"
+                          min={0}
+                          value={it.weeks_before}
+                          onChange={(e) => updateItem(index, { weeks_before: e.target.value })}
+                          placeholder="No due date"
+                          className={INPUT}
+                        />
+                      </label>
+                    </div>
+                    {steps && (
+                      <p className="text-micro text-ink-2">
+                        Due {steps.join(", ")} weeks before the event, one row each.
+                      </p>
+                    )}
+                  </div>
+                );
+              })}
               <button
                 type="button"
                 onClick={addRow}
@@ -203,12 +218,10 @@ export default function ChecklistTemplateModal({
                 + Add another item
               </button>
               <span className="text-micro text-ink-2">
-                The × count repeats an item (e.g. a weekly check-in over 4 weeks becomes 4
-                separate checklist rows, numbered &ldquo;— Week 1 of 4&rdquo; etc.) when applied
-                to an event.
+                &ldquo;Repeat&rdquo; makes numbered rows (a weekly check-in ×4 becomes &ldquo;— Week 1 of 4&rdquo;
+                and so on). Due dates are worked out from the event&rsquo;s date, so they move with it.
               </span>
             </div>
-
           </form>
         ) : (
           <ConfirmDialog
