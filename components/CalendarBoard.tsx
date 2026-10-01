@@ -18,6 +18,7 @@ import CalendarGrid from "./CalendarGrid";
 import MonthAgenda from "./MonthAgenda";
 import EventCardContent from "./EventCardContent";
 import EventModal from "./EventModal";
+import QuickAddPopover, { type QuickAddDraft } from "./QuickAddPopover";
 import HolidayModal from "./HolidayModal";
 import SeasonModal from "./SeasonModal";
 import ErrorBanner from "./ErrorBanner";
@@ -54,7 +55,7 @@ interface CalendarBoardProps {
 
 type ModalState =
   | { type: "closed" }
-  | { type: "add"; date: string }
+  | { type: "add"; date: string; draft?: QuickAddDraft } // draft: handed over from the quick-add popover
   | { type: "edit"; occurrence: EventOccurrence }
   | { type: "editEvent"; event: EventRow }; // opened from the overdue pill: the event may be in another month
 
@@ -97,6 +98,7 @@ export default function CalendarBoard({
     });
   const [error, setError] = useState<string | null>(null);
   const [modal, setModal] = useState<ModalState>({ type: "closed" });
+  const [quickAdd, setQuickAdd] = useState<{ date: string; anchor: HTMLElement | null } | null>(null);
   const [holidayModal, setHolidayModal] = useState<HolidayModalState>({ type: "closed" });
   const [seasonModal, setSeasonModal] = useState<SeasonModalState>({ type: "closed" });
   const [activeOcc, setActiveOcc] = useState<EventOccurrence | null>(null);
@@ -174,6 +176,16 @@ export default function CalendarBoard({
     () => computeEventBarSegments(displayOccurrences, weeks, gridStart, gridEnd),
     [displayOccurrences, weeks, gridStart, gridEnd]
   );
+
+  function closeQuickAdd() {
+    const cell = quickAdd?.anchor;
+    setQuickAdd(null);
+    // Day cells aren't tab stops, so hand focus back to the one that was clicked.
+    if (cell?.isConnected) {
+      cell.tabIndex = -1;
+      cell.focus({ preventScroll: true });
+    }
+  }
 
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }));
 
@@ -284,7 +296,14 @@ export default function CalendarBoard({
         <CalendarHeader
           monthStart={monthStart}
           levels={levels}
-          onAddClick={isEditor ? () => setModal({ type: "add", date: defaultAddDate }) : undefined}
+          onAddClick={
+            isEditor
+              ? () => {
+                  setQuickAdd(null);
+                  setModal({ type: "add", date: defaultAddDate });
+                }
+              : undefined
+          }
           openChecklistRows={openChecklistRows}
           onOpenEvent={(event) => setModal({ type: "editEvent", event })}
         />
@@ -310,7 +329,10 @@ export default function CalendarBoard({
             eventSegmentsByWeek={eventSegmentsByWeek}
             onDayClick={(date) => {
               if (isDraggingRef.current || !isEditor) return;
-              setModal({ type: "add", date });
+              setQuickAdd({
+                date,
+                anchor: document.querySelector<HTMLElement>(`[data-date="${date}"]`),
+              });
             }}
             onEventClick={(occ) => {
               if (isDraggingRef.current) return;
@@ -323,10 +345,30 @@ export default function CalendarBoard({
         </div>
         <DragOverlay>{activeOcc && <EventCardContent occurrence={activeOcc} lifted />}</DragOverlay>
       </DndContext>
+      {quickAdd && isEditor && (
+        <QuickAddPopover
+          key={quickAdd.date}
+          date={quickAdd.date}
+          anchor={quickAdd.anchor}
+          levels={levels}
+          onClose={closeQuickAdd}
+          onSaved={() => {
+            setQuickAdd(null);
+            startTransition(() => router.refresh());
+          }}
+          onMoreOptions={(draft) => {
+            setQuickAdd(null);
+            setModal({ type: "add", date: quickAdd.date, draft });
+          }}
+        />
+      )}
       {modal.type !== "closed" && (
         <EventModal
           mode={modal.type === "add" ? "add" : "edit"}
           initialDate={modal.type === "add" ? modal.date : undefined}
+          initialName={modal.type === "add" ? modal.draft?.name : undefined}
+          initialTime={modal.type === "add" ? modal.draft?.time : undefined}
+          initialLevel={modal.type === "add" ? modal.draft?.level : undefined}
           event={modal.type === "edit" ? modal.occurrence.event : modal.type === "editEvent" ? modal.event : undefined}
           occurrence={modal.type === "edit" ? modal.occurrence : undefined}
           levels={levels}

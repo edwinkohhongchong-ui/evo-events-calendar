@@ -21,6 +21,7 @@ import { computeDuration, computeEndTime, endsNextDay } from "@/lib/timeMath";
 import { formatDateDisplay, formatEventTimeRange } from "@/lib/dates";
 import { PastoralFocus, applyTitlePrefix, stripTitlePrefix } from "@/lib/pastoralFocus";
 import { GATHERING_TYPES, ZONE_LEVEL_NAMES } from "@/lib/constants";
+import { displayCategoryFor as displayCategory, eventTypeButtonNames, zoneLevelsOf } from "@/lib/quickAdd";
 import { useUndo } from "@/lib/undo/UndoProvider";
 import { useIsEditor } from "@/lib/roleContext";
 import { useEscapeKey } from "@/lib/useEscapeKey";
@@ -38,6 +39,10 @@ import EventChecklist from "./EventChecklist";
 interface EventModalProps {
   mode: "add" | "edit";
   initialDate?: string;
+  // Pre-fill for a new event handed over from the quick-add popover.
+  initialName?: string;
+  initialTime?: string;
+  initialLevel?: string;
   event?: EventRow;
   // The specific occurrence being edited — present whenever this modal was
   // opened from a rendered occurrence (calendar, day view, category list).
@@ -149,6 +154,9 @@ export default function EventModal(props: EventModalProps) {
 function EventModalInner({
   mode,
   initialDate,
+  initialName,
+  initialTime,
+  initialLevel,
   event,
   occurrence,
   levels,
@@ -167,13 +175,13 @@ function EventModalInner({
   // is stripped back off here so editing doesn't require the user to touch
   // the prefix text directly.
   const [name, setName] = useState(() =>
-    event && event.event_type === "Event" ? stripTitlePrefix(event.name) : event?.name ?? ""
+    event && event.event_type === "Event" ? stripTitlePrefix(event.name) : event?.name ?? initialName ?? ""
   );
   // Once the user types into Name directly, stop overwriting it when
   // Gathering Type or Preacher Name change — an existing event's name
   // counts as already "touched" (never overridden just by opening the
   // form). Mirrors the same pattern used for Season/Level color suggestion.
-  const [nameTouched, setNameTouched] = useState(!!event);
+  const [nameTouched, setNameTouched] = useState(!!event || !!initialName);
   const [pastoralFocus, setPastoralFocus] = useState<PastoralFocus>({
     youth: event?.pastoral_youth ?? false,
     poly: event?.pastoral_poly ?? false,
@@ -195,7 +203,7 @@ function EventModalInner({
     return effective && effective !== (occurrence?.occurrenceDate ?? event?.event_date) ? effective : "";
   });
   const [eventTime, setEventTime] = useState(
-    (occurrence?.startTime ?? event?.event_time)?.slice(0, 5) ?? ""
+    (occurrence?.startTime ?? event?.event_time)?.slice(0, 5) ?? initialTime ?? ""
   );
   const [endTime, setEndTime] = useState((occurrence?.endTime ?? event?.end_time)?.slice(0, 5) ?? "");
   const [durationMinutes, setDurationMinutes] = useState(
@@ -205,7 +213,7 @@ function EventModalInner({
   // honest than silently pre-selecting whichever category happens to sort
   // first, which a leader could easily save without ever noticing (see
   // Pastor review finding #1).
-  const [level, setLevel] = useState<Level>(event?.level ?? "");
+  const [level, setLevel] = useState<Level>(event?.level ?? initialLevel ?? "");
   // Tracks that "Zone" was clicked as the top-level category while no
   // specific zone Level has been chosen yet (level stays "" in that state —
   // see handleEventTypeCategoryChange/Bug 1 fix). Needed because
@@ -350,8 +358,7 @@ function EventModalInner({
   // keep their own flat Level dropdown. Everything is derived from `level`
   // (one source of truth), not tracked as separate state.
   function displayCategoryFor(levelName: string): string {
-    if (levelName) return ZONE_LEVEL_NAMES.includes(levelName) ? "Zone" : levelName;
-    return zonePickedWithoutLevel ? "Zone" : "";
+    return displayCategory(levelName, zonePickedWithoutLevel);
   }
 
   function handleEventTypeCategoryChange(category: string) {
@@ -621,18 +628,8 @@ function EventModalInner({
     );
   }
 
-  const zoneLevels = levels.filter((l) => ZONE_LEVEL_NAMES.includes(l.name));
-  // Buttons: every non-zone category by its exact name (Churchwide first),
-  // with "Zone" placed after it when any zone category exists. "Gathering"
-  // is a Gathering-type category, not an Event type.
-  const directTypeNames = levels
-    .filter((l) => !ZONE_LEVEL_NAMES.includes(l.name) && l.name !== "Gathering")
-    .map((l) => l.name)
-    .sort((x, y) => (x === "Churchwide" ? -1 : y === "Churchwide" ? 1 : 0));
-  const eventTypeButtons =
-    zoneLevels.length > 0
-      ? [...directTypeNames.slice(0, directTypeNames[0] === "Churchwide" ? 1 : 0), "Zone", ...directTypeNames.slice(directTypeNames[0] === "Churchwide" ? 1 : 0)]
-      : directTypeNames;
+  const zoneLevels = zoneLevelsOf(levels);
+  const eventTypeButtons = eventTypeButtonNames(levels);
 
   return (
     <ModalShell title={title} subtitle={subtitle} onClose={onClose} footer={footer}>

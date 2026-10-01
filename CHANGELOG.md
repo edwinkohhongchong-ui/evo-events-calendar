@@ -8,6 +8,11 @@ items (features/fixes) that push contains — a push with 1 item goes up by
 `1.05`). If MINOR would pass `.99`, MAJOR increments and MINOR carries the
 remainder (e.g. `1.99` + 2 items → `2.01`).
 
+## v2.42 — 2026-10-01
+
+- Added quick-add: an Editor clicking a day on the month grid now gets a small popover (name, optional start time, event type) that saves with Enter; "More options" opens the full Add Event window with the typed details carried over. It remembers the last event type used this session. The Add button and the `n` shortcut still open the full window.
+- The Event-type button list is now one shared helper used by both the popover and the full Add/Edit window, so they always match the Categories list.
+
 ## v2.41 — 2026-10-01
 
 - The Event type buttons in the Add/Edit Event form now come straight from the Categories list, using each category's exact name: add a category and it appears; delete or rename one and the buttons follow. Only "Zone" stays a group (Youth, Poly, Uni, Adults, whichever exist), and it is hidden if none exist. The fixed "TG Meetings" label is gone: rename the "TG" category on the Categories page to change what is shown.
