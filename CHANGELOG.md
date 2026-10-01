@@ -8,6 +8,18 @@ items (features/fixes) that push contains — a push with 1 item goes up by
 `1.05`). If MINOR would pass `.99`, MAJOR increments and MINOR carries the
 remainder (e.g. `1.99` + 2 items → `2.01`).
 
+## v1.76 — 2026-10-01
+
+- Redesigned the Add/Edit Event form. The quick path is now one short screen:
+  event name (large), pastoral focus pills, event type with colour dots, date
+  and time. Everything else (end date, end time, duration, location, repeat,
+  notes) sits under a "More details" section that opens by itself when the
+  event already has any of those values. Sticky header and Save/Cancel footer,
+  20px rounded card, fade-in, and errors now appear at the top of the form.
+- Added a shared modal shell (components/ui/ModalShell) for the other modals
+  to adopt next, and restyled the delete-confirmation and "only this event /
+  this and future" dialogs to match.
+
 ## v1.74 — 2026-10-01
 
 - Refreshed the first-run tour: new "See what changed" step highlighting the

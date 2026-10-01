@@ -1,5 +1,7 @@
 "use client";
 
+import Button from "./ui/Button";
+
 interface RecurringScopeDialogProps {
   title: string;
   optionALabel: string;
@@ -32,44 +34,32 @@ export default function RecurringScopeDialog({
   onChooseA,
   onChooseB,
 }: RecurringScopeDialogProps) {
+  const optionCls = "text-left px-4 py-3 rounded-ctl border hover:bg-canvas disabled:opacity-50 transition-colors duration-fast";
   return (
-    <div className="flex flex-col gap-3">
-      <p className="text-sm font-medium text-navy">{title}</p>
+    <div className="flex flex-col gap-4">
+      <p className="text-ui font-medium text-ink">{title}</p>
       <div className="flex flex-col gap-2">
-        <button
-          type="button"
-          onClick={onChooseA}
-          disabled={busy}
-          className="text-left px-3 py-2 rounded border border-gray-300 hover:bg-gray-50 disabled:opacity-50"
-        >
-          <div className="text-sm font-medium text-navy">{optionALabel}</div>
-          <div className="text-xs text-gray-500">{optionADescription}</div>
+        <button type="button" onClick={onChooseA} disabled={busy} className={`${optionCls} border-line-strong`}>
+          <div className="text-ui font-medium text-ink">{optionALabel}</div>
+          <div className="text-body text-ink-2">{optionADescription}</div>
         </button>
         <button
           type="button"
           onClick={onChooseB}
           disabled={busy}
-          className={[
-            "text-left px-3 py-2 rounded border hover:bg-gray-50 disabled:opacity-50",
-            optionBDanger ? "border-red-300" : "border-gray-300",
-          ].join(" ")}
+          className={`${optionCls} ${optionBDanger ? "border-danger/40" : "border-line-strong"}`}
         >
-          <div className={["text-sm font-medium", optionBDanger ? "text-red-600" : "text-navy"].join(" ")}>
+          <div className={["text-ui font-medium", optionBDanger ? "text-danger" : "text-ink"].join(" ")}>
             {optionBLabel}
           </div>
-          <div className="text-xs text-gray-500">{optionBDescription}</div>
+          <div className="text-body text-ink-2">{optionBDescription}</div>
         </button>
       </div>
-      {error && <p className="text-sm text-red-600">{error}</p>}
+      {error && <p className="text-body text-danger">{error}</p>}
       <div className="flex justify-end">
-        <button
-          type="button"
-          onClick={onCancel}
-          disabled={busy}
-          className="px-3 py-1.5 text-sm rounded border border-gray-300 disabled:opacity-50"
-        >
+        <Button variant="ghost" onClick={onCancel} disabled={busy}>
           Cancel
-        </button>
+        </Button>
       </div>
     </div>
   );

@@ -20,6 +20,12 @@ import { useUndo } from "@/lib/undo/UndoProvider";
 import { useIsEditor } from "@/lib/roleContext";
 import { useEscapeKey } from "@/lib/useEscapeKey";
 import ConfirmDialog from "./ConfirmDialog";
+import ModalShell from "./ui/ModalShell";
+import Button from "./ui/Button";
+import Pill from "./ui/Pill";
+import { ChevronIcon, MapPinIcon, RepeatIcon, StickyNoteIcon, ClockIcon } from "./icons";
+import { useLevelColor } from "@/lib/levelColorContext";
+import { LEVEL_DOT_CLASSES } from "@/lib/constants";
 import RecurringScopeDialog from "./RecurringScopeDialog";
 
 interface EventModalProps {
@@ -41,6 +47,46 @@ interface EventModalProps {
 type Step = "view" | "form" | "editScope" | "deleteScope";
 
 const RECURRING_OPTIONS: Recurring[] = ["None", "Weekly", "Monthly", "Yearly"];
+
+const INPUT =
+  "w-full min-h-[40px] rounded-ctl border border-line-strong bg-white px-3 text-ui text-ink placeholder:text-ink-3 disabled:bg-fill disabled:text-ink-3";
+const LABEL = "text-micro font-medium text-ink-2";
+
+function CategoryDot({ levelName }: { levelName: string }) {
+  const color = useLevelColor(levelName);
+  return <span className={`h-2 w-2 shrink-0 rounded-full ${LEVEL_DOT_CLASSES[color]}`} aria-hidden="true" />;
+}
+
+// Segmented-control button used for Type and Event Type.
+function Seg({
+  active,
+  disabled,
+  title,
+  onClick,
+  children,
+}: {
+  active: boolean;
+  disabled?: boolean;
+  title?: string;
+  onClick: () => void;
+  children: React.ReactNode;
+}) {
+  return (
+    <button
+      type="button"
+      disabled={disabled}
+      title={title}
+      aria-pressed={active}
+      onClick={onClick}
+      className={[
+        "inline-flex min-h-[36px] flex-1 items-center justify-center gap-1.5 rounded-pill px-3 text-body font-medium transition-colors duration-fast disabled:cursor-not-allowed disabled:opacity-40",
+        active ? "bg-navy text-white" : "bg-fill text-ink hover:bg-line",
+      ].join(" ")}
+    >
+      {children}
+    </button>
+  );
+}
 
 export default function EventModal({
   mode,
@@ -115,6 +161,22 @@ export default function EventModal({
   // client-side confirmation; nothing is persisted for this.
   const [acknowledgeNoEndDate, setAcknowledgeNoEndDate] = useState(false);
   const [notes, setNotes] = useState(event?.notes ?? "");
+  // "More details" stays closed for a quick add, but opens by itself whenever
+  // one of the fields inside it already has a value (editing an existing
+  // event, or a recurring/multi-day one) so nothing is ever hidden.
+  const [moreOpen, setMoreOpen] = useState(
+    () =>
+      !!(
+        (event &&
+          (event.end_date ||
+            event.end_time ||
+            event.duration_minutes != null ||
+            event.location ||
+            event.notes ||
+            event.recurring !== "None")) ||
+        (occurrence && (occurrence.spanEndDate !== occurrence.occurrenceDate || occurrence.endTime))
+      )
+  );
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
   const [confirmDelete, setConfirmDelete] = useState(false);
@@ -381,220 +443,221 @@ export default function EventModal({
     }
   }
 
+  const title = mode === "add" ? "Add Event" : step === "view" ? "Event Details" : "Edit Event";
+  const subtitle =
+    isRecurringSeries && step === "form" && !confirmDelete
+      ? canChooseScope
+        ? "Part of a recurring series — you'll choose whether changes apply to just this event or this and future ones."
+        : "Editing the recurring pattern — changes apply to the whole series."
+      : undefined;
+
+  const deleteButton = (
+    <Button variant="ghost" size="sm" className="!text-danger hover:!bg-danger/10" onClick={handleDeleteClick}>
+      Delete
+    </Button>
+  );
+
+  let footer: React.ReactNode = undefined;
+  if (!confirmDelete && step === "view") {
+    footer = (
+      <>
+        <div>{isEditor && deleteButton}</div>
+        <div className="flex gap-2">
+          <Button variant="ghost" onClick={onClose}>
+            Close
+          </Button>
+          <Button onClick={() => setStep("form")}>Edit</Button>
+        </div>
+      </>
+    );
+  } else if (!confirmDelete && step === "form") {
+    footer = (
+      <>
+        <div>{mode === "edit" && isEditor && deleteButton}</div>
+        <div className="flex gap-2">
+          <Button variant="ghost" onClick={() => (mode === "edit" ? setStep("view") : onClose())}>
+            Cancel
+          </Button>
+          <Button type="submit" form="event-form" loading={saving}>
+            {saving ? "Saving…" : "Save"}
+          </Button>
+        </div>
+      </>
+    );
+  }
+
+  const zoneLevels = levels.filter((l) => ZONE_LEVEL_NAMES.includes(l.name));
+  const missingTypeNames = [TG_LEVEL_NAME, CHURCHWIDE_LEVEL_NAME].filter((n) => !levels.some((l) => l.name === n));
+
   return (
-    <div
-      className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4"
-      onClick={onClose}
-    >
-      <div
-        className="bg-white rounded-lg shadow-lg w-full max-w-md p-5 max-h-[90vh] overflow-y-auto"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <h2 className="text-lg font-semibold text-navy mb-1">
-          {mode === "add" ? "Add Event" : step === "view" ? "Event Details" : "Edit Event"}
-        </h2>
-        {isRecurringSeries && step === "form" && !confirmDelete && (
-          <p className="text-xs text-gray-500 mb-3">
-            {canChooseScope
-              ? "This is part of a recurring series — you'll be asked whether changes apply to just this event or this and future ones."
-              : "Editing the recurring pattern — changes apply to the whole series, not just one occurrence."}
-          </p>
-        )}
-
-        {confirmDelete ? (
-          <ConfirmDialog
-            message={
-              isRecurringSeries ? (
-                <>
-                  <strong className="text-red-600">
-                    This will delete all occurrences of this recurring event
-                  </strong>{" "}
-                  — the entire &ldquo;{event?.name}&rdquo; series ({event?.recurring}), not just
-                  one date.
-                </>
-              ) : (
-                <>Delete &ldquo;{event?.name}&rdquo;?</>
-              )
-            }
-            error={formError}
-            busy={saving}
-            onCancel={() => setConfirmDelete(false)}
-            onConfirm={handleDelete}
-          />
-        ) : step === "view" ? (
-          <div className="flex flex-col gap-3">
-            <div className="flex items-center gap-2 flex-wrap">
-              <span className="text-xs px-2 py-0.5 rounded border border-gray-300 text-gray-600">
-                {eventType}
-              </span>
-              {level && (
-                <span className="text-xs px-2 py-0.5 rounded border border-gray-300 text-gray-600">
-                  {level}
-                </span>
-              )}
-            </div>
-            <div className="text-base font-medium text-navy">{name}</div>
-            <div className="text-sm text-gray-700 flex flex-col gap-1">
-              <div>
-                {formatDateDisplay(eventDate)}
-                {endDate && endDate !== eventDate && <> – {formatDateDisplay(endDate)}</>}
-              </div>
-              {(eventTime || endTime) && (
-                <div>
-                  {formatEventTimeRange(
-                    eventTime ? `${eventTime}:00` : null,
-                    endTime ? `${endTime}:00` : null
-                  )}
-                </div>
-              )}
-              {recurring !== "None" && (
-                <div>
-                  Repeats {recurring}
-                  {repeatUntil ? ` until ${formatDateDisplay(repeatUntil)}` : ""}
-                </div>
-              )}
-              {location && <div>📍 {location}</div>}
-            </div>
-            {eventType === "Event" &&
-              (pastoralFocus.youth || pastoralFocus.poly || pastoralFocus.uni || pastoralFocus.adults) && (
-                <div className="text-sm text-gray-700">
-                  <span className="text-gray-400">Pastoral Focus:</span>{" "}
-                  {[
-                    pastoralFocus.youth && "Youth",
-                    pastoralFocus.poly && "Poly",
-                    pastoralFocus.uni && "Uni",
-                    pastoralFocus.adults && "Adults",
-                  ]
-                    .filter(Boolean)
-                    .join(", ")}
-                </div>
-              )}
-            {eventType === "Gathering" && (series || preacherName || sermonTitle || theme) && (
-              <div className="text-sm text-gray-700 flex flex-col gap-0.5">
-                {series && (
-                  <div>
-                    <span className="text-gray-400">Series:</span> {series}
-                  </div>
-                )}
-                {preacherName && (
-                  <div>
-                    <span className="text-gray-400">Preacher:</span> {preacherName}
-                  </div>
-                )}
-                {sermonTitle && (
-                  <div>
-                    <span className="text-gray-400">Sermon:</span> {sermonTitle}
-                  </div>
-                )}
-                {theme && (
-                  <div>
-                    <span className="text-gray-400">Theme:</span> {theme}
-                  </div>
-                )}
-              </div>
+    <ModalShell title={title} subtitle={subtitle} onClose={onClose} footer={footer}>
+      {confirmDelete ? (
+        <ConfirmDialog
+          message={
+            isRecurringSeries ? (
+              <>
+                <strong className="text-danger">This will delete all occurrences of this recurring event</strong>{" "}
+                — the entire &ldquo;{event?.name}&rdquo; series ({event?.recurring}), not just one date.
+              </>
+            ) : (
+              <>Delete &ldquo;{event?.name}&rdquo;?</>
+            )
+          }
+          error={formError}
+          busy={saving}
+          onCancel={() => setConfirmDelete(false)}
+          onConfirm={handleDelete}
+        />
+      ) : step === "view" ? (
+        <div className="flex flex-col gap-3">
+          <div className="flex flex-wrap items-center gap-2">
+            <Pill>{eventType}</Pill>
+            {level && (
+              <Pill icon={<CategoryDot levelName={level} />}>{level}</Pill>
             )}
-            {notes && (
-              <div className="text-sm text-gray-700 whitespace-pre-wrap">
-                <span className="text-gray-400">Notes:</span> {notes}
-              </div>
-            )}
-
-            {formError && <p className="text-sm text-red-600">{formError}</p>}
-
-            <div className="flex items-center justify-between mt-2">
-              <div>
-                {isEditor && (
-                  <button
-                    type="button"
-                    onClick={handleDeleteClick}
-                    className="text-sm text-red-600 hover:underline"
-                  >
-                    Delete
-                  </button>
-                )}
-              </div>
-              <div className="flex gap-2">
-                <button
-                  type="button"
-                  onClick={onClose}
-                  className="px-3 py-1.5 text-sm rounded border border-gray-300"
-                >
-                  Close
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setStep("form")}
-                  className="px-3 py-1.5 text-sm rounded bg-navy text-white"
-                >
-                  Edit
-                </button>
-              </div>
-            </div>
           </div>
-        ) : step === "editScope" ? (
-          <RecurringScopeDialog
-            title={`Apply this change to just “${name}” on ${eventDate}, or to this and all future occurrences?`}
-            optionALabel="Only this event"
-            optionADescription="Pulls this one occurrence out on its own — the rest of the series is unaffected."
-            optionBLabel="This and all future events"
-            optionBDescription="Occurrences before this date keep their old values; this one and everything after gets the new ones."
-            busy={saving}
-            error={formError}
-            onCancel={() => setStep("form")}
-            onChooseA={() => handleEditScope("only")}
-            onChooseB={() => handleEditScope("future")}
-          />
-        ) : step === "deleteScope" ? (
-          <RecurringScopeDialog
-            title="Delete just this occurrence, or the whole recurring series?"
-            optionALabel="Only this event"
-            optionADescription="Removes just this occurrence — the rest of the series is unaffected."
-            optionBLabel="The whole series"
-            optionBDescription={`Deletes every occurrence of "${event?.name}" (${event?.recurring}).`}
-            optionBDanger
-            busy={saving}
-            error={formError}
-            onCancel={() => setStep("form")}
-            onChooseA={handleDeleteOnlyThis}
-            onChooseB={() => {
-              setStep("form");
-              setConfirmDelete(true);
-            }}
-          />
-        ) : (
-          <form onSubmit={handleSubmit} className="flex flex-col gap-3">
-            <div className="flex flex-col gap-1 text-sm">
-              Type
-              <div className="flex gap-2">
-                {(["Event", "Gathering"] as EventType[]).map((t) => (
-                  <button
-                    key={t}
-                    type="button"
-                    onClick={() => {
-                      setEventType(t);
-                      if (t === "Gathering" && !nameTouched) {
-                        setName(autoGatheringName(gatheringType, preacherName));
-                      }
-                    }}
-                    className={[
-                      "flex-1 px-3 py-1.5 rounded border text-sm",
-                      eventType === t
-                        ? "bg-navy text-white border-navy"
-                        : "border-gray-300 text-gray-600 hover:bg-gray-50",
-                    ].join(" ")}
-                  >
-                    {t}
-                  </button>
-                ))}
-              </div>
+          <div className="text-title text-ink">{name}</div>
+          <div className="flex flex-col gap-1.5 text-ui text-ink">
+            <div>
+              {formatDateDisplay(eventDate)}
+              {endDate && endDate !== eventDate && <> – {formatDateDisplay(endDate)}</>}
             </div>
-            {eventType === "Gathering" && (
-              <label className="flex flex-col gap-1 text-sm">
-                Gathering Type
+            {(eventTime || endTime) && (
+              <div className="flex items-center gap-1.5 text-ink-2">
+                <ClockIcon className="!h-4 !w-4" />
+                {formatEventTimeRange(eventTime ? `${eventTime}:00` : null, endTime ? `${endTime}:00` : null)}
+              </div>
+            )}
+            {recurring !== "None" && (
+              <div className="flex items-center gap-1.5 text-ink-2">
+                <RepeatIcon className="!h-4 !w-4" />
+                Repeats {recurring}
+                {repeatUntil ? ` until ${formatDateDisplay(repeatUntil)}` : ""}
+              </div>
+            )}
+            {location && (
+              <div className="flex items-center gap-1.5 text-ink-2">
+                <MapPinIcon className="!h-4 !w-4" />
+                {location}
+              </div>
+            )}
+          </div>
+          {eventType === "Event" &&
+            (pastoralFocus.youth || pastoralFocus.poly || pastoralFocus.uni || pastoralFocus.adults) && (
+              <div className="flex flex-wrap items-center gap-1.5">
+                <span className={LABEL}>Pastoral focus</span>
+                {[
+                  pastoralFocus.youth && "Youth",
+                  pastoralFocus.poly && "Poly",
+                  pastoralFocus.uni && "Uni",
+                  pastoralFocus.adults && "Adults",
+                ]
+                  .filter(Boolean)
+                  .map((f) => (
+                    <Pill key={String(f)} variant="navy">
+                      {f}
+                    </Pill>
+                  ))}
+              </div>
+            )}
+          {eventType === "Gathering" && (series || preacherName || sermonTitle || theme) && (
+            <dl className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 text-ui">
+              {series && (
+                <>
+                  <dt className="text-ink-2">Series</dt>
+                  <dd>{series}</dd>
+                </>
+              )}
+              {preacherName && (
+                <>
+                  <dt className="text-ink-2">Preacher</dt>
+                  <dd>{preacherName}</dd>
+                </>
+              )}
+              {sermonTitle && (
+                <>
+                  <dt className="text-ink-2">Sermon</dt>
+                  <dd>{sermonTitle}</dd>
+                </>
+              )}
+              {theme && (
+                <>
+                  <dt className="text-ink-2">Theme</dt>
+                  <dd>{theme}</dd>
+                </>
+              )}
+            </dl>
+          )}
+          {notes && (
+            <div className="flex items-start gap-1.5 whitespace-pre-wrap rounded-ctl bg-canvas p-3 text-ui text-ink">
+              <StickyNoteIcon className="!h-4 !w-4 mt-0.5 text-ink-2" />
+              <span>{notes}</span>
+            </div>
+          )}
+          {formError && <p className="text-body text-danger">{formError}</p>}
+        </div>
+      ) : step === "editScope" ? (
+        <RecurringScopeDialog
+          title={`Apply this change to just “${name}” on ${eventDate}, or to this and all future occurrences?`}
+          optionALabel="Only this event"
+          optionADescription="Pulls this one occurrence out on its own — the rest of the series is unaffected."
+          optionBLabel="This and all future events"
+          optionBDescription="Occurrences before this date keep their old values; this one and everything after gets the new ones."
+          busy={saving}
+          error={formError}
+          onCancel={() => setStep("form")}
+          onChooseA={() => handleEditScope("only")}
+          onChooseB={() => handleEditScope("future")}
+        />
+      ) : step === "deleteScope" ? (
+        <RecurringScopeDialog
+          title="Delete just this occurrence, or the whole recurring series?"
+          optionALabel="Only this event"
+          optionADescription="Removes just this occurrence — the rest of the series is unaffected."
+          optionBLabel="The whole series"
+          optionBDescription={`Deletes every occurrence of "${event?.name}" (${event?.recurring}).`}
+          optionBDanger
+          busy={saving}
+          error={formError}
+          onCancel={() => setStep("form")}
+          onChooseA={handleDeleteOnlyThis}
+          onChooseB={() => {
+            setStep("form");
+            setConfirmDelete(true);
+          }}
+        />
+      ) : (
+        <form id="event-form" onSubmit={handleSubmit} className="flex flex-col gap-4">
+          {formError && (
+            <p role="alert" className="rounded-ctl bg-danger/10 px-3 py-2 text-body text-danger">
+              {formError}
+            </p>
+          )}
+          <div className="flex gap-2" role="group" aria-label="Type">
+            {(["Event", "Gathering"] as EventType[]).map((t) => (
+              <Seg
+                key={t}
+                active={eventType === t}
+                onClick={() => {
+                  setEventType(t);
+                  if (t === "Gathering" && !nameTouched) {
+                    setName(autoGatheringName(gatheringType, preacherName));
+                  }
+                }}
+              >
+                {t}
+              </Seg>
+            ))}
+          </div>
+
+          {eventType === "Gathering" && (
+            <>
+              <label className="flex flex-col gap-1">
+                <span className={LABEL}>Gathering type</span>
                 <select
                   value={gatheringType}
                   onChange={(e) => handleGatheringTypeChange(e.target.value as GatheringType)}
-                  className="border rounded px-2 py-1"
+                  className={INPUT}
                 >
                   {GATHERING_TYPES.map((t) => (
                     <option key={t} value={t}>
@@ -603,344 +666,328 @@ export default function EventModal({
                   ))}
                 </select>
               </label>
-            )}
-
-            {eventType === "Event" ? (
-              <div className="flex flex-col gap-1 text-sm">
-                Pastoral Focus
-                <div className="flex flex-wrap gap-3">
-                  {(
-                    [
-                      ["youth", "Youth"],
-                      ["poly", "Poly"],
-                      ["uni", "Uni"],
-                      ["adults", "Adults"],
-                    ] as Array<[keyof PastoralFocus, string]>
-                  ).map(([key, label]) => (
-                    <label key={key} className="flex items-center gap-1.5 text-sm font-normal">
-                      <input
-                        type="checkbox"
-                        checked={pastoralFocus[key]}
-                        onChange={(e) =>
-                          setPastoralFocus((prev) => ({ ...prev, [key]: e.target.checked }))
-                        }
-                      />
-                      {label}
-                    </label>
-                  ))}
-                </div>
-                <span className="text-xs text-gray-400">
-                  Adds a prefix to the Name field below, e.g. Youth + Poly checked saves as
-                  &ldquo;YP: {name || "…"}&rdquo;.
-                </span>
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                <input
+                  value={series}
+                  onChange={(e) => setSeries(e.target.value)}
+                  placeholder="Series"
+                  aria-label="Series"
+                  className={INPUT}
+                />
+                <input
+                  value={preacherName}
+                  onChange={(e) => handlePreacherNameChange(e.target.value)}
+                  placeholder="Preacher name"
+                  aria-label="Preacher name"
+                  className={INPUT}
+                />
+                <input
+                  value={sermonTitle}
+                  onChange={(e) => setSermonTitle(e.target.value)}
+                  placeholder="Sermon title"
+                  aria-label="Sermon title"
+                  className={INPUT}
+                />
+                <input
+                  value={theme}
+                  onChange={(e) => setTheme(e.target.value)}
+                  placeholder="Theme"
+                  aria-label="Theme"
+                  className={INPUT}
+                />
               </div>
-            ) : (
-              <div className="grid grid-cols-2 gap-3">
-                <label className="flex flex-col gap-1 text-sm">
-                  Series
-                  <input
-                    value={series}
-                    onChange={(e) => setSeries(e.target.value)}
-                    className="border rounded px-2 py-1"
-                  />
-                </label>
-                <label className="flex flex-col gap-1 text-sm">
-                  Preacher Name
-                  <input
-                    value={preacherName}
-                    onChange={(e) => handlePreacherNameChange(e.target.value)}
-                    className="border rounded px-2 py-1"
-                  />
-                </label>
-                <label className="flex flex-col gap-1 text-sm">
-                  Sermon Title
-                  <input
-                    value={sermonTitle}
-                    onChange={(e) => setSermonTitle(e.target.value)}
-                    className="border rounded px-2 py-1"
-                  />
-                </label>
-                <label className="flex flex-col gap-1 text-sm">
-                  Theme
-                  <input
-                    value={theme}
-                    onChange={(e) => setTheme(e.target.value)}
-                    className="border rounded px-2 py-1"
-                  />
-                </label>
-              </div>
-            )}
+            </>
+          )}
 
-            <label className="flex flex-col gap-1 text-sm">
-              Name
-              <input
-                value={name}
-                onChange={(e) => handleNameChange(e.target.value)}
-                className="border rounded px-2 py-1"
-                required
-              />
-              {eventType === "Gathering" && (
-                <span className="text-xs text-gray-400 font-normal">
-                  Auto-filled from Gathering Type and Preacher Name above — edit only if necessary.
-                </span>
+          <label className="flex flex-col gap-1">
+            <input
+              value={name}
+              onChange={(e) => handleNameChange(e.target.value)}
+              placeholder="Event name"
+              aria-label="Name"
+              className="w-full border-0 border-b border-line-strong bg-transparent px-0 py-1.5 text-title text-ink placeholder:text-ink-3 focus:border-navy focus:outline-none"
+              required
+              autoFocus={mode === "add"}
+            />
+            {eventType === "Gathering" && (
+              <span className="text-micro text-ink-2">
+                Filled in from the gathering type and preacher — change it only if needed.
+              </span>
+            )}
+          </label>
+
+          {eventType === "Event" && (
+            <div
+              className="flex flex-wrap items-center gap-2"
+              title="Adds a prefix to the name, e.g. Youth + Poly saves as “YP: …”"
+            >
+              <span className={LABEL}>Pastoral focus</span>
+              {(
+                [
+                  ["youth", "Youth"],
+                  ["poly", "Poly"],
+                  ["uni", "Uni"],
+                  ["adults", "Adults"],
+                ] as Array<[keyof PastoralFocus, string]>
+              ).map(([key, label]) => (
+                <button
+                  key={key}
+                  type="button"
+                  aria-pressed={pastoralFocus[key]}
+                  onClick={() => setPastoralFocus((prev) => ({ ...prev, [key]: !prev[key] }))}
+                  className={[
+                    "min-h-[30px] rounded-pill px-3 text-body font-medium transition-colors duration-fast",
+                    pastoralFocus[key] ? "bg-navy text-white" : "bg-fill text-ink hover:bg-line",
+                  ].join(" ")}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+          )}
+
+          {eventType === "Event" ? (
+            <div className="flex flex-col gap-2">
+              <span className={LABEL}>Event type</span>
+              <div className="flex gap-2" role="group" aria-label="Event type">
+                {(["Churchwide", "Zone", "TG"] as const).map((cat) => {
+                  // A type whose category row is missing from Categories can
+                  // never save (the database rejects it), so don't offer it.
+                  const missing =
+                    cat === "Zone"
+                      ? zoneLevels.length === 0
+                      : !levels.some((l) => l.name === (cat === "TG" ? TG_LEVEL_NAME : CHURCHWIDE_LEVEL_NAME));
+                  const dotLevel = cat === "Churchwide" ? CHURCHWIDE_LEVEL_NAME : cat === "TG" ? TG_LEVEL_NAME : level;
+                  return (
+                    <Seg
+                      key={cat}
+                      disabled={missing}
+                      title={missing ? `There's no “${cat}” category yet — add it with + Category first.` : undefined}
+                      active={displayCategoryFor(level) === cat}
+                      onClick={() => handleEventTypeCategoryChange(cat)}
+                    >
+                      {!missing && (cat !== "Zone" || ZONE_LEVEL_NAMES.includes(level)) && (
+                        <CategoryDot levelName={dotLevel} />
+                      )}
+                      {cat}
+                    </Seg>
+                  );
+                })}
+              </div>
+              {missingTypeNames.length > 0 && (
+                <p className="text-micro text-ink-2">
+                  A greyed-out type has no matching category yet. Add one with + Category (use the exact name{" "}
+                  {missingTypeNames.map((n) => `“${n}”`).join(" or ")}).
+                </p>
               )}
-            </label>
-
-            {eventType === "Event" ? (
-              <div className="flex flex-col gap-1 text-sm">
-                Event Type
-                <div className="flex gap-2">
-                  {(["Churchwide", "Zone", "TG"] as const).map((cat) => {
-                    // A type whose category row is missing from Categories can
-                    // never save (the database rejects it), so don't offer it.
-                    const missing =
-                      cat === "Zone"
-                        ? !levels.some((l) => ZONE_LEVEL_NAMES.includes(l.name))
-                        : !levels.some((l) => l.name === (cat === "TG" ? TG_LEVEL_NAME : CHURCHWIDE_LEVEL_NAME));
-                    return (
-                      <button
-                        key={cat}
-                        type="button"
-                        disabled={missing}
-                        title={missing ? `There's no “${cat}” category yet — add it with + Category first.` : undefined}
-                        onClick={() => handleEventTypeCategoryChange(cat)}
-                        className={[
-                          "flex-1 px-3 py-1.5 rounded border text-sm disabled:opacity-40 disabled:cursor-not-allowed",
-                          displayCategoryFor(level) === cat
-                            ? "bg-navy text-white border-navy"
-                            : "border-gray-300 text-gray-600 hover:bg-gray-50",
-                        ].join(" ")}
-                      >
-                        {cat}
-                      </button>
-                    );
-                  })}
-                </div>
-                {(!levels.some((l) => l.name === TG_LEVEL_NAME) ||
-                  !levels.some((l) => l.name === CHURCHWIDE_LEVEL_NAME)) && (
-                  <p className="text-xs text-ink-2">
-                    A greyed-out type has no matching category yet. Add one with + Category (use the exact name{" "}
-                    {[TG_LEVEL_NAME, CHURCHWIDE_LEVEL_NAME]
-                      .filter((n) => !levels.some((l) => l.name === n))
-                      .map((n) => `“${n}”`)
-                      .join(" or ")}
-                    ).
-                  </p>
-                )}
-                {displayCategoryFor(level) === "Zone" && (
-                  <select
-                    value={level}
-                    onChange={(e) => {
-                      setLevel(e.target.value as Level);
-                      setZonePickedWithoutLevel(false);
-                    }}
-                    className="border rounded px-2 py-1"
-                  >
-                    {!level && (
-                      <option value="" disabled>
-                        — Select zone —
-                      </option>
-                    )}
-                    {levels
-                      .filter((l) => ZONE_LEVEL_NAMES.includes(l.name))
-                      .map((l) => (
-                        <option key={l.id} value={l.name}>
-                          {l.name}
-                        </option>
-                      ))}
-                  </select>
-                )}
-              </div>
-            ) : (
-              <label className="flex flex-col gap-1 text-sm">
-                Level
+              {displayCategoryFor(level) === "Zone" && (
                 <select
                   value={level}
-                  onChange={(e) => setLevel(e.target.value as Level)}
-                  className="border rounded px-2 py-1"
+                  onChange={(e) => {
+                    setLevel(e.target.value as Level);
+                    setZonePickedWithoutLevel(false);
+                  }}
+                  aria-label="Zone"
+                  className={INPUT}
                 >
                   {!level && (
                     <option value="" disabled>
-                      — Select —
+                      — Select zone —
                     </option>
                   )}
-                  {levels.map((l) => (
+                  {zoneLevels.map((l) => (
                     <option key={l.id} value={l.name}>
                       {l.name}
                     </option>
                   ))}
                 </select>
-              </label>
-            )}
-            <div className="grid grid-cols-2 gap-3">
-              <label className="flex flex-col gap-1 text-sm">
-                Date
-                <input
-                  type="date"
-                  value={eventDate}
-                  onChange={(e) => setEventDate(e.target.value)}
-                  className="border rounded px-2 py-1"
-                  required
-                />
-              </label>
-              <label className="flex flex-col gap-1 text-sm">
-                Time
-                <input
-                  type="time"
-                  value={eventTime}
-                  onChange={(e) => handleStartTimeChange(e.target.value)}
-                  className="border rounded px-2 py-1"
-                />
-              </label>
+              )}
             </div>
-            <label className="flex flex-col gap-1 text-sm">
-              End Date <span className="text-gray-400 font-normal">(optional — makes this a multi-day event)</span>
+          ) : (
+            <label className="flex flex-col gap-1">
+              <span className={LABEL}>Level</span>
+              <select value={level} onChange={(e) => setLevel(e.target.value as Level)} className={INPUT}>
+                {!level && (
+                  <option value="" disabled>
+                    — Select —
+                  </option>
+                )}
+                {levels.map((l) => (
+                  <option key={l.id} value={l.name}>
+                    {l.name}
+                  </option>
+                ))}
+              </select>
+            </label>
+          )}
+
+          <div className="grid grid-cols-2 gap-3">
+            <label className="flex flex-col gap-1">
+              <span className={LABEL}>Date</span>
               <input
                 type="date"
-                value={endDate}
-                onChange={(e) => setEndDate(e.target.value)}
-                min={eventDate || undefined}
-                className="border rounded px-2 py-1"
+                value={eventDate}
+                onChange={(e) => setEventDate(e.target.value)}
+                className={INPUT}
+                required
               />
             </label>
-            <div className="grid grid-cols-2 gap-3">
-              <label className="flex flex-col gap-1 text-sm">
-                End time
-                <input
-                  type="time"
-                  value={endTime}
-                  onChange={(e) => handleEndTimeChange(e.target.value)}
-                  className="border rounded px-2 py-1"
-                />
-                {wrapsPastMidnight && (
-                  <span className="text-xs text-gray-500">(next day)</span>
-                )}
-              </label>
-              <label className="flex flex-col gap-1 text-sm">
-                Duration (min)
-                <input
-                  type="number"
-                  min={0}
-                  value={durationMinutes}
-                  onChange={(e) => handleDurationChange(e.target.value)}
-                  className="border rounded px-2 py-1"
-                />
-              </label>
-            </div>
-            <label className="flex flex-col gap-1 text-sm">
-              Location <span className="text-gray-400 font-normal">(optional)</span>
+            <label className="flex flex-col gap-1">
+              <span className={LABEL}>Time</span>
               <input
-                value={location}
-                onChange={(e) => setLocation(e.target.value)}
-                placeholder="Main Hall"
-                className="border rounded px-2 py-1"
+                type="time"
+                value={eventTime}
+                onChange={(e) => handleStartTimeChange(e.target.value)}
+                className={INPUT}
               />
             </label>
-            <div className="grid grid-cols-2 gap-3">
-              <label className="flex flex-col gap-1 text-sm">
-                Recurring
-                <select
-                  value={recurring}
-                  onChange={(e) => setRecurring(e.target.value as Recurring)}
-                  className="border rounded px-2 py-1"
-                >
-                  {RECURRING_OPTIONS.map((r) => (
-                    <option key={r} value={r}>
-                      {r}
-                    </option>
-                  ))}
-                </select>
-                {canChooseScope && (
-                  <span className="text-xs text-gray-400">
-                    Only used if you choose &ldquo;this and all future events&rdquo; when saving.
+          </div>
+
+          <div className="rounded-card border border-line">
+            <button
+              type="button"
+              onClick={() => setMoreOpen((o) => !o)}
+              aria-expanded={moreOpen}
+              className="flex w-full items-center justify-between gap-2 px-4 py-2.5 text-ui font-medium text-ink"
+            >
+              <span>More details</span>
+              <span className="flex items-center gap-2 text-ink-3">
+                {!moreOpen && (
+                  <span className="flex items-center gap-1.5">
+                    <RepeatIcon className="!h-4 !w-4" />
+                    <MapPinIcon className="!h-4 !w-4" />
+                    <StickyNoteIcon className="!h-4 !w-4" />
                   </span>
                 )}
-              </label>
-              <label className="flex flex-col gap-1 text-sm">
-                Repeat until
-                <input
-                  type="date"
-                  value={repeatUntil ?? ""}
-                  onChange={(e) => {
-                    setRepeatUntil(e.target.value);
-                    if (e.target.value) setAcknowledgeNoEndDate(false);
-                  }}
-                  disabled={recurring === "None"}
-                  className="border rounded px-2 py-1 disabled:bg-gray-100 disabled:text-gray-400"
-                />
-                {recurring !== "None" && !repeatUntil && (
-                  <div className="flex flex-col gap-1 mt-1">
-                    <span className="text-xs text-amber-600 font-normal">
-                      ⚠ No end date — this event will repeat forever until removed.
+                <ChevronIcon open={moreOpen} />
+              </span>
+            </button>
+            {moreOpen && (
+              <div className="flex flex-col gap-4 border-t border-line px-4 py-4">
+                <div className="grid grid-cols-2 gap-3">
+                  <label className="flex flex-col gap-1">
+                    <span className={LABEL}>End date (multi-day)</span>
+                    <input
+                      type="date"
+                      value={endDate}
+                      onChange={(e) => setEndDate(e.target.value)}
+                      min={eventDate || undefined}
+                      className={INPUT}
+                    />
+                  </label>
+                  <label className="flex flex-col gap-1">
+                    <span className={LABEL}>
+                      End time{wrapsPastMidnight ? " (next day)" : ""}
                     </span>
-                    <label className="flex items-center gap-1.5 text-xs font-normal text-gray-600">
+                    <input
+                      type="time"
+                      value={endTime}
+                      onChange={(e) => handleEndTimeChange(e.target.value)}
+                      className={INPUT}
+                    />
+                  </label>
+                  <label className="flex flex-col gap-1">
+                    <span className={LABEL}>Duration (min)</span>
+                    <input
+                      type="number"
+                      min={0}
+                      value={durationMinutes}
+                      onChange={(e) => handleDurationChange(e.target.value)}
+                      className={INPUT}
+                    />
+                  </label>
+                </div>
+
+                <label className="flex flex-col gap-1">
+                  <span className={`${LABEL} flex items-center gap-1`}>
+                    <MapPinIcon className="!h-3.5 !w-3.5" /> Location
+                  </span>
+                  <input
+                    value={location}
+                    onChange={(e) => setLocation(e.target.value)}
+                    placeholder="Main Hall"
+                    className={INPUT}
+                  />
+                </label>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <label className="flex flex-col gap-1">
+                    <span className={`${LABEL} flex items-center gap-1`}>
+                      <RepeatIcon className="!h-3.5 !w-3.5" /> Repeats
+                    </span>
+                    <select
+                      value={recurring}
+                      onChange={(e) => setRecurring(e.target.value as Recurring)}
+                      className={INPUT}
+                    >
+                      {RECURRING_OPTIONS.map((r) => (
+                        <option key={r} value={r}>
+                          {r === "None" ? "Does not repeat" : r}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  <label className="flex flex-col gap-1">
+                    <span className={LABEL}>Repeat until</span>
+                    <input
+                      type="date"
+                      value={repeatUntil ?? ""}
+                      onChange={(e) => {
+                        setRepeatUntil(e.target.value);
+                        if (e.target.value) setAcknowledgeNoEndDate(false);
+                      }}
+                      disabled={recurring === "None"}
+                      className={INPUT}
+                    />
+                  </label>
+                </div>
+                {canChooseScope && (
+                  <p className="-mt-2 text-micro text-ink-2">
+                    The repeat pattern only changes if you choose &ldquo;this and all future events&rdquo; when saving.
+                  </p>
+                )}
+                {recurring !== "None" && !repeatUntil && (
+                  <div className="-mt-2 flex flex-col gap-1.5 rounded-ctl bg-warn/10 p-3">
+                    <span className="text-body text-warn">
+                      No end date — this event will repeat forever until removed.
+                    </span>
+                    <label className="flex items-center gap-2 text-body text-ink">
                       <input
                         type="checkbox"
                         checked={acknowledgeNoEndDate}
                         onChange={(e) => setAcknowledgeNoEndDate(e.target.checked)}
                       />
-                      No end date — this repeats indefinitely
+                      Yes, repeat with no end date
                     </label>
                   </div>
                 )}
-              </label>
-            </div>
-            <label className="flex flex-col gap-1 text-sm">
-              Notes
-              <textarea
-                value={notes}
-                onChange={(e) => setNotes(e.target.value)}
-                className="border rounded px-2 py-1"
-                rows={2}
-              />
-            </label>
 
-            <div className="border border-gray-200 rounded-md p-3 bg-gray-50 flex flex-col gap-0.5">
-              <span className="text-xs font-medium text-gray-400">Preview</span>
-              {previewLines().map((line, i) => (
-                <span
-                  key={i}
-                  className={i === 0 ? "text-sm font-semibold text-navy" : "text-xs text-gray-500"}
-                >
-                  {line}
-                </span>
-              ))}
-            </div>
-
-            {formError && <p className="text-sm text-red-600">{formError}</p>}
-
-            <div className="flex items-center justify-between mt-2">
-              <div>
-                {mode === "edit" && isEditor && (
-                  <button
-                    type="button"
-                    onClick={handleDeleteClick}
-                    className="text-sm text-red-600 hover:underline"
-                  >
-                    Delete
-                  </button>
-                )}
+                <label className="flex flex-col gap-1">
+                  <span className={`${LABEL} flex items-center gap-1`}>
+                    <StickyNoteIcon className="!h-3.5 !w-3.5" /> Notes
+                  </span>
+                  <textarea
+                    value={notes}
+                    onChange={(e) => setNotes(e.target.value)}
+                    className="w-full rounded-ctl border border-line-strong bg-white px-3 py-2 text-ui text-ink"
+                    rows={2}
+                  />
+                </label>
               </div>
-              <div className="flex gap-2">
-                <button
-                  type="button"
-                  onClick={() => (mode === "edit" ? setStep("view") : onClose())}
-                  className="px-3 py-1.5 text-sm rounded border border-gray-300"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={saving}
-                  className="px-3 py-1.5 text-sm rounded bg-navy text-white disabled:opacity-50"
-                >
-                  {saving ? "Saving…" : "Save"}
-                </button>
-              </div>
-            </div>
-          </form>
-        )}
-      </div>
-    </div>
+            )}
+          </div>
+
+          <div className="flex flex-col gap-0.5 rounded-ctl bg-canvas p-3">
+            <span className="text-micro font-medium text-ink-3">Preview</span>
+            {previewLines().map((line, i) => (
+              <span key={i} className={i === 0 ? "text-ui font-semibold text-ink" : "text-body text-ink-2"}>
+                {line}
+              </span>
+            ))}
+          </div>
+
+        </form>
+      )}
+    </ModalShell>
   );
 }
