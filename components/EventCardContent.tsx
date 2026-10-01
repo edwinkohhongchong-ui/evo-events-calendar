@@ -32,9 +32,6 @@ export default function EventCardContent({
         LEVEL_CHIP_CLASSES[colorKey],
         lifted ? "shadow-pop scale-[1.03] cursor-grabbing" : "",
       ].join(" ")}
-      // Full detail on hover — the line itself only has room to prioritize
-      // the name (see PROJECT decision: time is de-emphasized, not hidden).
-      title={[event.name, subtitle, time, event.location].filter(Boolean).join(" — ")}
     >
       <div className="text-chip font-medium truncate">
         {event.name}

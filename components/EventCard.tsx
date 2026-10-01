@@ -4,6 +4,7 @@ import { useDraggable } from "@dnd-kit/core";
 import EventCardContent from "./EventCardContent";
 import { EventOccurrence } from "@/lib/types";
 import { occurrenceKey } from "@/lib/occurrenceKey";
+import { useEventPreview } from "./EventPreviewCard";
 
 interface EventCardProps {
   occurrence: EventOccurrence;
@@ -42,12 +43,19 @@ export default function EventCard({ occurrence, onClick }: EventCardProps) {
     data: { resizeStartOccurrence: occurrence },
   });
 
+  const { bind, card, hide } = useEventPreview(occurrence, isDragging || isResizing || isResizingStart);
+
   return (
     <div
       ref={setNodeRef}
       data-event-id={occurrence.event.id}
       {...listeners}
       {...attributes}
+      {...bind}
+      onPointerDown={(e) => {
+        hide();
+        listeners?.onPointerDown?.(e);
+      }}
       onClick={(e) => {
         e.stopPropagation();
         onClick();
@@ -58,6 +66,7 @@ export default function EventCard({ occurrence, onClick }: EventCardProps) {
       ].join(" ")}
     >
       <EventCardContent occurrence={occurrence} />
+      {card}
       <div
         ref={setStartRef}
         {...startListeners}

@@ -5,6 +5,7 @@ import { EventBarSegment } from "@/lib/eventBars";
 import { LEVEL_COLOR_CLASSES } from "@/lib/constants";
 import { useLevelColor } from "@/lib/levelColorContext";
 import { occurrenceKey } from "@/lib/occurrenceKey";
+import { useEventPreview } from "./EventPreviewCard";
 import { EventOccurrence } from "@/lib/types";
 
 function SegmentBlock({
@@ -37,9 +38,13 @@ function SegmentBlock({
     data: { resizeStartOccurrence: segment.occurrence },
   });
 
+  const { bind, card, hide } = useEventPreview(segment.occurrence, isResizing || isResizingStart);
+
   return (
     <div
       data-event-id={segment.occurrence.event.id}
+      {...bind}
+      onPointerDownCapture={hide}
       className={[
         "relative group text-chip font-medium leading-[20px] border",
         LEVEL_COLOR_CLASSES[colorKey],
@@ -50,8 +55,8 @@ function SegmentBlock({
         gridColumn: `${segment.startCol + 1} / ${segment.endCol + 2}`,
         gridRow: segment.laneIndex + 1,
       }}
-      title={segment.occurrence.event.name}
     >
+      {card}
       <button type="button" onClick={onClick} className="absolute inset-0 w-full h-full px-1.5 truncate text-left">
         {/* Repeats the name at the start of every week this bar crosses
             (startCol 0 = Monday), not just at the event's true start —

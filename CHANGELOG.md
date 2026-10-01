@@ -8,6 +8,14 @@ items (features/fixes) that push contains — a push with 1 item goes up by
 `1.05`). If MINOR would pass `.99`, MAJOR increments and MINOR carries the
 remainder (e.g. `1.99` + 2 items → `2.01`).
 
+## v1.85 — 2026-10-01
+
+- Hovering an event on the Calendar (or focusing it with the keyboard) now
+  shows a preview card after a short pause: category, full name, series /
+  sermon, date range, time, location, whether it repeats, and the start of its
+  notes. It does not appear on touch screens, while dragging or resizing, or
+  on scroll. This replaces the plain browser tooltip on calendar events.
+
 ## v1.84 — 2026-10-01
 
 - Keyboard shortcuts on the Calendar: T jumps to this month, ← / → move to the
