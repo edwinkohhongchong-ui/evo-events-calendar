@@ -21,6 +21,7 @@ import { useIsEditor } from "@/lib/roleContext";
 import { useEscapeKey } from "@/lib/useEscapeKey";
 import ConfirmDialog from "./ConfirmDialog";
 import ModalShell from "./ui/ModalShell";
+import { INPUT, LABEL, TEXTAREA } from "./ui/fieldStyles";
 import Button from "./ui/Button";
 import Pill from "./ui/Pill";
 import { ChevronIcon, MapPinIcon, RepeatIcon, StickyNoteIcon, ClockIcon } from "./icons";
@@ -48,9 +49,6 @@ type Step = "view" | "form" | "editScope" | "deleteScope";
 
 const RECURRING_OPTIONS: Recurring[] = ["None", "Weekly", "Monthly", "Yearly"];
 
-const INPUT =
-  "w-full min-h-[40px] rounded-ctl border border-line-strong bg-white px-3 text-ui text-ink placeholder:text-ink-3 disabled:bg-fill disabled:text-ink-3";
-const LABEL = "text-micro font-medium text-ink-2";
 
 function CategoryDot({ levelName }: { levelName: string }) {
   const color = useLevelColor(levelName);
@@ -969,7 +967,7 @@ export default function EventModal({
                   <textarea
                     value={notes}
                     onChange={(e) => setNotes(e.target.value)}
-                    className="w-full rounded-ctl border border-line-strong bg-white px-3 py-2 text-ui text-ink"
+                    className={TEXTAREA}
                     rows={2}
                   />
                 </label>

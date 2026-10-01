@@ -9,6 +9,9 @@ import { useIsEditor } from "@/lib/roleContext";
 import { useEscapeKey } from "@/lib/useEscapeKey";
 import ConfirmDialog from "./ConfirmDialog";
 import { unwrap } from "@/lib/actionResult";
+import ModalShell from "./ui/ModalShell";
+import Button from "./ui/Button";
+import { INPUT, LABEL } from "./ui/fieldStyles";
 
 interface HolidayModalProps {
   mode: "add" | "edit";
@@ -82,46 +85,60 @@ export default function HolidayModal({
     }
   }
 
-  return (
-    <div
-      className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4"
-      onClick={onClose}
-    >
-      <div
-        className="bg-white rounded-lg shadow-lg w-full max-w-md p-5 max-h-[90vh] overflow-y-auto"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <h2 className="text-lg font-semibold text-navy mb-3">
-          {mode === "add" ? "Add Holiday" : "Edit Holiday"}
-        </h2>
+  const footer = confirmDelete ? undefined : (
+    <>
+      <div>
+        {mode === "edit" && isEditor && (
+          <Button variant="ghost" size="sm" className="!text-danger hover:!bg-danger/10" onClick={() => setConfirmDelete(true)}>
+            Delete
+          </Button>
+        )}
+      </div>
+      <div className="flex gap-2">
+        <Button variant="ghost" onClick={onClose}>
+          Cancel
+        </Button>
+        <Button type="submit" form="modal-form" loading={saving}>
+          {saving ? "Saving…" : "Save"}
+        </Button>
+      </div>
+    </>
+  );
 
+  return (
+    <ModalShell title={mode === "add" ? "Add Holiday" : "Edit Holiday"} onClose={onClose} footer={footer} widthClass="max-w-md">
         {!confirmDelete ? (
-          <form onSubmit={handleSubmit} className="flex flex-col gap-3">
-            <label className="flex flex-col gap-1 text-sm">
-              Date
+          <form id="modal-form" onSubmit={handleSubmit} className="flex flex-col gap-4">
+            {formError && (
+              <p role="alert" className="rounded-ctl bg-danger/10 px-3 py-2 text-body text-danger">
+                {formError}
+              </p>
+            )}
+            <label className="flex flex-col gap-1">
+              <span className={LABEL}>Date</span>
               <input
                 type="date"
                 value={holidayDate}
                 onChange={(e) => setHolidayDate(e.target.value)}
-                className="border rounded px-2 py-1"
+                className={INPUT}
                 required
               />
             </label>
-            <label className="flex flex-col gap-1 text-sm">
-              Name
+            <label className="flex flex-col gap-1">
+              <span className={LABEL}>Name</span>
               <input
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                className="border rounded px-2 py-1"
+                className={INPUT}
                 required
               />
             </label>
-            <label className="flex flex-col gap-1 text-sm">
-              Type
+            <label className="flex flex-col gap-1">
+              <span className={LABEL}>Type</span>
               <select
                 value={type}
                 onChange={(e) => setType(e.target.value as HolidayType)}
-                className="border rounded px-2 py-1"
+                className={INPUT}
               >
                 {HOLIDAY_TYPES.map((t) => (
                   <option key={t} value={t}>
@@ -131,37 +148,6 @@ export default function HolidayModal({
               </select>
             </label>
 
-            {formError && <p className="text-sm text-red-600">{formError}</p>}
-
-            <div className="flex items-center justify-between mt-2">
-              <div>
-                {mode === "edit" && isEditor && (
-                  <button
-                    type="button"
-                    onClick={() => setConfirmDelete(true)}
-                    className="text-sm text-red-600 hover:underline"
-                  >
-                    Delete
-                  </button>
-                )}
-              </div>
-              <div className="flex gap-2">
-                <button
-                  type="button"
-                  onClick={onClose}
-                  className="px-3 py-1.5 text-sm rounded border border-gray-300"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={saving}
-                  className="px-3 py-1.5 text-sm rounded bg-navy text-white disabled:opacity-50"
-                >
-                  {saving ? "Saving…" : "Save"}
-                </button>
-              </div>
-            </div>
           </form>
         ) : (
           <ConfirmDialog
@@ -172,7 +158,6 @@ export default function HolidayModal({
             onConfirm={handleDelete}
           />
         )}
-      </div>
-    </div>
+    </ModalShell>
   );
 }

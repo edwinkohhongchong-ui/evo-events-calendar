@@ -9,6 +9,10 @@ import { useUndo } from "@/lib/undo/UndoProvider";
 import { useEscapeKey } from "@/lib/useEscapeKey";
 import ConfirmDialog from "./ConfirmDialog";
 import { unwrap } from "@/lib/actionResult";
+import ModalShell from "./ui/ModalShell";
+import Button from "./ui/Button";
+import { INPUT, LABEL } from "./ui/fieldStyles";
+import { useIsEditor } from "@/lib/roleContext";
 
 interface LevelModalProps {
   mode: "add" | "edit";
@@ -28,6 +32,7 @@ export default function LevelModal({
   onDeleted,
 }: LevelModalProps) {
   const { record } = useUndo();
+  const isEditor = useIsEditor();
   const [name, setName] = useState(level?.name ?? "");
   const [colorKey, setColorKey] = useState<SeasonColorKey>(level?.color_key ?? suggestLevelColor(name));
   // Once the user explicitly picks a swatch, stop following the name-based
@@ -96,32 +101,46 @@ export default function LevelModal({
     }
   }
 
-  return (
-    <div
-      className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4"
-      onClick={onClose}
-    >
-      <div
-        className="bg-white rounded-lg shadow-lg w-full max-w-md p-5 max-h-[90vh] overflow-y-auto"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <h2 className="text-lg font-semibold text-navy mb-3">
-          {mode === "add" ? "Add Category" : "Edit Category"}
-        </h2>
+  const footer = confirmDelete ? undefined : (
+    <>
+      <div>
+        {mode === "edit" && isEditor && (
+          <Button variant="ghost" size="sm" className="!text-danger hover:!bg-danger/10" onClick={() => setConfirmDelete(true)}>
+            Delete
+          </Button>
+        )}
+      </div>
+      <div className="flex gap-2">
+        <Button variant="ghost" onClick={onClose}>
+          Cancel
+        </Button>
+        <Button type="submit" form="modal-form" loading={saving}>
+          {saving ? "Saving…" : "Save"}
+        </Button>
+      </div>
+    </>
+  );
 
+  return (
+    <ModalShell title={mode === "add" ? "Add Category" : "Edit Category"} onClose={onClose} footer={footer} widthClass="max-w-md">
         {!confirmDelete ? (
-          <form onSubmit={handleSubmit} className="flex flex-col gap-3">
-            <label className="flex flex-col gap-1 text-sm">
-              Name
+          <form id="modal-form" onSubmit={handleSubmit} className="flex flex-col gap-4">
+            {formError && (
+              <p role="alert" className="rounded-ctl bg-danger/10 px-3 py-2 text-body text-danger">
+                {formError}
+              </p>
+            )}
+            <label className="flex flex-col gap-1">
+              <span className={LABEL}>Name</span>
               <input
                 value={name}
                 onChange={(e) => handleNameChange(e.target.value)}
-                className="border rounded px-2 py-1"
+                className={INPUT}
                 required
               />
             </label>
-            <div className="flex flex-col gap-1 text-sm">
-              Color
+            <div className="flex flex-col gap-1">
+              <span className={LABEL}>Color</span>
               <div className="flex flex-wrap gap-2">
                 {LEVEL_COLOR_KEYS.map((key) => (
                   <button
@@ -139,47 +158,16 @@ export default function LevelModal({
                 ))}
               </div>
             </div>
-            <label className="flex flex-col gap-1 text-sm">
-              Order in legend/list
+            <label className="flex flex-col gap-1">
+              <span className={LABEL}>Order in legend/list</span>
               <input
                 type="number"
                 value={sortOrder}
                 onChange={(e) => setSortOrder(e.target.value)}
-                className="border rounded px-2 py-1"
+                className={INPUT}
               />
             </label>
 
-            {formError && <p className="text-sm text-red-600">{formError}</p>}
-
-            <div className="flex items-center justify-between mt-2">
-              <div>
-                {mode === "edit" && (
-                  <button
-                    type="button"
-                    onClick={() => setConfirmDelete(true)}
-                    className="text-sm text-red-600 hover:underline"
-                  >
-                    Delete
-                  </button>
-                )}
-              </div>
-              <div className="flex gap-2">
-                <button
-                  type="button"
-                  onClick={onClose}
-                  className="px-3 py-1.5 text-sm rounded border border-gray-300"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={saving}
-                  className="px-3 py-1.5 text-sm rounded bg-navy text-white disabled:opacity-50"
-                >
-                  {saving ? "Saving…" : "Save"}
-                </button>
-              </div>
-            </div>
           </form>
         ) : (
           <ConfirmDialog
@@ -190,7 +178,6 @@ export default function LevelModal({
             onConfirm={handleDelete}
           />
         )}
-      </div>
-    </div>
+    </ModalShell>
   );
 }

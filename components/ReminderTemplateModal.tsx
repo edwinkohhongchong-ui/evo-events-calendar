@@ -11,6 +11,9 @@ import { useUndo } from "@/lib/undo/UndoProvider";
 import { useEscapeKey } from "@/lib/useEscapeKey";
 import ConfirmDialog from "./ConfirmDialog";
 import { unwrap } from "@/lib/actionResult";
+import ModalShell from "./ui/ModalShell";
+import Button from "./ui/Button";
+import { INPUT, TEXTAREA, LABEL } from "./ui/fieldStyles";
 
 interface ReminderTemplateModalProps {
   mode: "add" | "edit";
@@ -91,100 +94,83 @@ export default function ReminderTemplateModal({
     }
   }
 
-  return (
-    <div
-      className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4"
-      onClick={onClose}
-    >
-      <div
-        className="bg-white rounded-lg shadow-lg w-full max-w-md p-5 max-h-[90vh] overflow-y-auto"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <h2 className="text-lg font-semibold text-navy mb-3">
-          {mode === "add" ? "Add Reminder Template" : "Edit Reminder Template"}
-        </h2>
+  const footer = confirmDelete ? undefined : (
+    <>
+      <div>
+        {mode === "edit" && (
+          <Button variant="ghost" size="sm" className="!text-danger hover:!bg-danger/10" onClick={() => setConfirmDelete(true)}>
+            Delete
+          </Button>
+        )}
+      </div>
+      <div className="flex gap-2">
+        <Button variant="ghost" onClick={onClose}>
+          Cancel
+        </Button>
+        <Button type="submit" form="modal-form" loading={saving}>
+          {saving ? "Saving…" : "Save"}
+        </Button>
+      </div>
+    </>
+  );
 
+  return (
+    <ModalShell title={mode === "add" ? "Add Reminder Template" : "Edit Reminder Template"} onClose={onClose} footer={footer} widthClass="max-w-md">
         {!confirmDelete ? (
-          <form onSubmit={handleSubmit} className="flex flex-col gap-3">
-            <label className="flex flex-col gap-1 text-sm">
-              Name
+          <form id="modal-form" onSubmit={handleSubmit} className="flex flex-col gap-4">
+            {formError && (
+              <p role="alert" className="rounded-ctl bg-danger/10 px-3 py-2 text-body text-danger">
+                {formError}
+              </p>
+            )}
+            <label className="flex flex-col gap-1">
+              <span className={LABEL}>Name</span>
               <input
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 placeholder="Monthly prep reminder"
-                className="border rounded px-2 py-1"
+                className={INPUT}
                 required
               />
             </label>
-            <label className="flex flex-col gap-1 text-sm">
-              Default Telegram handle
+            <label className="flex flex-col gap-1">
+              <span className={LABEL}>Default Telegram handle</span>
               <input
                 value={defaultHandle}
                 onChange={(e) => setDefaultHandle(e.target.value)}
                 placeholder="@tevo_leaders"
-                className="border rounded px-2 py-1"
+                className={INPUT}
               />
-              <span className="text-xs text-gray-400">
+              <span className="text-micro text-ink-2">
                 Must be a public channel/group/bot username — private chats can&apos;t be
                 deep-linked to from outside Telegram.
               </span>
             </label>
-            <label className="flex flex-col gap-1 text-sm">
-              Default message
+            <label className="flex flex-col gap-1">
+              <span className={LABEL}>Default message</span>
               <textarea
                 value={defaultMessage}
                 onChange={(e) => setDefaultMessage(e.target.value)}
                 placeholder="Please prepare e-invites and confirm pastoral goals for next month."
-                className="border rounded px-2 py-1"
+                className={TEXTAREA}
                 rows={3}
               />
             </label>
-            <label className="flex flex-col gap-1 text-sm">
-              Default lookahead (days)
+            <label className="flex flex-col gap-1">
+              <span className={LABEL}>Default lookahead (days)</span>
               <input
                 type="number"
                 min={1}
                 value={lookaheadDays}
                 onChange={(e) => setLookaheadDays(e.target.value)}
-                className="border rounded px-2 py-1"
+                className={INPUT}
               />
-              <span className="text-xs text-gray-400">
+              <span className="text-micro text-ink-2">
                 How many days ahead the event picker shows by default when this template is
                 selected — you can still widen or narrow it on the Reminders page itself.
               </span>
             </label>
 
-            {formError && <p className="text-sm text-red-600">{formError}</p>}
-
-            <div className="flex items-center justify-between mt-2">
-              <div>
-                {mode === "edit" && (
-                  <button
-                    type="button"
-                    onClick={() => setConfirmDelete(true)}
-                    className="text-sm text-red-600 hover:underline"
-                  >
-                    Delete
-                  </button>
-                )}
-              </div>
-              <div className="flex gap-2">
-                <button
-                  type="button"
-                  onClick={onClose}
-                  className="px-3 py-1.5 text-sm rounded border border-gray-300"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={saving}
-                  className="px-3 py-1.5 text-sm rounded bg-navy text-white disabled:opacity-50"
-                >
-                  {saving ? "Saving…" : "Save"}
-                </button>
-              </div>
-            </div>
           </form>
         ) : (
           <ConfirmDialog
@@ -195,7 +181,6 @@ export default function ReminderTemplateModal({
             onConfirm={handleDelete}
           />
         )}
-      </div>
-    </div>
+    </ModalShell>
   );
 }

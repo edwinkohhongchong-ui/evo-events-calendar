@@ -7,6 +7,9 @@ import { useUndo } from "@/lib/undo/UndoProvider";
 import { useEscapeKey } from "@/lib/useEscapeKey";
 import ConfirmDialog from "./ConfirmDialog";
 import { unwrap } from "@/lib/actionResult";
+import ModalShell from "./ui/ModalShell";
+import Button from "./ui/Button";
+import { INPUT, LABEL } from "./ui/fieldStyles";
 
 interface ChecklistTemplateModalProps {
   mode: "add" | "edit";
@@ -98,41 +101,55 @@ export default function ChecklistTemplateModal({
     }
   }
 
-  return (
-    <div
-      className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4"
-      onClick={onClose}
-    >
-      <div
-        className="bg-white rounded-lg shadow-lg w-full max-w-lg p-5 max-h-[90vh] overflow-y-auto"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <h2 className="text-lg font-semibold text-navy mb-3">
-          {mode === "add" ? "Add Message Snippet" : "Edit Message Snippet"}
-        </h2>
+  const footer = confirmDelete ? undefined : (
+    <>
+      <div>
+        {mode === "edit" && (
+          <Button variant="ghost" size="sm" className="!text-danger hover:!bg-danger/10" onClick={() => setConfirmDelete(true)}>
+            Delete
+          </Button>
+        )}
+      </div>
+      <div className="flex gap-2">
+        <Button variant="ghost" onClick={onClose}>
+          Cancel
+        </Button>
+        <Button type="submit" form="modal-form" loading={saving}>
+          {saving ? "Saving…" : "Save"}
+        </Button>
+      </div>
+    </>
+  );
 
+  return (
+    <ModalShell title={mode === "add" ? "Add Message Snippet" : "Edit Message Snippet"} onClose={onClose} footer={footer} widthClass="max-w-lg">
         {!confirmDelete ? (
-          <form onSubmit={handleSubmit} className="flex flex-col gap-3">
-            <label className="flex flex-col gap-1 text-sm">
-              Name
+          <form id="modal-form" onSubmit={handleSubmit} className="flex flex-col gap-4">
+            {formError && (
+              <p role="alert" className="rounded-ctl bg-danger/10 px-3 py-2 text-body text-danger">
+                {formError}
+              </p>
+            )}
+            <label className="flex flex-col gap-1">
+              <span className={LABEL}>Name</span>
               <input
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 placeholder="Big Event Prep"
-                className="border rounded px-2 py-1"
+                className={INPUT}
                 required
               />
             </label>
 
             <div className="flex flex-col gap-2">
-              <span className="text-sm">Items</span>
+              <span className={LABEL}>Items</span>
               {items.map((it, index) => (
                 <div key={index} className="flex items-start gap-2">
                   <input
                     value={it.item}
                     onChange={(e) => updateItem(index, { item: e.target.value })}
                     placeholder="Invite / e-invite (at least 4 weeks before event)"
-                    className="border rounded px-2 py-1 text-sm flex-1"
+                    className={`${INPUT} flex-1`}
                   />
                   <label className="flex items-center gap-1 text-xs text-gray-500 shrink-0">
                     ×
@@ -142,7 +159,7 @@ export default function ChecklistTemplateModal({
                       value={it.repeat_count}
                       onChange={(e) => updateItem(index, { repeat_count: e.target.value })}
                       title="Repeat this many times (e.g. 4 for a weekly check-in over 4 weeks) — each gets its own numbered checklist row when applied"
-                      className="border rounded px-1.5 py-1 w-14"
+                      className={`${INPUT} !w-16 px-2`}
                     />
                   </label>
                   <button
@@ -159,48 +176,17 @@ export default function ChecklistTemplateModal({
               <button
                 type="button"
                 onClick={addRow}
-                className="self-start text-xs text-navy hover:underline"
+                className="self-start text-body font-medium text-navy hover:underline"
               >
                 + Add another item
               </button>
-              <span className="text-xs text-gray-400">
+              <span className="text-micro text-ink-2">
                 The × count repeats an item (e.g. a weekly check-in over 4 weeks becomes 4
                 separate checklist rows, numbered &ldquo;— Week 1 of 4&rdquo; etc.) when applied
                 to an event.
               </span>
             </div>
 
-            {formError && <p className="text-sm text-red-600">{formError}</p>}
-
-            <div className="flex items-center justify-between mt-2">
-              <div>
-                {mode === "edit" && (
-                  <button
-                    type="button"
-                    onClick={() => setConfirmDelete(true)}
-                    className="text-sm text-red-600 hover:underline"
-                  >
-                    Delete
-                  </button>
-                )}
-              </div>
-              <div className="flex gap-2">
-                <button
-                  type="button"
-                  onClick={onClose}
-                  className="px-3 py-1.5 text-sm rounded border border-gray-300"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={saving}
-                  className="px-3 py-1.5 text-sm rounded bg-navy text-white disabled:opacity-50"
-                >
-                  {saving ? "Saving…" : "Save"}
-                </button>
-              </div>
-            </div>
           </form>
         ) : (
           <ConfirmDialog
@@ -211,7 +197,6 @@ export default function ChecklistTemplateModal({
             onConfirm={handleDelete}
           />
         )}
-      </div>
-    </div>
+    </ModalShell>
   );
 }

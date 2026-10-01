@@ -13,6 +13,9 @@ import { useUndo } from "@/lib/undo/UndoProvider";
 import { useEscapeKey } from "@/lib/useEscapeKey";
 import ConfirmDialog from "./ConfirmDialog";
 import { unwrap } from "@/lib/actionResult";
+import ModalShell from "./ui/ModalShell";
+import Button from "./ui/Button";
+import { INPUT, TEXTAREA, LABEL } from "./ui/fieldStyles";
 
 interface ChecklistModalProps {
   mode: "add" | "edit";
@@ -112,46 +115,60 @@ export default function ChecklistModal({
     }
   }
 
-  return (
-    <div
-      className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4"
-      onClick={onClose}
-    >
-      <div
-        className="bg-white rounded-lg shadow-lg w-full max-w-md p-5 max-h-[90vh] overflow-y-auto"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <h2 className="text-lg font-semibold text-navy mb-3">
-          {mode === "add" ? "Add Checklist Item" : "Edit Checklist Item"}
-        </h2>
+  const footer = confirmDelete ? undefined : (
+    <>
+      <div>
+        {mode === "edit" && (
+          <Button variant="ghost" size="sm" className="!text-danger hover:!bg-danger/10" onClick={() => setConfirmDelete(true)}>
+            Delete
+          </Button>
+        )}
+      </div>
+      <div className="flex gap-2">
+        <Button variant="ghost" onClick={onClose}>
+          Cancel
+        </Button>
+        <Button type="submit" form="modal-form" loading={saving}>
+          {saving ? "Saving…" : "Save"}
+        </Button>
+      </div>
+    </>
+  );
 
+  return (
+    <ModalShell title={mode === "add" ? "Add Checklist Item" : "Edit Checklist Item"} onClose={onClose} footer={footer} widthClass="max-w-md">
         {!confirmDelete ? (
-          <form onSubmit={handleSubmit} className="flex flex-col gap-3">
-            <label className="flex flex-col gap-1 text-sm">
-              Category
+          <form id="modal-form" onSubmit={handleSubmit} className="flex flex-col gap-4">
+            {formError && (
+              <p role="alert" className="rounded-ctl bg-danger/10 px-3 py-2 text-body text-danger">
+                {formError}
+              </p>
+            )}
+            <label className="flex flex-col gap-1">
+              <span className={LABEL}>Category</span>
               <input
                 value={category}
                 onChange={(e) => setCategory(e.target.value)}
-                className="border rounded px-2 py-1"
+                className={INPUT}
                 required
               />
             </label>
-            <label className="flex flex-col gap-1 text-sm">
-              Item
+            <label className="flex flex-col gap-1">
+              <span className={LABEL}>Item</span>
               <input
                 value={itemText}
                 onChange={(e) => setItemText(e.target.value)}
-                className="border rounded px-2 py-1"
+                className={INPUT}
                 required
               />
             </label>
             <div className="grid grid-cols-2 gap-3">
-              <label className="flex flex-col gap-1 text-sm">
-                Status
+              <label className="flex flex-col gap-1">
+                <span className={LABEL}>Status</span>
                 <select
                   value={status}
                   onChange={(e) => setStatus(e.target.value as ChecklistStatus)}
-                  className="border rounded px-2 py-1"
+                  className={INPUT}
                 >
                   {CHECKLIST_STATUSES.map((s) => (
                     <option key={s} value={s}>
@@ -160,12 +177,12 @@ export default function ChecklistModal({
                   ))}
                 </select>
               </label>
-              <label className="flex flex-col gap-1 text-sm">
-                Target month
+              <label className="flex flex-col gap-1">
+                <span className={LABEL}>Target month</span>
                 <select
                   value={targetMonth}
                   onChange={(e) => setTargetMonth(e.target.value)}
-                  className="border rounded px-2 py-1"
+                  className={INPUT}
                 >
                   <option value={NO_MONTH}>—</option>
                   {TARGET_MONTHS.map((m) => (
@@ -176,12 +193,12 @@ export default function ChecklistModal({
                 </select>
               </label>
             </div>
-            <label className="flex flex-col gap-1 text-sm">
-              Linked event
+            <label className="flex flex-col gap-1">
+              <span className={LABEL}>Linked event</span>
               <select
                 value={linkedEventId}
                 onChange={(e) => setLinkedEventId(e.target.value)}
-                className="border rounded px-2 py-1"
+                className={INPUT}
               >
                 <option value={NO_LINK}>— Not linked —</option>
                 {eventOptions.map((opt) => (
@@ -190,68 +207,37 @@ export default function ChecklistModal({
                   </option>
                 ))}
               </select>
-              <span className="text-xs text-gray-400 font-normal">
+              <span className="text-micro text-ink-2">
                 Used by &ldquo;Check Calendar&rdquo; to confirm this is actually scheduled.
               </span>
             </label>
-            <label className="flex flex-col gap-1 text-sm">
-              Notes
+            <label className="flex flex-col gap-1">
+              <span className={LABEL}>Notes</span>
               <textarea
                 value={notes ?? ""}
                 onChange={(e) => setNotes(e.target.value)}
-                className="border rounded px-2 py-1"
+                className={TEXTAREA}
                 rows={2}
               />
             </label>
-            <label className="flex flex-col gap-1 text-sm">
-              Automated check
+            <label className="flex flex-col gap-1">
+              <span className={LABEL}>Automated check</span>
               <select
                 value={autoCheckType}
                 onChange={(e) => setAutoCheckType(e.target.value)}
-                className="border rounded px-2 py-1"
+                className={INPUT}
               >
                 <option value={NO_AUTO_CHECK}>None</option>
                 <option value="school_holidays_present">
                   All school holidays present for this month
                 </option>
               </select>
-              <span className="text-xs text-gray-400 font-normal">
+              <span className="text-micro text-ink-2">
                 Run by &ldquo;Check Calendar&rdquo; — flags this item&rsquo;s notes if the rule
                 doesn&rsquo;t pass.
               </span>
             </label>
 
-            {formError && <p className="text-sm text-red-600">{formError}</p>}
-
-            <div className="flex items-center justify-between mt-2">
-              <div>
-                {mode === "edit" && (
-                  <button
-                    type="button"
-                    onClick={() => setConfirmDelete(true)}
-                    className="text-sm text-red-600 hover:underline"
-                  >
-                    Delete
-                  </button>
-                )}
-              </div>
-              <div className="flex gap-2">
-                <button
-                  type="button"
-                  onClick={onClose}
-                  className="px-3 py-1.5 text-sm rounded border border-gray-300"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={saving}
-                  className="px-3 py-1.5 text-sm rounded bg-navy text-white disabled:opacity-50"
-                >
-                  {saving ? "Saving…" : "Save"}
-                </button>
-              </div>
-            </div>
           </form>
         ) : (
           <ConfirmDialog
@@ -262,7 +248,6 @@ export default function ChecklistModal({
             onConfirm={handleDelete}
           />
         )}
-      </div>
-    </div>
+    </ModalShell>
   );
 }

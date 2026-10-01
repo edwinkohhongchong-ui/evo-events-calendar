@@ -8,6 +8,14 @@ items (features/fixes) that push contains — a push with 1 item goes up by
 `1.05`). If MINOR would pass `.99`, MAJOR increments and MINOR carries the
 remainder (e.g. `1.99` + 2 items → `2.01`).
 
+## v1.77 — 2026-10-01
+
+- Holiday, Season, Category, Checklist item, Reminder template and Message
+  snippet forms now use the same modal look as the Event form: rounded card,
+  sticky header with close button, sticky Save/Cancel footer, labelled
+  fields, errors shown at the top. Delete is now hidden from Viewers in the
+  Category form (the server already blocked it).
+
 ## v1.76 — 2026-10-01
 
 - Redesigned the Add/Edit Event form. The quick path is now one short screen:
