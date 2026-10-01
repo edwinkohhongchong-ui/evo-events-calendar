@@ -8,6 +8,19 @@ items (features/fixes) that push contains — a push with 1 item goes up by
 `1.05`). If MINOR would pass `.99`, MAJOR increments and MINOR carries the
 remainder (e.g. `1.99` + 2 items → `2.01`).
 
+## v1.87 — 2026-10-01
+
+- Monthly events set on the 31st (and yearly events on Feb 29) no longer
+  drift. They fall on the last day of shorter months (28 Feb, 30 Apr) and
+  return to the 31st (or 29 Feb in a leap year) afterwards. Before, they got
+  stuck on the 28th for good. The Apple/Google Calendar file (.ics) still
+  follows those apps' own rule of skipping months with no 31st.
+- Phone layout for the Calendar: on screens narrower than 640px the month grid
+  is replaced by a list of the days that have something on them (holidays,
+  events, multi-day events), with this month's seasons as chips above. Tap an
+  event to open it, or the date to open that day. Drag-and-drop stays on
+  larger screens.
+
 ## v1.85 — 2026-10-01
 
 - Hovering an event on the Calendar (or focusing it with the keyboard) now

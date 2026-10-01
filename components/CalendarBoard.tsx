@@ -13,6 +13,7 @@ import {
 } from "@dnd-kit/core";
 import CalendarHeader from "./CalendarHeader";
 import CalendarGrid from "./CalendarGrid";
+import MonthAgenda from "./MonthAgenda";
 import EventCardContent from "./EventCardContent";
 import EventModal from "./EventModal";
 import HolidayModal from "./HolidayModal";
@@ -241,6 +242,19 @@ export default function CalendarBoard({
           onAddClick={isEditor ? () => setModal({ type: "add", date: defaultAddDate }) : undefined}
         />
         <div data-tour="calendar-grid">
+          <div className="sm:hidden">
+            <MonthAgenda
+              monthStart={monthStart}
+              days={weeks.flat()}
+              dayIndex={dayIndex}
+              occurrences={displayOccurrences}
+              seasonSegmentsByWeek={seasonSegmentsByWeek}
+              onEventClick={(occ) => setModal({ type: "edit", occurrence: occ })}
+              onHolidayClick={(holiday) => setHolidayModal({ type: "edit", holiday })}
+              onSeasonClick={(season) => setSeasonModal({ type: "edit", season })}
+            />
+          </div>
+          <div className="hidden sm:block">
           <CalendarGrid
             weeks={weeks}
             monthStart={monthStart}
@@ -258,6 +272,7 @@ export default function CalendarBoard({
             onHolidayClick={(holiday) => setHolidayModal({ type: "edit", holiday })}
             onSeasonClick={(season) => setSeasonModal({ type: "edit", season })}
           />
+          </div>
         </div>
         <DragOverlay>{activeOcc && <EventCardContent occurrence={activeOcc} lifted />}</DragOverlay>
       </DndContext>

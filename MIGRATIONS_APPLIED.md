@@ -38,7 +38,7 @@ it immediately after confirming a migration has been run.
 | 020 | supabase_migration_020_updated_at.sql | updated_at + concurrent-edit detection | Yes (confirmed cleanly, run together with 018-019 in same session) |
 | 021 | supabase_migration_021_season_source_dates.sql | Per-institution exam/term dates (season_source_dates table) for Seasons' Update Calendar / Start a New Year | Yes (confirmed run by Edwin, 1 Oct 2026) |
 | 022 | supabase_migration_022_checklist_auto_check.sql | Checklist "automated check" tag (auto_check_type column) | Yes (confirmed run by Edwin, 1 Oct 2026) |
-| 023 | supabase_migration_023_activity_log.sql | Activity log table for the notification bell (activity_log) | Not yet confirmed |
+| 023 | supabase_migration_023_activity_log.sql | Activity log table for the notification bell (activity_log) | Yes (table already existed when re-run on 1 Oct; bell shows live entries) |
 
 Note: numbering starts at 002 — there is no `supabase_migration_001_*.sql` file
 in this repo (the initial schema lives in `supabase_schema.sql`).

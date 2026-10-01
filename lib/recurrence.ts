@@ -3,16 +3,21 @@ import { parseDateStr, toDateStr } from "./dates";
 import { computeSpanDays } from "./eventSpan";
 import { EventRow, EventOccurrence, Recurring } from "./types";
 
-function stepFor(recurring: Recurring): (d: Date) => Date {
+// The nth occurrence date, always computed from the anchor (not from the
+// previous occurrence) so a clamp never sticks: a monthly series on the 31st
+// falls on the last day of shorter months (Feb 28, Apr 30) and returns to the
+// 31st afterwards; a yearly Feb 29 series is Feb 28 in non-leap years and
+// Feb 29 again in leap years. date-fns clamps each result to the target month.
+function nthOccurrence(anchor: Date, recurring: Recurring, n: number): Date {
   switch (recurring) {
     case "Weekly":
-      return (d) => addWeeks(d, 1);
+      return addWeeks(anchor, n);
     case "Monthly":
-      return (d) => addMonths(d, 1);
+      return addMonths(anchor, n);
     case "Yearly":
-      return (d) => addYears(d, 1);
+      return addYears(anchor, n);
     case "None":
-      throw new Error("stepFor called with non-recurring event");
+      throw new Error("nthOccurrence called with non-recurring event");
   }
 }
 
@@ -58,8 +63,6 @@ export function expandEvent(
 
   if (isAfter(anchor, effectiveEnd)) return [];
 
-  const step = stepFor(event.recurring);
-
   // Walk forward from the event's own anchor date (event_date), not from
   // rangeStart — starting the walk at an arbitrary grid boundary would
   // misalign Monthly/Yearly patterns (e.g. a "15th of every month" event
@@ -72,9 +75,11 @@ export function expandEvent(
   // later in lib/overrides.ts) isn't visible here — only the series'
   // template spanDays is. An occurrence individually resized past a grid
   // boundary this walk already skipped won't appear. Not handled this phase.
+  let n = 0;
   let cur = anchor;
   while (isBefore(addDays(cur, spanDays), rangeStart)) {
-    cur = step(cur);
+    n += 1;
+    cur = nthOccurrence(anchor, event.recurring, n);
   }
 
   const occurrences: EventOccurrence[] = [];
@@ -91,7 +96,8 @@ export function expandEvent(
         spanEndDate: toDateStr(addDays(cur, spanDays)),
       });
     }
-    cur = step(cur);
+    n += 1;
+    cur = nthOccurrence(anchor, event.recurring, n);
   }
   return occurrences;
 }

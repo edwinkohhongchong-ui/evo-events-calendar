@@ -55,17 +55,10 @@ describe("expandEvents", () => {
     ]);
   });
 
-  // Monthly anchored on the 31st, walked across a month with fewer days.
-  //
-  // date-fns `addMonths` clamps to the target month's last day when the
-  // anchor day doesn't exist there (Jan 31 + 1 month = Feb 28 in a non-leap
-  // year). But expandEvent's walk is CUMULATIVE — each step is computed from
-  // the previous occurrence, not from `anchor + N * interval` — so once a
-  // step clamps down to the 28th, every subsequent step continues from that
-  // clamped date. The series never returns to the 31st, even in later months
-  // that do have 31 days (e.g. March). This is the actual, current behavior;
-  // see the flag in the report about whether this drift is intended.
-  it("walks a monthly series anchored on the 31st, clamping (and then drifting) through shorter months", () => {
+  // Monthly anchored on the 31st, walked across months with fewer days.
+  // Each occurrence is computed from the anchor, so a clamp (Feb 28, Apr 30)
+  // never sticks: the series returns to the 31st whenever the month has one.
+  it("walks a monthly series anchored on the 31st, clamping to month end but returning to the 31st", () => {
     const event = makeEvent({
       event_date: "2026-01-31",
       recurring: "Monthly",
@@ -80,20 +73,15 @@ describe("expandEvents", () => {
     expect(occurrences.map((o) => o.occurrenceDate)).toEqual([
       "2026-01-31",
       "2026-02-28", // 2026 is not a leap year: clamped from the 31st
-      "2026-03-28", // drift: stays on the 28th, does NOT return to the 31st
-      "2026-04-28",
-      "2026-05-28",
+      "2026-03-31", // back on the 31st
+      "2026-04-30", // April has 30 days
+      "2026-05-31",
     ]);
   });
 
-  // Yearly anchored on Feb 29 (a leap day), walked across a non-leap year.
-  //
-  // Same clamp-then-drift behavior as the monthly case: date-fns `addYears`
-  // clamps Feb 29 -> Feb 28 for a non-leap target year, and because the walk
-  // is cumulative, the series stays on Feb 28 permanently afterward — even
-  // when a later leap year (2028) would have had a Feb 29 again. Asserting
-  // the actual current behavior here, not the arguably-more-correct one.
-  it("walks a yearly series anchored on Feb 29, clamping (and then drifting) through non-leap years", () => {
+  // Yearly anchored on Feb 29 (a leap day): Feb 28 in non-leap years, and
+  // Feb 29 again in the next leap year (computed from the anchor each time).
+  it("walks a yearly series anchored on Feb 29, on Feb 28 in non-leap years and Feb 29 in leap years", () => {
     const event = makeEvent({
       event_date: "2024-02-29",
       recurring: "Yearly",
@@ -110,7 +98,7 @@ describe("expandEvents", () => {
       "2025-02-28",
       "2026-02-28",
       "2027-02-28",
-      "2028-02-28", // 2028 IS a leap year, but the series already drifted off the 29th
+      "2028-02-29", // leap year again
     ]);
   });
 

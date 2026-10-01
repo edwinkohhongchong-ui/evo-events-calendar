@@ -1,0 +1,120 @@
+"use client";
+
+import Link from "next/link";
+import { format, isToday } from "date-fns";
+import EventCardContent from "./EventCardContent";
+import { FlagIcon } from "./icons";
+import { DayData } from "@/lib/dayIndex";
+import { SeasonSegment } from "@/lib/seasonBars";
+import { resolveSeasonColor } from "@/lib/seasonColor";
+import { SEASON_BAR_COLORS } from "@/lib/constants";
+import { parseDateStr, toDateStr } from "@/lib/dates";
+import { occurrenceKey } from "@/lib/occurrenceKey";
+import { EventOccurrence, HolidayRow, SeasonRow } from "@/lib/types";
+
+interface MonthAgendaProps {
+  monthStart: Date;
+  days: Date[];
+  dayIndex: Map<string, DayData>;
+  occurrences: EventOccurrence[];
+  seasonSegmentsByWeek: SeasonSegment[][];
+  onEventClick: (occurrence: EventOccurrence) => void;
+  onHolidayClick: (holiday: HolidayRow) => void;
+  onSeasonClick: (season: SeasonRow) => void;
+}
+
+// Phone-width alternative to the 7-column month grid (which would be ~50px
+// per column): a vertical list of the days in this month that have something
+// on them. Tap an event to open it, tap the date to open that day's page.
+// No drag-and-drop here — rescheduling on a phone is done from the event form.
+export default function MonthAgenda({
+  monthStart,
+  days,
+  dayIndex,
+  occurrences,
+  seasonSegmentsByWeek,
+  onEventClick,
+  onHolidayClick,
+  onSeasonClick,
+}: MonthAgendaProps) {
+  const month = monthStart.getMonth();
+  const multiDay = occurrences.filter((o) => o.spanEndDate !== o.occurrenceDate);
+
+  const seasons = new Map<string, SeasonRow>();
+  for (const week of seasonSegmentsByWeek) for (const seg of week) seasons.set(seg.season.id, seg.season);
+
+  const rows = days
+    .filter((d) => d.getMonth() === month)
+    .map((d) => {
+      const dateStr = toDateStr(d);
+      const data = dayIndex.get(dateStr);
+      const spanning = multiDay.filter((o) => o.occurrenceDate <= dateStr && dateStr <= o.spanEndDate);
+      return { d, dateStr, holidays: data?.holidays ?? [], events: data?.occurrences ?? [], spanning };
+    })
+    .filter((r) => r.holidays.length || r.events.length || r.spanning.length);
+
+  return (
+    <div className="flex flex-col gap-3">
+      {seasons.size > 0 && (
+        <div className="flex flex-wrap gap-1.5">
+          {Array.from(seasons.values()).map((season) => (
+            <button
+              key={season.id}
+              type="button"
+              onClick={() => onSeasonClick(season)}
+              className={`max-w-full truncate rounded-pill border px-2.5 py-0.5 text-micro ${SEASON_BAR_COLORS[resolveSeasonColor(season)]}`}
+            >
+              {season.name}
+            </button>
+          ))}
+        </div>
+      )}
+
+      {rows.length === 0 && (
+        <p className="rounded-card bg-surface p-4 text-center text-body text-ink-2">Nothing scheduled this month.</p>
+      )}
+
+      {rows.map(({ d, dateStr, holidays, events, spanning }) => {
+        const today = isToday(d);
+        return (
+          <div key={dateStr} className="flex gap-3 rounded-card border border-line bg-surface p-3">
+            <Link
+              href={`/day/${dateStr}`}
+              aria-label={`Open ${format(parseDateStr(dateStr), "EEEE d MMMM")}`}
+              className={[
+                "flex h-12 w-12 shrink-0 flex-col items-center justify-center rounded-ctl leading-tight",
+                today ? "bg-navy text-white" : d.getDay() === 0 ? "bg-gold-50 text-navy" : "bg-fill text-navy",
+              ].join(" ")}
+            >
+              <span className="text-micro font-medium uppercase">{format(d, "EEE")}</span>
+              <span className="text-ui font-semibold">{d.getDate()}</span>
+            </Link>
+            <div className="flex min-w-0 flex-1 flex-col gap-1.5">
+              {holidays.map((h) => (
+                <button
+                  key={h.id}
+                  type="button"
+                  onClick={() => onHolidayClick(h)}
+                  className="inline-flex items-center gap-1 self-start text-left text-body text-ink-2"
+                >
+                  <FlagIcon className="!h-3.5 !w-3.5 text-danger/70" />
+                  {h.name}
+                </button>
+              ))}
+              {[...spanning, ...events].map((occ) => (
+                <button
+                  key={occurrenceKey(occ) + dateStr}
+                  type="button"
+                  onClick={() => onEventClick(occ)}
+                  className="block w-full text-left"
+                >
+                  <EventCardContent occurrence={occ} />
+                </button>
+              ))}
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
