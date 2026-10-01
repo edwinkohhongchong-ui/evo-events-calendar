@@ -8,6 +8,10 @@ items (features/fixes) that push contains — a push with 1 item goes up by
 `1.05`). If MINOR would pass `.99`, MAJOR increments and MINOR carries the
 remainder (e.g. `1.99` + 2 items → `2.01`).
 
+## v2.40 — 2026-10-01
+
+- Dragging several events in quick succession now feels instant: each move, resize and start-edge drag is tracked per event, so a second drag no longer makes the first snap back until the server catches up. A failed save puts back only that event.
+
 ## v2.39 — 2026-10-01
 
 - Events within a day are now ordered by start time (all-day events first, then earliest to latest), so a day no longer shows moved events in the order they were dropped. Applies to the month grid and the phone agenda.

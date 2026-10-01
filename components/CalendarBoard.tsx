@@ -82,15 +82,19 @@ export default function CalendarBoard({
     [levels]
   );
   const [isPending, startTransition] = useTransition();
-  const [optimisticMove, setOptimisticMove] = useState<{ key: string; newDate: string } | null>(
-    null
-  );
-  const [optimisticResize, setOptimisticResize] = useState<{ key: string; newEndDate: string } | null>(
-    null
-  );
-  const [optimisticStart, setOptimisticStart] = useState<{ key: string; newStartDate: string } | null>(
-    null
-  );
+  // Keyed by occurrence so several gestures can be in flight at once (drag
+  // two events quickly and both stay put instead of the first snapping back).
+  const [optimisticMove, setOptimisticMove] = useState<Record<string, string>>({});
+  const [optimisticResize, setOptimisticResize] = useState<Record<string, string>>({});
+  const [optimisticStart, setOptimisticStart] = useState<Record<string, string>>({});
+  const setKey = (set: typeof setOptimisticMove, key: string, value: string) =>
+    set((prev) => ({ ...prev, [key]: value }));
+  const dropKey = (set: typeof setOptimisticMove, key: string) =>
+    set((prev) => {
+      const rest = { ...prev };
+      delete rest[key];
+      return rest;
+    });
   const [error, setError] = useState<string | null>(null);
   const [modal, setModal] = useState<ModalState>({ type: "closed" });
   const [holidayModal, setHolidayModal] = useState<HolidayModalState>({ type: "closed" });
@@ -111,34 +115,31 @@ export default function CalendarBoard({
   const inFlightRef = useRef(0);
   useEffect(() => {
     if (!isPending && inFlightRef.current === 0) {
-      setOptimisticMove(null);
-      setOptimisticResize(null);
-      setOptimisticStart(null);
+      setOptimisticMove({});
+      setOptimisticResize({});
+      setOptimisticStart({});
     }
   }, [isPending]);
 
   const displayOccurrences = useMemo(() => {
     let next = occurrences;
-    if (optimisticMove) {
-      next = next.map((occ) =>
-        occurrenceKey(occ) === optimisticMove.key
-          ? withOptimisticMove(occ, optimisticMove.newDate)
-          : occ
-      );
+    if (Object.keys(optimisticMove).length > 0) {
+      next = next.map((occ) => {
+        const d = optimisticMove[occurrenceKey(occ)];
+        return d ? withOptimisticMove(occ, d) : occ;
+      });
     }
-    if (optimisticResize) {
-      next = next.map((occ) =>
-        occurrenceKey(occ) === optimisticResize.key
-          ? { ...occ, spanEndDate: optimisticResize.newEndDate }
-          : occ
-      );
+    if (Object.keys(optimisticResize).length > 0) {
+      next = next.map((occ) => {
+        const d = optimisticResize[occurrenceKey(occ)];
+        return d ? { ...occ, spanEndDate: d } : occ;
+      });
     }
-    if (optimisticStart) {
-      next = next.map((occ) =>
-        occurrenceKey(occ) === optimisticStart.key
-          ? { ...occ, occurrenceDate: optimisticStart.newStartDate }
-          : occ
-      );
+    if (Object.keys(optimisticStart).length > 0) {
+      next = next.map((occ) => {
+        const d = optimisticStart[occurrenceKey(occ)];
+        return d ? { ...occ, occurrenceDate: d } : occ;
+      });
     }
     return next.filter((occ) => isVisible(occ.event.level));
   }, [occurrences, optimisticMove, optimisticResize, optimisticStart, isVisible]);
@@ -202,7 +203,7 @@ export default function CalendarBoard({
     if (resizeStartOccurrence) {
       if (targetDate === resizeStartOccurrence.occurrenceDate) return; // dropped on its current start
       if (targetDate > resizeStartOccurrence.spanEndDate) return; // can't start after the end
-      setOptimisticStart({ key: occurrenceKey(resizeStartOccurrence), newStartDate: targetDate });
+      setKey(setOptimisticStart, occurrenceKey(resizeStartOccurrence), targetDate);
       inFlightRef.current++;
       try {
         const affected = unwrap(await moveOccurrenceStart(
@@ -214,7 +215,7 @@ export default function CalendarBoard({
         record(`Resize "${resizeStartOccurrence.event.name}"`, affected);
         startTransition(() => router.refresh());
       } catch (err) {
-        setOptimisticStart(null);
+        dropKey(setOptimisticStart, occurrenceKey(resizeStartOccurrence));
         setError(err instanceof Error ? err.message : "Couldn't resize that event — it's back where it was. Please try again.");
       } finally {
         inFlightRef.current--;
@@ -226,7 +227,7 @@ export default function CalendarBoard({
     if (resizeOccurrence) {
       if (targetDate === resizeOccurrence.spanEndDate) return; // dropped on its current end
       if (targetDate < resizeOccurrence.occurrenceDate) return; // can't resize to before the start
-      setOptimisticResize({ key: occurrenceKey(resizeOccurrence), newEndDate: targetDate });
+      setKey(setOptimisticResize, occurrenceKey(resizeOccurrence), targetDate);
       inFlightRef.current++;
       try {
         const affected = unwrap(await extendOccurrenceSpan(
@@ -242,7 +243,7 @@ export default function CalendarBoard({
         // it's patched in here rather than waiting on the refresh to land.
         setModal({ type: "edit", occurrence: { ...resizeOccurrence, spanEndDate: targetDate } });
       } catch (err) {
-        setOptimisticResize(null);
+        dropKey(setOptimisticResize, occurrenceKey(resizeOccurrence));
         setError(err instanceof Error ? err.message : "Couldn't resize that event — it's back where it was. Please try again.");
       } finally {
         inFlightRef.current--;
@@ -254,14 +255,14 @@ export default function CalendarBoard({
     if (!occurrence) return;
     if (targetDate === occurrence.occurrenceDate) return; // dropped on its own cell
 
-    setOptimisticMove({ key: occurrenceKey(occurrence), newDate: targetDate });
+    setKey(setOptimisticMove, occurrenceKey(occurrence), targetDate);
     inFlightRef.current++;
     try {
       const affected = unwrap(await moveOccurrence(occurrence.event, occurrence.originalDate, targetDate));
       record(`Move "${occurrence.event.name}"`, affected);
       startTransition(() => router.refresh());
     } catch (err) {
-      setOptimisticMove(null);
+      dropKey(setOptimisticMove, occurrenceKey(occurrence));
       setError(err instanceof Error ? err.message : "Couldn't move that event — it's back where it was. Please try again.");
     } finally {
       inFlightRef.current--;
