@@ -22,6 +22,7 @@ import { buildDayIndex } from "@/lib/dayIndex";
 import { occurrenceKey } from "@/lib/occurrenceKey";
 import { withOptimisticMove } from "@/lib/optimisticMove";
 import { moveOccurrence, extendOccurrenceSpan, moveOccurrenceStart } from "@/lib/actions";
+import { unwrap } from "@/lib/actionResult";
 import { SeasonSegment } from "@/lib/seasonBars";
 import { computeEventBarSegments } from "@/lib/eventBars";
 import { resolveLevelColor } from "@/lib/levelColor";
@@ -169,17 +170,17 @@ export default function CalendarBoard({
       if (targetDate > resizeStartOccurrence.spanEndDate) return; // can't start after the end
       setOptimisticStart({ key: occurrenceKey(resizeStartOccurrence), newStartDate: targetDate });
       try {
-        const affected = await moveOccurrenceStart(
+        const affected = unwrap(await moveOccurrenceStart(
           resizeStartOccurrence.event,
           resizeStartOccurrence.originalDate,
           targetDate,
           resizeStartOccurrence.spanEndDate
-        );
+        ));
         record(`Resize "${resizeStartOccurrence.event.name}"`, affected);
         startTransition(() => router.refresh());
-      } catch {
+      } catch (err) {
         setOptimisticStart(null);
-        setError("Couldn't resize that event — it's back where it was. Please try again.");
+        setError(err instanceof Error ? err.message : "Couldn't resize that event — it's back where it was. Please try again.");
       }
       return;
     }
@@ -190,11 +191,11 @@ export default function CalendarBoard({
       if (targetDate < resizeOccurrence.occurrenceDate) return; // can't resize to before the start
       setOptimisticResize({ key: occurrenceKey(resizeOccurrence), newEndDate: targetDate });
       try {
-        const affected = await extendOccurrenceSpan(
+        const affected = unwrap(await extendOccurrenceSpan(
           resizeOccurrence.event,
           resizeOccurrence.originalDate,
           targetDate
-        );
+        ));
         record(`Resize "${resizeOccurrence.event.name}"`, affected);
         startTransition(() => router.refresh());
         // Open straight into editing so time/other details can be filled in
@@ -202,9 +203,9 @@ export default function CalendarBoard({
         // isn't reflected in the (not-yet-refreshed) occurrence object, so
         // it's patched in here rather than waiting on the refresh to land.
         setModal({ type: "edit", occurrence: { ...resizeOccurrence, spanEndDate: targetDate } });
-      } catch {
+      } catch (err) {
         setOptimisticResize(null);
-        setError("Couldn't resize that event — it's back where it was. Please try again.");
+        setError(err instanceof Error ? err.message : "Couldn't resize that event — it's back where it was. Please try again.");
       }
       return;
     }
@@ -215,12 +216,12 @@ export default function CalendarBoard({
 
     setOptimisticMove({ key: occurrenceKey(occurrence), newDate: targetDate });
     try {
-      const affected = await moveOccurrence(occurrence.event, occurrence.originalDate, targetDate);
+      const affected = unwrap(await moveOccurrence(occurrence.event, occurrence.originalDate, targetDate));
       record(`Move "${occurrence.event.name}"`, affected);
       startTransition(() => router.refresh());
-    } catch {
+    } catch (err) {
       setOptimisticMove(null);
-      setError("Couldn't move that event — it's back where it was. Please try again.");
+      setError(err instanceof Error ? err.message : "Couldn't move that event — it's back where it was. Please try again.");
     }
   }
 

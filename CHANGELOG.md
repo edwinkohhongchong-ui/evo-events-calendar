@@ -8,6 +8,15 @@ items (features/fixes) that push contains — a push with 1 item goes up by
 `1.05`). If MINOR would pass `.99`, MAJOR increments and MINOR carries the
 remainder (e.g. `1.99` + 2 items → `2.01`).
 
+## v1.71 — 2026-10-01
+
+- Event save/move/resize/delete errors now reach you in plain words on the live
+  site. Before, the live site replaced every failure with a generic "An error
+  occurred in the Server Components render" message. The event actions now
+  return their error message instead of throwing it, and the Event form,
+  calendar drags and day view show it. A missing category now says so
+  ("...category doesn't exist any more. Add it under Categories").
+
 ## v1.70 — 2026-10-01
 
 - Event blocks can now be resized from the left edge too: drag the left edge of

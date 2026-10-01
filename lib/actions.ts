@@ -10,6 +10,7 @@ import { AffectedRow } from "./undo/types";
 import { fetchRow } from "./undo/capture";
 import { requireRole } from "./authz";
 import { logActivity } from "./activity";
+import { runAction } from "./actionResult";
 
 // Moves a single occurrence to newDate. Never touches new_time/new_end_date —
 // the upsert below only ever sends event_id/original_date/new_date, so
@@ -25,7 +26,7 @@ import { logActivity } from "./activity";
 //   natural — dragging the date back while a time or span override still
 //   exists must keep the row (just with new_date reset), not destroy those
 //   other overrides too.
-export async function moveOccurrence(
+async function moveOccurrenceImpl(
   event: EventRow,
   originalDate: string,
   newDate: string
@@ -100,7 +101,7 @@ export async function moveOccurrence(
 // - Recurring: writes/updates event_overrides.new_time, preserving whatever
 //   new_date already exists on that row (never included in this function's
 //   writes, so a prior date override survives a retime).
-export async function retimeOccurrence(
+async function retimeOccurrenceImpl(
   event: EventRow,
   originalDate: string,
   newTime: string
@@ -215,11 +216,14 @@ export interface EventFormValues {
   theme: string | null;
 }
 
-export async function createEvent(values: EventFormValues): Promise<AffectedRow[]> {
+async function createEventImpl(values: EventFormValues): Promise<AffectedRow[]> {
   await requireRole("editor");
   const { data, error } = await supabase.from("events").insert(values).select().single();
   if (error) {
     console.error(error);
+    if (error.code === "23503") {
+      throw new Error("That event type's category doesn't exist any more. Add it under Categories, then try again.");
+    }
     throw new Error("Something went wrong saving this event. Please try again.");
   }
   await logActivity({ action: "added", entity: "event", entityId: data.id, label: values.name, itemDate: values.event_date });
@@ -230,7 +234,7 @@ export async function createEvent(values: EventFormValues): Promise<AffectedRow[
 // updateHoliday in lib/holidayActions.ts for the full explanation of this
 // optimistic-lock parameter and its current limitation (no call site wires
 // it through yet).
-export async function updateEvent(
+async function updateEventImpl(
   id: string,
   values: EventFormValues,
   expectedUpdatedAt?: string
@@ -242,6 +246,9 @@ export async function updateEvent(
   const { data, error } = await query.select();
   if (error) {
     console.error(error);
+    if (error.code === "23503") {
+      throw new Error("That event type's category doesn't exist any more. Add it under Categories, then try again.");
+    }
     throw new Error("Something went wrong saving this event. Please try again.");
   }
   if (!data || data.length === 0) {
@@ -262,7 +269,7 @@ export async function updateEvent(
 // back, not just the base row. For a recurring event this deletes the whole
 // series — the confirmation UI is responsible for making that unambiguous
 // before calling this.
-export async function deleteEvent(id: string): Promise<AffectedRow[]> {
+async function deleteEventImpl(id: string): Promise<AffectedRow[]> {
   await requireRole("editor");
   const before = await fetchRow("events", id);
   const { data: overrides, error: overridesError } = await supabase
@@ -306,7 +313,7 @@ export async function deleteEvent(id: string): Promise<AffectedRow[]> {
 // into its own standalone event carrying the edited values, and excepts the
 // original date so the series stops generating it. The rest of the series
 // (before and after) is untouched.
-export async function detachOccurrence(
+async function detachOccurrenceImpl(
   event: EventRow,
   originalDate: string,
   values: EventFormValues
@@ -372,7 +379,7 @@ export async function detachOccurrence(
 // split point move to the new series (they still describe real deviations
 // under it) — the one exactly on the split date is dropped, since the new
 // series' own fields already reflect it directly.
-export async function splitSeriesFromOccurrence(
+async function splitSeriesFromOccurrenceImpl(
   event: EventRow,
   originalDate: string,
   values: EventFormValues
@@ -381,7 +388,7 @@ export async function splitSeriesFromOccurrence(
   // Editing the very first occurrence "and all future" has nothing to
   // preserve before it — same as editing the whole series in place.
   if (originalDate === event.event_date) {
-    return updateEvent(event.id, values);
+    return updateEventImpl(event.id, values);
   }
 
   const affected: AffectedRow[] = [];
@@ -495,7 +502,7 @@ export async function splitSeriesFromOccurrence(
 //   back to single-day, matching how a null end_date is always read).
 // - Recurring: writes/updates event_overrides.new_end_date, preserving
 //   whatever new_date/new_time already exist on that row.
-export async function extendOccurrenceSpan(
+async function extendOccurrenceSpanImpl(
   event: EventRow,
   originalDate: string,
   newEndDate: string
@@ -589,7 +596,7 @@ export async function extendOccurrenceSpan(
 // - Recurring: writes event_overrides new_date + new_end_date, keyed by
 //   originalDate; the row is deleted only when date, span and time are all
 //   back to natural.
-export async function moveOccurrenceStart(
+async function moveOccurrenceStartImpl(
   event: EventRow,
   originalDate: string,
   newStartDate: string,
@@ -668,7 +675,7 @@ export async function moveOccurrenceStart(
 
 // "Only this event" delete: excepts the occurrence so the series stops
 // generating it, without touching the series or any other occurrence.
-export async function deleteOccurrence(event: EventRow, originalDate: string): Promise<AffectedRow[]> {
+async function deleteOccurrenceImpl(event: EventRow, originalDate: string): Promise<AffectedRow[]> {
   await requireRole("editor");
   const { data: existingException } = await supabase
     .from("event_exceptions")
@@ -710,4 +717,45 @@ export async function deleteOccurrence(event: EventRow, originalDate: string): P
 
   await logActivity({ action: "deleted", entity: "event", entityId: event.id, label: event.name, itemDate: originalDate });
   return affected;
+}
+
+// Public Server Actions: every one returns an ActionResult (see lib/actionResult.ts).
+export async function moveOccurrence(...args: Parameters<typeof moveOccurrenceImpl>) {
+  return runAction(() => moveOccurrenceImpl(...args));
+}
+
+export async function retimeOccurrence(...args: Parameters<typeof retimeOccurrenceImpl>) {
+  return runAction(() => retimeOccurrenceImpl(...args));
+}
+
+export async function createEvent(...args: Parameters<typeof createEventImpl>) {
+  return runAction(() => createEventImpl(...args));
+}
+
+export async function updateEvent(...args: Parameters<typeof updateEventImpl>) {
+  return runAction(() => updateEventImpl(...args));
+}
+
+export async function deleteEvent(...args: Parameters<typeof deleteEventImpl>) {
+  return runAction(() => deleteEventImpl(...args));
+}
+
+export async function detachOccurrence(...args: Parameters<typeof detachOccurrenceImpl>) {
+  return runAction(() => detachOccurrenceImpl(...args));
+}
+
+export async function splitSeriesFromOccurrence(...args: Parameters<typeof splitSeriesFromOccurrenceImpl>) {
+  return runAction(() => splitSeriesFromOccurrenceImpl(...args));
+}
+
+export async function extendOccurrenceSpan(...args: Parameters<typeof extendOccurrenceSpanImpl>) {
+  return runAction(() => extendOccurrenceSpanImpl(...args));
+}
+
+export async function moveOccurrenceStart(...args: Parameters<typeof moveOccurrenceStartImpl>) {
+  return runAction(() => moveOccurrenceStartImpl(...args));
+}
+
+export async function deleteOccurrence(...args: Parameters<typeof deleteOccurrenceImpl>) {
+  return runAction(() => deleteOccurrenceImpl(...args));
 }

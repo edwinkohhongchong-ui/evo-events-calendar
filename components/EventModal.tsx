@@ -11,6 +11,7 @@ import {
   deleteOccurrence,
   EventFormValues,
 } from "@/lib/actions";
+import { unwrap } from "@/lib/actionResult";
 import { computeDuration, computeEndTime, endsNextDay } from "@/lib/timeMath";
 import { formatDateDisplay, formatEventTimeRange } from "@/lib/dates";
 import { PastoralFocus, applyTitlePrefix, stripTitlePrefix } from "@/lib/pastoralFocus";
@@ -312,10 +313,10 @@ export default function EventModal({
     setSaving(true);
     try {
       if (mode === "add") {
-        const affected = await createEvent(values);
+        const affected = unwrap(await createEvent(values));
         record(`Add "${values.name}"`, affected);
       } else if (event) {
-        const affected = await updateEvent(event.id, values);
+        const affected = unwrap(await updateEvent(event.id, values));
         record(`Edit "${values.name}"`, affected);
       }
       onSaved();
@@ -331,10 +332,10 @@ export default function EventModal({
     setFormError(null);
     try {
       if (scope === "only") {
-        const affected = await detachOccurrence(event, occurrence.originalDate, pendingValues);
+        const affected = unwrap(await detachOccurrence(event, occurrence.originalDate, pendingValues));
         record(`Edit "${pendingValues.name}" (only this event)`, affected);
       } else {
-        const affected = await splitSeriesFromOccurrence(event, occurrence.originalDate, pendingValues);
+        const affected = unwrap(await splitSeriesFromOccurrence(event, occurrence.originalDate, pendingValues));
         record(`Edit "${pendingValues.name}" (this and future events)`, affected);
       }
       onSaved();
@@ -357,7 +358,7 @@ export default function EventModal({
     setSaving(true);
     setFormError(null);
     try {
-      const affected = await deleteOccurrence(event, occurrence.originalDate);
+      const affected = unwrap(await deleteOccurrence(event, occurrence.originalDate));
       record(`Delete "${event.name}" (only this event)`, affected);
       onDeleted();
     } catch (err) {
@@ -371,7 +372,7 @@ export default function EventModal({
     setSaving(true);
     setFormError(null);
     try {
-      const affected = await deleteEvent(event.id);
+      const affected = unwrap(await deleteEvent(event.id));
       record(`Delete "${event.name}"`, affected);
       onDeleted();
     } catch (err) {

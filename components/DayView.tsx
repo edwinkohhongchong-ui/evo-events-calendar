@@ -16,6 +16,7 @@ import DayViewEventContent from "./DayViewEventContent";
 import EventModal from "./EventModal";
 import ErrorBanner from "./ErrorBanner";
 import { retimeOccurrence } from "@/lib/actions";
+import { unwrap } from "@/lib/actionResult";
 import { occurrenceKey } from "@/lib/occurrenceKey";
 import { computeDuration, minutesToTimeStr, timeStrToMinutes } from "@/lib/timeMath";
 import { resolveLevelColor } from "@/lib/levelColor";
@@ -109,12 +110,12 @@ export default function DayView({ occurrences, levels }: DayViewProps) {
 
     setOptimisticStart({ key: occurrenceKey(occurrence), startTime: newStart });
     try {
-      const affected = await retimeOccurrence(occurrence.event, occurrence.originalDate, newStart);
+      const affected = unwrap(await retimeOccurrence(occurrence.event, occurrence.originalDate, newStart));
       record(`Retime "${occurrence.event.name}"`, affected);
       startTransition(() => router.refresh());
-    } catch {
+    } catch (err) {
       setOptimisticStart(null);
-      setError("Couldn't retime that event — it's back where it was. Please try again.");
+      setError(err instanceof Error ? err.message : "Couldn't retime that event — it's back where it was. Please try again.");
     }
   }
 
