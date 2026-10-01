@@ -152,8 +152,6 @@ export default function NavBar({ generalComments = [] }: { generalComments?: Not
     isBusy,
     error,
     dismissError,
-    lastAction,
-    dismissLastAction,
   } = useUndo();
 
   const closeMenu = () => setMenuOpen(false);
@@ -245,20 +243,6 @@ export default function NavBar({ generalComments = [] }: { generalComments?: Not
   return (
     <nav className="bg-navy text-white">
       {error && <ErrorBanner message={error} onDismiss={dismissError} />}
-      {lastAction && (
-        <div className="bg-emerald-50 text-emerald-800 text-xs px-4 py-1.5 flex items-center justify-between gap-2 border-b border-emerald-200">
-          <span>
-            {lastAction.kind === "undo" ? "↶ Undid" : "↷ Redid"}: {lastAction.label}
-          </span>
-          <button
-            type="button"
-            onClick={dismissLastAction}
-            className="text-emerald-600 hover:text-emerald-900 leading-none"
-          >
-            ×
-          </button>
-        </div>
-      )}
       <div className="relative max-w-6xl mx-auto px-4 sm:px-6 flex items-center h-12 gap-3">
         <Link
           href="/"

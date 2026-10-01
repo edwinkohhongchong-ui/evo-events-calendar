@@ -9,6 +9,7 @@ import { Role } from "@/lib/auth";
 import { getGeneralComments } from "@/lib/data";
 import { OnboardingTourProvider } from "@/lib/useOnboardingTour";
 import OnboardingTourModal from "@/components/OnboardingTourModal";
+import UndoToast from "@/components/UndoToast";
 import "./globals.css";
 
 const geistSans = localFont({
@@ -52,6 +53,7 @@ export default async function RootLayout({
                 <NavBar generalComments={generalComments} />
                 {children}
                 <OnboardingTourModal />
+                <UndoToast />
               </OnboardingTourProvider>
             </EventFilterProvider>
           </UndoProvider>

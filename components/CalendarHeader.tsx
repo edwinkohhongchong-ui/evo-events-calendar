@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { format, addMonths, subMonths } from "date-fns";
@@ -49,6 +49,30 @@ export default function CalendarHeader({ monthStart, levels, onAddClick }: Calen
   const [levelModal, setLevelModal] = useState<LevelModalState>({ type: "closed" });
   const nextSortOrder = levels.length > 0 ? Math.max(...levels.map((l) => l.sort_order)) + 1 : 0;
 
+  // Keyboard shortcuts: T = this month, ←/→ = previous/next month, N = new
+  // event (Editors). Ignored while typing, with modifier keys held, or while
+  // any dialog (modal, drawer, tour) is open.
+  const prevHref = `/?year=${prev.getFullYear()}&month=${prev.getMonth() + 1}`;
+  const nextHref = `/?year=${next.getFullYear()}&month=${next.getMonth() + 1}`;
+  useEffect(() => {
+    function onKeyDown(e: KeyboardEvent) {
+      if (e.metaKey || e.ctrlKey || e.altKey || e.shiftKey || e.defaultPrevented) return;
+      const el = e.target as HTMLElement | null;
+      const tag = el?.tagName;
+      if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT" || el?.isContentEditable) return;
+      if (document.querySelector('[role="dialog"]')) return;
+      const key = e.key.toLowerCase();
+      if (key === "t") router.push("/");
+      else if (e.key === "ArrowLeft") router.push(prevHref);
+      else if (e.key === "ArrowRight") router.push(nextHref);
+      else if (key === "n" && isEditor && onAddClick) onAddClick();
+      else return;
+      e.preventDefault();
+    }
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [router, prevHref, nextHref, isEditor, onAddClick]);
+
   return (
     <div className="flex flex-col gap-3 mb-3">
       <div className="flex items-center justify-between flex-wrap gap-x-4 gap-y-2">
@@ -56,18 +80,19 @@ export default function CalendarHeader({ monthStart, levels, onAddClick }: Calen
           <h1 className="text-display text-navy mr-1">{format(monthStart, "MMMM yyyy")}</h1>
           <div className="flex items-center gap-0.5">
             <NavChevron
-              href={`/?year=${prev.getFullYear()}&month=${prev.getMonth() + 1}`}
-              label="Previous month"
+              href={prevHref}
+              label="Previous month (←)"
               icon={<ChevronLeftIcon />}
             />
             <NavChevron
-              href={`/?year=${next.getFullYear()}&month=${next.getMonth() + 1}`}
-              label="Next month"
+              href={nextHref}
+              label="Next month (→)"
               icon={<ChevronRightIcon />}
             />
           </div>
           <Link
             href="/"
+            title="Jump to this month (T)"
             className="inline-flex min-h-[28px] items-center rounded-pill bg-fill px-3 text-body font-medium text-navy transition-colors duration-fast ease-apple hover:bg-line"
           >
             Today
@@ -90,6 +115,7 @@ export default function CalendarHeader({ monthStart, levels, onAddClick }: Calen
               size="sm"
               icon={<PlusIcon />}
               data-tour="add-event-button"
+              title="Add event (N)"
               onClick={onAddClick}
             >
               Add event

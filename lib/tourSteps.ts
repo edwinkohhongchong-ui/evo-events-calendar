@@ -37,7 +37,7 @@ export const TOUR_STEPS: TourStep[] = [
   // --- Part 1 of 4: Using the calendar ---
   {
     title: "Add an event",
-    body: "Click any day on the calendar to add an event there. Fill in its name, time, category, and whether it repeats.",
+    body: "Click any day on the calendar to add an event there. Fill in its name, time, category, and whether it repeats. Shortcuts: N adds an event, T jumps to today, and the ← → arrow keys change month.",
     route: "/",
     targetSelector: '[data-tour="add-event-button"]',
   },

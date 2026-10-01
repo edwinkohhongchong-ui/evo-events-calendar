@@ -8,6 +8,16 @@ items (features/fixes) that push contains — a push with 1 item goes up by
 `1.05`). If MINOR would pass `.99`, MAJOR increments and MINOR carries the
 remainder (e.g. `1.99` + 2 items → `2.01`).
 
+## v1.84 — 2026-10-01
+
+- Keyboard shortcuts on the Calendar: T jumps to this month, ← / → move to the
+  previous / next month, and N opens Add Event (Editors). They are ignored
+  while you are typing or when a form, drawer or the tour is open. The
+  buttons show the shortcut in their hover hint, and the tour mentions them.
+- A bottom toast now confirms every saved change ("Done: Move “…”") with a
+  one-click Undo, and undo/redo show "Undid / Redid" with Redo / Undo. It
+  replaces the green strip under the top bar and disappears after six seconds.
+
 ## v1.82 — 2026-10-01
 
 - Export page redesigned: choose PDF or Word on two selectable cards, pick a
