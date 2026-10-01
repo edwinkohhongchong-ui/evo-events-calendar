@@ -17,7 +17,8 @@ function SegmentBlock({
   const colorKey = useLevelColor(segment.occurrence.event.level);
   // Same resize-handle mechanism as EventCard's single-day cards — only on
   // the segment containing the event's real last day, so a bar spanning
-  // several weeks only offers one resize point, at its true end.
+  // several weeks only offers one resize point per end (right handle at the
+  // true last day, left handle at the true first day).
   const {
     listeners: resizeListeners,
     setNodeRef: setResizeRef,
@@ -25,6 +26,15 @@ function SegmentBlock({
   } = useDraggable({
     id: `resize::${occurrenceKey(segment.occurrence)}`,
     data: { resizeOccurrence: segment.occurrence },
+  });
+
+  const {
+    listeners: startListeners,
+    setNodeRef: setStartRef,
+    isDragging: isResizingStart,
+  } = useDraggable({
+    id: `resizestart::${occurrenceKey(segment.occurrence)}`,
+    data: { resizeStartOccurrence: segment.occurrence },
   });
 
   return (
@@ -49,6 +59,21 @@ function SegmentBlock({
             is just an unlabeled colored bar further down the grid. */}
         {segment.isSpanStart || segment.startCol === 0 ? segment.occurrence.event.name : " "}
       </button>
+      {segment.isSpanStart && (
+        <div
+          ref={setStartRef}
+          {...startListeners}
+          onPointerDown={(e) => {
+            e.stopPropagation();
+            startListeners?.onPointerDown?.(e);
+          }}
+          title="Drag to start this event earlier or later"
+          className={[
+            "absolute top-0 left-0 h-full w-1.5 cursor-ew-resize bg-black/25 opacity-0 group-hover:opacity-100",
+            isResizingStart ? "opacity-100" : "",
+          ].join(" ")}
+        />
+      )}
       {segment.isSpanEnd && (
         <div
           ref={setResizeRef}

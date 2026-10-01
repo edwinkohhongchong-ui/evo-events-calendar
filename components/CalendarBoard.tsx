@@ -21,7 +21,7 @@ import ErrorBanner from "./ErrorBanner";
 import { buildDayIndex } from "@/lib/dayIndex";
 import { occurrenceKey } from "@/lib/occurrenceKey";
 import { withOptimisticMove } from "@/lib/optimisticMove";
-import { moveOccurrence, extendOccurrenceSpan } from "@/lib/actions";
+import { moveOccurrence, extendOccurrenceSpan, moveOccurrenceStart } from "@/lib/actions";
 import { SeasonSegment } from "@/lib/seasonBars";
 import { computeEventBarSegments } from "@/lib/eventBars";
 import { resolveLevelColor } from "@/lib/levelColor";
@@ -76,6 +76,9 @@ export default function CalendarBoard({
   const [optimisticResize, setOptimisticResize] = useState<{ key: string; newEndDate: string } | null>(
     null
   );
+  const [optimisticStart, setOptimisticStart] = useState<{ key: string; newStartDate: string } | null>(
+    null
+  );
   const [error, setError] = useState<string | null>(null);
   const [modal, setModal] = useState<ModalState>({ type: "closed" });
   const [holidayModal, setHolidayModal] = useState<HolidayModalState>({ type: "closed" });
@@ -94,6 +97,7 @@ export default function CalendarBoard({
     if (!isPending) {
       setOptimisticMove(null);
       setOptimisticResize(null);
+      setOptimisticStart(null);
     }
   }, [isPending]);
 
@@ -113,8 +117,15 @@ export default function CalendarBoard({
           : occ
       );
     }
+    if (optimisticStart) {
+      next = next.map((occ) =>
+        occurrenceKey(occ) === optimisticStart.key
+          ? { ...occ, occurrenceDate: optimisticStart.newStartDate }
+          : occ
+      );
+    }
     return next.filter((occ) => isVisible(occ.event.level));
-  }, [occurrences, optimisticMove, optimisticResize, isVisible]);
+  }, [occurrences, optimisticMove, optimisticResize, optimisticStart, isVisible]);
 
   const dayIndex = useMemo(
     () => buildDayIndex(weeks.flat(), displayOccurrences, holidays, monthStart, dayNotes),
@@ -133,7 +144,11 @@ export default function CalendarBoard({
   function handleDragStart(e: DragStartEvent) {
     isDraggingRef.current = true;
     const data = e.active.data.current;
-    setActiveOcc((data?.occurrence as EventOccurrence) ?? (data?.resizeOccurrence as EventOccurrence) ?? null);
+    setActiveOcc((data?.occurrence as EventOccurrence) ??
+        (data?.resizeOccurrence as EventOccurrence) ??
+        (data?.resizeStartOccurrence as EventOccurrence) ??
+        null
+    );
   }
 
   async function handleDragEnd(e: DragEndEvent) {
@@ -145,6 +160,29 @@ export default function CalendarBoard({
 
     if (!e.over) return; // invalid drop target: no-op, card/handle stays put
     const targetDate = e.over.id as string;
+
+    const resizeStartOccurrence = e.active.data.current?.resizeStartOccurrence as
+      | EventOccurrence
+      | undefined;
+    if (resizeStartOccurrence) {
+      if (targetDate === resizeStartOccurrence.occurrenceDate) return; // dropped on its current start
+      if (targetDate > resizeStartOccurrence.spanEndDate) return; // can't start after the end
+      setOptimisticStart({ key: occurrenceKey(resizeStartOccurrence), newStartDate: targetDate });
+      try {
+        const affected = await moveOccurrenceStart(
+          resizeStartOccurrence.event,
+          resizeStartOccurrence.originalDate,
+          targetDate,
+          resizeStartOccurrence.spanEndDate
+        );
+        record(`Resize "${resizeStartOccurrence.event.name}"`, affected);
+        startTransition(() => router.refresh());
+      } catch {
+        setOptimisticStart(null);
+        setError("Couldn't resize that event — it's back where it was. Please try again.");
+      }
+      return;
+    }
 
     const resizeOccurrence = e.active.data.current?.resizeOccurrence as EventOccurrence | undefined;
     if (resizeOccurrence) {

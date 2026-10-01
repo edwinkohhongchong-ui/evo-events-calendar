@@ -10,6 +10,8 @@ import { TOUR_STEPS } from "@/lib/tourSteps";
 import { useEscapeKey } from "@/lib/useEscapeKey";
 import ErrorBanner from "./ErrorBanner";
 import NotificationBell from "./NotificationBell";
+import GeneralNotesDrawer from "./GeneralNotesDrawer";
+import type { NoteCommentRow } from "@/lib/types";
 import {
   CalendarIcon,
   ToolsIcon,
@@ -89,12 +91,13 @@ function groupForPath(pathname: string | null): string | null {
 
 const ROW = "flex items-center gap-3 w-full text-left px-3 py-2.5 text-sm rounded-lg relative";
 
-export default function NavBar() {
+export default function NavBar({ generalComments = [] }: { generalComments?: NoteCommentRow[] }) {
   const pathname = usePathname();
   const isEditor = useIsEditor();
   const { start: startTour, isOpen: tourOpen, step: tourStep } = useOnboardingTour();
   const [menuOpen, setMenuOpen] = useState(false);
   const [bellOpen, setBellOpen] = useState(false);
+  const [notesOpen, setNotesOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
   const [openGroups, setOpenGroups] = useState<Record<string, boolean>>(() => {
     const g = groupForPath(pathname);
@@ -111,6 +114,11 @@ export default function NavBar() {
     const id = requestAnimationFrame(() => setEntered(true));
     return () => cancelAnimationFrame(id);
   }, [menuOpen]);
+
+  // The Calendar page has its own General Notes card, so the drawer closes there.
+  useEffect(() => {
+    if (pathname === "/") setNotesOpen(false);
+  }, [pathname]);
 
   // Navigating into a group's page expands that group.
   useEffect(() => {
@@ -148,6 +156,7 @@ export default function NavBar() {
   const closeAll = useCallback(() => {
     setMenuOpen(false);
     setBellOpen(false);
+    setNotesOpen(false);
   }, []);
   useEscapeKey(closeAll);
 
@@ -286,9 +295,25 @@ export default function NavBar() {
           open={bellOpen}
           onOpenChange={(o) => {
             setBellOpen(o);
-            if (o) setMenuOpen(false);
+            if (o) {
+              setMenuOpen(false);
+              setNotesOpen(false);
+            }
           }}
         />
+        {pathname !== "/" && (
+          <GeneralNotesDrawer
+            open={notesOpen}
+            onOpenChange={(o) => {
+              setNotesOpen(o);
+              if (o) {
+                setMenuOpen(false);
+                setBellOpen(false);
+              }
+            }}
+            comments={generalComments}
+          />
+        )}
         <div className="relative shrink-0" ref={menuRef}>
           <button
             type="button"
@@ -296,6 +321,7 @@ export default function NavBar() {
             onClick={() => {
               setMenuOpen((prev) => !prev);
               setBellOpen(false);
+              setNotesOpen(false);
             }}
             aria-expanded={menuOpen}
             aria-label="Open menu"

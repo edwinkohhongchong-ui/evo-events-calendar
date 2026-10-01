@@ -6,6 +6,7 @@ import { EventFilterProvider } from "@/lib/eventFilterContext";
 import { UndoProvider } from "@/lib/undo/UndoProvider";
 import { RoleProvider } from "@/lib/roleContext";
 import { Role } from "@/lib/auth";
+import { getGeneralComments } from "@/lib/data";
 import { OnboardingTourProvider } from "@/lib/useOnboardingTour";
 import OnboardingTourModal from "@/components/OnboardingTourModal";
 import "./globals.css";
@@ -34,7 +35,10 @@ export default async function RootLayout({
   // Set by middleware.ts from the validated auth cookie — absent on the
   // /login page itself (excluded from the middleware matcher), where
   // "editor" as a fallback is harmless since NavBar renders nothing there.
-  const role = ((await headers()).get("x-evo-role") as Role | null) ?? "editor";
+  const roleHeader = (await headers()).get("x-evo-role") as Role | null;
+  const role = roleHeader ?? "editor";
+  // General Notes drawer (top bar) — only fetched for signed-in requests.
+  const generalComments = roleHeader ? await getGeneralComments() : [];
 
   return (
     <html lang="en">
@@ -45,7 +49,7 @@ export default async function RootLayout({
           <UndoProvider>
             <EventFilterProvider>
               <OnboardingTourProvider>
-                <NavBar />
+                <NavBar generalComments={generalComments} />
                 {children}
                 <OnboardingTourModal />
               </OnboardingTourProvider>

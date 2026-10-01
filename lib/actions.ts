@@ -580,6 +580,92 @@ export async function extendOccurrenceSpan(
   return [{ table: "event_overrides", id: data.id, before: null, after: data }];
 }
 
+// Left-edge drag handle: changes an occurrence's START date while its END
+// date stays put (the mirror of extendOccurrenceSpan). endDate is the
+// occurrence's current spanEndDate; callers guarantee newStartDate <= endDate.
+//
+// - Non-recurring: sets event_date, and end_date (null when it collapses back
+//   to a single day, matching how a null end_date is always read).
+// - Recurring: writes event_overrides new_date + new_end_date, keyed by
+//   originalDate; the row is deleted only when date, span and time are all
+//   back to natural.
+export async function moveOccurrenceStart(
+  event: EventRow,
+  originalDate: string,
+  newStartDate: string,
+  endDate: string
+): Promise<AffectedRow[]> {
+  await requireRole("editor");
+  if (newStartDate > endDate) {
+    throw new Error("An event can't start after it ends.");
+  }
+  if (event.recurring === "None") {
+    const before = await fetchRow("events", event.id);
+    const { data, error } = await supabase
+      .from("events")
+      .update({ event_date: newStartDate, end_date: endDate === newStartDate ? null : endDate })
+      .eq("id", event.id)
+      .select()
+      .single();
+    if (error) {
+      console.error(error);
+      throw new Error("Something went wrong resizing this event. Please try again.");
+    }
+    await logActivity({ action: "edited", entity: "event", entityId: event.id, label: event.name, itemDate: newStartDate });
+    return [{ table: "events", id: event.id, before, after: data }];
+  }
+
+  const naturalEndDate = toDateStr(addDays(parseDateStr(originalDate), computeSpanDays(event)));
+
+  const { data: existing, error: fetchError } = await supabase
+    .from("event_overrides")
+    .select("*")
+    .eq("event_id", event.id)
+    .eq("original_date", originalDate)
+    .maybeSingle();
+  if (fetchError) {
+    console.error(fetchError);
+    throw new Error("Something went wrong resizing this event. Please try again.");
+  }
+
+  const dateIsNatural = newStartDate === originalDate;
+  const spanIsNatural = dateIsNatural && endDate === naturalEndDate;
+  const timeIsNatural = !existing || existing.new_time == null;
+
+  if (dateIsNatural && spanIsNatural && timeIsNatural) {
+    if (existing) {
+      const { error } = await supabase.from("event_overrides").delete().eq("id", existing.id);
+      if (error) {
+        console.error(error);
+        throw new Error("Something went wrong resizing this event. Please try again.");
+      }
+      await logActivity({ action: "edited", entity: "event", entityId: event.id, label: event.name, itemDate: originalDate });
+      return [{ table: "event_overrides", id: existing.id, before: existing, after: null }];
+    }
+    return [];
+  }
+
+  const { data, error } = await supabase
+    .from("event_overrides")
+    .upsert(
+      {
+        event_id: event.id,
+        original_date: originalDate,
+        new_date: newStartDate,
+        new_end_date: spanIsNatural ? null : endDate,
+      },
+      { onConflict: "event_id,original_date" }
+    )
+    .select()
+    .single();
+  if (error) {
+    console.error(error);
+    throw new Error("Something went wrong resizing this event. Please try again.");
+  }
+  await logActivity({ action: "edited", entity: "event", entityId: event.id, label: event.name, itemDate: newStartDate });
+  return [{ table: "event_overrides", id: data.id, before: existing ?? null, after: data }];
+}
+
 // "Only this event" delete: excepts the occurrence so the series stops
 // generating it, without touching the series or any other occurrence.
 export async function deleteOccurrence(event: EventRow, originalDate: string): Promise<AffectedRow[]> {

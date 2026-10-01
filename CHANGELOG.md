@@ -8,6 +8,18 @@ items (features/fixes) that push contains — a push with 1 item goes up by
 `1.05`). If MINOR would pass `.99`, MAJOR increments and MINOR carries the
 remainder (e.g. `1.99` + 2 items → `2.01`).
 
+## v1.70 — 2026-10-01
+
+- Event blocks can now be resized from the left edge too: drag the left edge of
+  an event (single-day chip or multi-day bar) to an earlier or later day to
+  change its start date while the end date stays put. Works for one-off and
+  recurring events (recurring: only that occurrence changes), is logged in the
+  activity feed and can be undone.
+- General Notes are now available on every tab: a notes icon beside the bell in
+  the top bar opens a slide-over drawer with the same notes (add, reply, delete
+  and Editor/Viewer rules unchanged). The Calendar keeps its own General Notes
+  card, so the icon is hidden there.
+
 ## v1.68 — 2026-10-01
 
 - Fixed a dead end in the Add/Edit Event form: if a category the form offers

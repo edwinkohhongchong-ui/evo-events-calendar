@@ -31,6 +31,17 @@ export default function EventCard({ occurrence, onClick }: EventCardProps) {
     data: { resizeOccurrence: occurrence },
   });
 
+  // Mirror handle on the left edge: drag to an earlier day to start the event
+  // sooner (end date stays put). See lib/actions.ts: moveOccurrenceStart.
+  const {
+    listeners: startListeners,
+    setNodeRef: setStartRef,
+    isDragging: isResizingStart,
+  } = useDraggable({
+    id: `resizestart::${occurrenceKey(occurrence)}`,
+    data: { resizeStartOccurrence: occurrence },
+  });
+
   return (
     <div
       ref={setNodeRef}
@@ -47,6 +58,19 @@ export default function EventCard({ occurrence, onClick }: EventCardProps) {
       ].join(" ")}
     >
       <EventCardContent occurrence={occurrence} />
+      <div
+        ref={setStartRef}
+        {...startListeners}
+        onPointerDown={(e) => {
+          e.stopPropagation();
+          startListeners?.onPointerDown?.(e);
+        }}
+        title="Drag to start this event on an earlier day"
+        className={[
+          "absolute top-0 left-0 h-full w-1.5 rounded-l-chip cursor-ew-resize bg-black/25 opacity-0 group-hover:opacity-100",
+          isResizingStart ? "opacity-100" : "",
+        ].join(" ")}
+      />
       <div
         ref={setResizeRef}
         {...resizeListeners}
