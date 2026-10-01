@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useUndo } from "@/lib/undo/UndoProvider";
@@ -9,16 +9,84 @@ import { useOnboardingTour } from "@/lib/useOnboardingTour";
 import { TOUR_STEPS } from "@/lib/tourSteps";
 import { useEscapeKey } from "@/lib/useEscapeKey";
 import ErrorBanner from "./ErrorBanner";
+import {
+  CalendarIcon,
+  ToolsIcon,
+  SunIcon,
+  LayersIcon,
+  TagIcon,
+  CheckSquareIcon,
+  ShieldIcon,
+  BellIcon,
+  DatabaseIcon,
+  UploadIcon,
+  CalendarPlusIcon,
+  FileTextIcon,
+  PlayCircleIcon,
+  ChevronIcon,
+} from "./icons";
 
-const LINKS = [
-  { href: "/", label: "Calendar" },
-  { href: "/holidays", label: "Holidays" },
-  { href: "/seasons", label: "Seasons" },
-  { href: "/checklist", label: "Checklist" },
-  { href: "/levels", label: "Categories" },
-  { href: "/reminders", label: "Reminders" },
-  { href: "/admin/backup", label: "Backup" },
-];
+type Item = {
+  href: string;
+  label: string;
+  caption?: string;
+  icon: ReactNode;
+  external?: boolean; // plain <a> (file download), not client-side nav
+  tour?: string;
+};
+type Group = { id: string; label: string; icon: ReactNode; items: Item[] };
+
+const TOOLS: Group = {
+  id: "tools",
+  label: "Tools",
+  icon: <ToolsIcon />,
+  items: [
+    { href: "/holidays", label: "Holidays", icon: <SunIcon /> },
+    { href: "/seasons", label: "Seasons", icon: <LayersIcon /> },
+    { href: "/levels", label: "Categories", icon: <TagIcon /> },
+  ],
+};
+const ADMIN: Group = {
+  id: "admin",
+  label: "Admin",
+  icon: <ShieldIcon />,
+  items: [
+    { href: "/reminders", label: "Reminders", icon: <BellIcon /> },
+    { href: "/admin/backup", label: "Backup", icon: <DatabaseIcon /> },
+  ],
+};
+const EXPORT: Group = {
+  id: "export",
+  label: "Export",
+  icon: <UploadIcon />,
+  items: [
+    {
+      href: "/api/export/ics",
+      label: "Add to Calendar (.ics)",
+      caption: "For Apple Calendar or Google Calendar",
+      icon: <CalendarPlusIcon />,
+      external: true,
+    },
+    {
+      href: "/export",
+      label: "Export Document (PDF/Word)",
+      caption: "Pick a date range and categories",
+      icon: <FileTextIcon />,
+      tour: "nav-export-document",
+    },
+  ],
+};
+const GROUPS = [TOOLS, ADMIN, EXPORT];
+
+function groupForPath(pathname: string | null): string | null {
+  if (!pathname) return null;
+  for (const g of GROUPS) {
+    if (g.items.some((i) => !i.external && i.href === pathname)) return g.id;
+  }
+  return null;
+}
+
+const ROW = "flex items-center gap-3 w-full text-left px-3 py-2.5 text-sm rounded-lg relative";
 
 export default function NavBar() {
   const pathname = usePathname();
@@ -26,6 +94,27 @@ export default function NavBar() {
   const { start: startTour, isOpen: tourOpen, step: tourStep } = useOnboardingTour();
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
+  const [openGroups, setOpenGroups] = useState<Record<string, boolean>>(() => {
+    const g = groupForPath(pathname);
+    return g ? { [g]: true } : {};
+  });
+  const [entered, setEntered] = useState(false);
+
+  // Subtle fade/slide-in after mount.
+  useEffect(() => {
+    if (!menuOpen) {
+      setEntered(false);
+      return;
+    }
+    const id = requestAnimationFrame(() => setEntered(true));
+    return () => cancelAnimationFrame(id);
+  }, [menuOpen]);
+
+  // Navigating into a group's page expands that group.
+  useEffect(() => {
+    const g = groupForPath(pathname);
+    if (g) setOpenGroups((prev) => (prev[g] ? prev : { ...prev, [g]: true }));
+  }, [pathname]);
 
   // While the onboarding tour is on a step that targets something inside
   // this hamburger dropdown (e.g. "Export the event list"), force the menu
@@ -35,6 +124,8 @@ export default function NavBar() {
   useEffect(() => {
     if (tourOpen && TOUR_STEPS[tourStep]?.requiresMenuOpen) {
       setMenuOpen(true);
+      // Expand every group so the tour's target (e.g. Export Document) is mounted.
+      setOpenGroups({ tools: true, admin: true, export: true });
     }
   }, [tourOpen, tourStep]);
   const {
@@ -56,10 +147,81 @@ export default function NavBar() {
 
   if (pathname === "/login") return null;
 
-  // Viewer role: Calendar tab only, no Undo/Redo (undoing an add/delete
-  // would recreate/destroy rows a Viewer isn't allowed to touch directly —
-  // see the auth plan) and no Export/Reminders utilities.
-  const links = isEditor ? LINKS : LINKS.filter((link) => link.href === "/");
+  // Viewer role: Calendar + Replay tour only; no Undo/Redo, Tools, Checklist,
+  // Admin or Export (same gating as before).
+  const toggleGroup = (id: string) =>
+    setOpenGroups((prev) => ({ ...prev, [id]: !prev[id] }));
+
+  const renderItem = (item: Item, nested: boolean) => {
+    const active = !item.external && pathname === item.href;
+    const cls = [
+      ROW,
+      nested ? "pl-9" : "",
+      active ? "text-navy font-medium bg-gray-50" : "text-gray-700 hover:bg-gray-100",
+    ].join(" ");
+    const inner = (
+      <>
+        {active && <span className="absolute left-0 top-2 bottom-2 w-[3px] rounded-full bg-gold" aria-hidden="true" />}
+        <span className={active ? "text-navy" : "text-gray-500"}>{item.icon}</span>
+        <span className="min-w-0">
+          <span className="block">{item.label}</span>
+          {item.caption && <span className="block text-xs text-gray-500 font-normal">{item.caption}</span>}
+        </span>
+      </>
+    );
+    return item.external ? (
+      <a key={item.href} href={item.href} onClick={closeMenu} className={cls}>
+        {inner}
+      </a>
+    ) : (
+      <Link
+        key={item.href}
+        href={item.href}
+        data-tour={item.tour}
+        aria-current={active ? "page" : undefined}
+        onClick={closeMenu}
+        className={cls}
+      >
+        {inner}
+      </Link>
+    );
+  };
+
+  const renderGroup = (group: Group) => {
+    const open = !!openGroups[group.id];
+    const hasActive = groupForPath(pathname) === group.id;
+    const panelId = `nav-group-${group.id}`;
+    return (
+      <div key={group.id}>
+        <button
+          type="button"
+          aria-expanded={open}
+          aria-controls={panelId}
+          onClick={() => toggleGroup(group.id)}
+          className={[
+            ROW,
+            "justify-between",
+            hasActive ? "text-navy font-medium" : "text-gray-700 hover:bg-gray-100",
+          ].join(" ")}
+        >
+          <span className="flex items-center gap-3">
+            <span className={hasActive ? "text-navy" : "text-gray-500"}>{group.icon}</span>
+            {group.label}
+          </span>
+          <span className="text-gray-400">
+            <ChevronIcon open={open} />
+          </span>
+        </button>
+        {open && (
+          <div id={panelId} className="mt-0.5 space-y-0.5">
+            {group.items.map((i) => renderItem(i, true))}
+          </div>
+        )}
+      </div>
+    );
+  };
+
+  const divider = <div className="border-t border-gray-100 my-1.5 mx-2" role="separator" />;
 
   return (
     <nav className="bg-navy text-white">
@@ -130,57 +292,49 @@ export default function NavBar() {
               />
               <div
                 data-tour="hamburger-menu-panel"
-                className="absolute right-0 top-full mt-1 w-60 bg-white text-gray-800 rounded-md shadow-lg border border-gray-200 overflow-hidden z-50 py-1"
+                className={[
+                  "absolute right-0 top-full mt-1 w-[min(18rem,calc(100vw-1.5rem))] max-h-[calc(100vh-4rem)] overflow-y-auto bg-white text-gray-800 rounded-xl shadow-lg border border-gray-200 z-50 p-1.5 transition duration-150 ease-out",
+                  entered ? "opacity-100 translate-y-0" : "opacity-0 -translate-y-1",
+                ].join(" ")}
               >
-                {links.map((link) => {
-                  const active = pathname === link.href;
-                  return (
-                    <Link
-                      key={link.href}
-                      href={link.href}
-                      onClick={closeMenu}
-                      className={[
-                        "block px-3 py-2 text-sm",
-                        active ? "bg-gray-100 font-medium text-navy" : "hover:bg-gray-50 text-gray-800",
-                      ].join(" ")}
-                    >
-                      {link.label}
-                    </Link>
-                  );
-                })}
+                <Link
+                  href="/"
+                  onClick={closeMenu}
+                  aria-current={pathname === "/" ? "page" : undefined}
+                  className={[
+                    ROW,
+                    "py-3 font-semibold relative",
+                    pathname === "/" ? "bg-navy text-white" : "bg-navy/5 text-navy hover:bg-navy/10",
+                  ].join(" ")}
+                >
+                  <span className="absolute left-0 top-2 bottom-2 w-[3px] rounded-full bg-gold" aria-hidden="true" />
+                  <CalendarIcon />
+                  Calendar
+                </Link>
 
                 {isEditor && (
                   <>
-                    <div className="border-t border-gray-100 my-1" />
-                    <a
-                      href="/api/export/ics"
-                      onClick={closeMenu}
-                      className="block px-3 py-2 text-sm hover:bg-gray-50"
-                    >
-                      <div className="font-medium text-navy">Add to Calendar (.ics)</div>
-                      <div className="text-xs text-gray-500">For Apple Calendar or Google Calendar</div>
-                    </a>
-                    <Link
-                      href="/export"
-                      data-tour="nav-export-document"
-                      onClick={closeMenu}
-                      className="block px-3 py-2 text-sm hover:bg-gray-50"
-                    >
-                      <div className="font-medium text-navy">Export Document (PDF/Word)</div>
-                      <div className="text-xs text-gray-500">Pick a date range and categories</div>
-                    </Link>
+                    <div className="mt-0.5">{renderGroup(TOOLS)}</div>
+                    {renderItem({ href: "/checklist", label: "Checklist", icon: <CheckSquareIcon /> }, false)}
+                    {divider}
+                    {renderGroup(ADMIN)}
+                    {divider}
+                    {renderGroup(EXPORT)}
                   </>
                 )}
 
-                <div className="border-t border-gray-100 my-1" />
+                {divider}
                 <button
                   type="button"
                   onClick={() => {
                     closeMenu();
                     startTour();
                   }}
-                  className="w-full text-left px-3 py-2 text-sm hover:bg-gray-50 text-gray-800"
+                  className={[ROW, "text-gray-700 hover:bg-gray-100"].join(" ")}
                 >
+                  <span className="text-gray-500">
+                    <PlayCircleIcon />
+                  </span>
                   Replay tour
                 </button>
               </div>

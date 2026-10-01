@@ -8,6 +8,15 @@ items (features/fixes) that push contains — a push with 1 item goes up by
 `1.05`). If MINOR would pass `.99`, MAJOR increments and MINOR carries the
 remainder (e.g. `1.99` + 2 items → `2.01`).
 
+## v1.56 — 2026-10-01
+
+- Reorganised the menu into four groups: Main (Calendar — highlighted as
+  the primary page — then Tools [Holidays, Seasons, Categories] and
+  Checklist), Admin (Reminders, Backup), Export (Add to Calendar .ics,
+  Export Document), and Replay tour. Tools, Admin and Export are
+  collapsible, the current page is marked, and every item has a simple
+  line icon. Viewers still see only Calendar and Replay tour.
+
 ## v1.55 — 2026-10-01
 
 - The onboarding tour is now a guided walkthrough: as it advances it
