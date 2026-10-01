@@ -1,6 +1,6 @@
-import { addDays } from "date-fns";
+import { addDays, differenceInCalendarDays } from "date-fns";
 import { parseDateStr, toDateStr } from "./dates";
-import { ChecklistTemplateWithItems, EventChecklistItemRow, EventChecklistProgress } from "./types";
+import { ChecklistTemplateWithItems, EventChecklistItemRow, EventChecklistProgress, EventRow, OpenChecklistRow } from "./types";
 
 // Gathering types that get the checklist suggested (never applied silently).
 export const SUGGESTED_TEMPLATE_BY_GATHERING_TYPE: Record<string, string> = {
@@ -59,4 +59,35 @@ export function progressOf(items: Pick<EventChecklistItemRow, "done" | "weeks_be
 
 export function progressOverdue(progress: EventChecklistProgress, eventDate: string, todayStr: string): boolean {
   return progress.openWeeksBefore !== null && isOverdue(eventDate, progress.openWeeksBefore, false, todayStr);
+}
+
+export interface AttentionEvent {
+  event: EventRow;
+  worstItem: string;
+  daysLate: number;
+  moreCount: number; // other overdue items on the same event
+}
+
+// Events with at least one overdue item, most overdue first. Uses isOverdue,
+// the same rule as the chip badge and the event dialog, so they never disagree.
+export function computeAttention(rows: OpenChecklistRow[], todayStr: string): AttentionEvent[] {
+  const today = parseDateStr(todayStr);
+  const byEvent = new Map<string, { event: EventRow; late: { item: string; daysLate: number }[] }>();
+  for (const row of rows) {
+    if (!isOverdue(row.event.event_date, row.weeks_before, false, todayStr)) continue;
+    const due = dueDate(row.event.event_date, row.weeks_before)!;
+    const entry = byEvent.get(row.event.id) ?? { event: row.event, late: [] };
+    entry.late.push({ item: row.item, daysLate: differenceInCalendarDays(today, parseDateStr(due)) });
+    byEvent.set(row.event.id, entry);
+  }
+  const out: AttentionEvent[] = [];
+  byEvent.forEach(({ event, late }) => {
+    late.sort((a, b) => b.daysLate - a.daysLate);
+    out.push({ event, worstItem: late[0].item, daysLate: late[0].daysLate, moreCount: late.length - 1 });
+  });
+  return out.sort((a, b) => b.daysLate - a.daysLate || a.event.event_date.localeCompare(b.event.event_date));
+}
+
+export function totalOverdueItems(rows: OpenChecklistRow[], todayStr: string): number {
+  return rows.filter((r) => isOverdue(r.event.event_date, r.weeks_before, false, todayStr)).length;
 }

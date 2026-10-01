@@ -4,7 +4,8 @@ import { useEffect, useRef, useState, type ReactNode } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { format, addMonths, subMonths } from "date-fns";
-import { LevelRow } from "@/lib/types";
+import { EventRow, LevelRow, OpenChecklistRow } from "@/lib/types";
+import AttentionPill from "./AttentionPill";
 import { useIsEditor } from "@/lib/roleContext";
 import LevelModal from "./LevelModal";
 import LevelChips from "./LevelChips";
@@ -37,11 +38,13 @@ interface CalendarHeaderProps {
   monthStart: Date;
   levels: LevelRow[];
   onAddClick?: () => void;
+  openChecklistRows?: OpenChecklistRow[];
+  onOpenEvent?: (event: EventRow) => void;
 }
 
 type LevelModalState = { type: "closed" } | { type: "add" } | { type: "edit"; level: LevelRow };
 
-export default function CalendarHeader({ monthStart, levels, onAddClick }: CalendarHeaderProps) {
+export default function CalendarHeader({ monthStart, levels, onAddClick, openChecklistRows = [], onOpenEvent }: CalendarHeaderProps) {
   const router = useRouter();
   const isEditor = useIsEditor();
   const prev = subMonths(monthStart, 1);
@@ -77,6 +80,7 @@ export default function CalendarHeader({ monthStart, levels, onAddClick }: Calen
   // sentinel above it tells us when it is stuck so a hairline can appear.
   // The wrapper uses `contents` so the sticky row's containing block is the
   // tall calendar column, not this short header (sticky is bounded by its parent).
+  const showAttention = !!onOpenEvent && openChecklistRows.length > 0;
   const sentinelRef = useRef<HTMLDivElement>(null);
   const [stuck, setStuck] = useState(false);
   useEffect(() => {
@@ -92,7 +96,7 @@ export default function CalendarHeader({ monthStart, levels, onAddClick }: Calen
       <div ref={sentinelRef} aria-hidden="true" className="h-px -mb-px" />
       <div
         className={[
-          "sticky top-0 z-30 -mx-1 mb-1 flex items-center justify-between gap-x-2 gap-y-2 sm:gap-x-4 bg-canvas/95 px-1 py-2 backdrop-blur-sm transition-[border-color] duration-fast",
+          "sticky top-0 z-30 -mx-1 mb-1 flex items-center gap-x-2 gap-y-2 sm:flex-wrap sm:gap-x-4 bg-canvas/95 px-1 py-2 backdrop-blur-sm transition-[border-color] duration-fast",
           "border-b",
           stuck ? "border-line" : "border-transparent",
         ].join(" ")}
@@ -119,8 +123,13 @@ export default function CalendarHeader({ monthStart, levels, onAddClick }: Calen
             Today
           </Link>
         </div>
+        {showAttention && (
+          <div className="hidden sm:block">
+            <AttentionPill rows={openChecklistRows} onOpenEvent={onOpenEvent!} />
+          </div>
+        )}
         {isEditor && (
-          <div className="flex items-center gap-2">
+          <div className="ml-auto flex items-center gap-2">
             <Button
               variant="ghost"
               size="sm"
@@ -130,7 +139,7 @@ export default function CalendarHeader({ monthStart, levels, onAddClick }: Calen
               aria-label="Add category"
               title="Add category"
             >
-              <span className="hidden md:inline">Category</span>
+              <span className="hidden 2xl:inline">Category</span>
             </Button>
             <Button
               variant="primary"
@@ -147,6 +156,12 @@ export default function CalendarHeader({ monthStart, levels, onAddClick }: Calen
           </div>
         )}
       </div>
+
+      {showAttention && (
+        <div className="mb-1 mt-2 sm:hidden">
+          <AttentionPill rows={openChecklistRows} onOpenEvent={onOpenEvent!} />
+        </div>
+      )}
 
       <div className="mb-3 mt-2">
         <LevelChips

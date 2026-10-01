@@ -6,6 +6,7 @@ import {
   ChecklistTemplateWithItems,
   DayNoteRow,
   EventChecklistProgress,
+  OpenChecklistRow,
   EventOption,
   EventRow,
   ExceptionRow,
@@ -451,6 +452,34 @@ export async function getEventChecklistProgress(eventIds: string[]): Promise<Rec
   } catch (err) {
     console.error("getEventChecklistProgress threw:", err);
     return {};
+  }
+}
+
+// Every unticked, dated checklist item on events from ~2 weeks ago onwards, for
+// the "needs attention" pill. Which of them are overdue is decided on the
+// client (viewer's timezone). Returns [] before migration 024 or on error.
+export async function getOpenChecklistRows(): Promise<OpenChecklistRow[]> {
+  try {
+    const cutoff = new Date(Date.now() - 14 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+    const { data, error } = await supabase
+      .from("event_checklist_items")
+      .select("id, item, weeks_before, event:events!inner(*)")
+      .eq("done", false)
+      .not("weeks_before", "is", null)
+      .gte("event.event_date", cutoff);
+    if (error) {
+      console.error("getOpenChecklistRows failed:", error.message);
+      return [];
+    }
+    return (data ?? []).map((r) => ({
+      id: r.id,
+      item: r.item,
+      weeks_before: r.weeks_before as number,
+      event: (Array.isArray(r.event) ? r.event[0] : r.event) as EventRow,
+    }));
+  } catch (err) {
+    console.error("getOpenChecklistRows threw:", err);
+    return [];
   }
 }
 

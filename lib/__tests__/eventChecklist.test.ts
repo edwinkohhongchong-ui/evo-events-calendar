@@ -1,5 +1,6 @@
 import { describe, it, expect } from "vitest";
-import { dueDate, expandTemplateItems, isOverdue, progressOf, progressOverdue } from "../eventChecklist";
+import { computeAttention, dueDate, expandTemplateItems, isOverdue, progressOf, progressOverdue, totalOverdueItems } from "../eventChecklist";
+import type { EventRow, OpenChecklistRow } from "../types";
 
 const template = {
   id: "t1",
@@ -52,5 +53,39 @@ describe("eventChecklist", () => {
     expect(p).toEqual({ done: 1, total: 4, openWeeksBefore: 3 });
     expect(progressOverdue(p, "2026-12-20", "2026-12-01")).toBe(true); // due 29 Nov
     expect(progressOverdue(p, "2026-12-20", "2026-11-29")).toBe(false);
+  });
+
+  describe("computeAttention", () => {
+    const ev = (id: string, date: string) => ({ id, name: `Event ${id}`, event_date: date }) as EventRow;
+    const row = (id: string, item: string, weeks: number, event: EventRow): OpenChecklistRow => ({
+      id,
+      item,
+      weeks_before: weeks,
+      event,
+    });
+
+    it("groups by event, names the worst item and counts the rest", () => {
+      const a = ev("a", "2026-12-20"); // 4wk before = 22 Nov, 2wk = 6 Dec
+      const rows = [row("1", "Send invite", 4, a), row("2", "Check-in", 2, a), row("3", "Later item", 0, a)];
+      const out = computeAttention(rows, "2026-12-08");
+      expect(out).toHaveLength(1);
+      expect(out[0]).toMatchObject({ worstItem: "Send invite", daysLate: 16, moreCount: 1 });
+    });
+
+    it("sorts the most overdue event first and skips events with nothing overdue yet", () => {
+      const a = ev("a", "2026-12-20"); // item due 13 Dec: 1 day late on 14 Dec
+      const b = ev("b", "2026-12-10"); // item due 12 Nov: 32 days late
+      const c = ev("c", "2026-12-20"); // item due 20 Dec: not late yet
+      const rows = [row("1", "A item", 1, a), row("2", "B item", 4, b), row("3", "C item", 0, c)];
+      const out = computeAttention(rows, "2026-12-14");
+      expect(out.map((o) => o.event.id)).toEqual(["b", "a"]);
+      expect(out[0].daysLate).toBe(32);
+    });
+
+    it("counts total overdue items with the same rule as the chip", () => {
+      const a = ev("a", "2026-12-20");
+      const rows = [row("1", "x", 4, a), row("2", "y", 1, a), row("3", "z", 0, a)];
+      expect(totalOverdueItems(rows, "2026-12-14")).toBe(2);
+    });
   });
 });

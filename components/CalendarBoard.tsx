@@ -33,7 +33,7 @@ import { useEventFilter } from "@/lib/eventFilterContext";
 import { useUndo } from "@/lib/undo/UndoProvider";
 import { useIsEditor } from "@/lib/roleContext";
 import FocusHighlighter from "./FocusHighlighter";
-import { DayNoteRow, EventChecklistProgress, EventOccurrence, HolidayRow, LevelRow, SeasonRow } from "@/lib/types";
+import { DayNoteRow, EventChecklistProgress, EventOccurrence, EventRow, HolidayRow, LevelRow, OpenChecklistRow, SeasonRow } from "@/lib/types";
 
 interface CalendarBoardProps {
   weeks: Date[][];
@@ -45,12 +45,14 @@ interface CalendarBoardProps {
   levels: LevelRow[];
   defaultAddDate: string;
   checklistProgress: Record<string, EventChecklistProgress>;
+  openChecklistRows: OpenChecklistRow[];
 }
 
 type ModalState =
   | { type: "closed" }
   | { type: "add"; date: string }
-  | { type: "edit"; occurrence: EventOccurrence };
+  | { type: "edit"; occurrence: EventOccurrence }
+  | { type: "editEvent"; event: EventRow }; // opened from the overdue pill: the event may be in another month
 
 type HolidayModalState = { type: "closed" } | { type: "edit"; holiday: HolidayRow };
 type SeasonModalState = { type: "closed" } | { type: "edit"; season: SeasonRow };
@@ -65,6 +67,7 @@ export default function CalendarBoard({
   levels,
   defaultAddDate,
   checklistProgress,
+  openChecklistRows,
 }: CalendarBoardProps) {
   const router = useRouter();
   const { isVisible } = useEventFilter();
@@ -244,6 +247,8 @@ export default function CalendarBoard({
           monthStart={monthStart}
           levels={levels}
           onAddClick={isEditor ? () => setModal({ type: "add", date: defaultAddDate }) : undefined}
+          openChecklistRows={openChecklistRows}
+          onOpenEvent={(event) => setModal({ type: "editEvent", event })}
         />
         <div data-tour="calendar-grid">
           <div className="sm:hidden">
@@ -282,9 +287,9 @@ export default function CalendarBoard({
       </DndContext>
       {modal.type !== "closed" && (
         <EventModal
-          mode={modal.type}
+          mode={modal.type === "add" ? "add" : "edit"}
           initialDate={modal.type === "add" ? modal.date : undefined}
-          event={modal.type === "edit" ? modal.occurrence.event : undefined}
+          event={modal.type === "edit" ? modal.occurrence.event : modal.type === "editEvent" ? modal.event : undefined}
           occurrence={modal.type === "edit" ? modal.occurrence : undefined}
           levels={levels}
           onClose={() => setModal({ type: "closed" })}

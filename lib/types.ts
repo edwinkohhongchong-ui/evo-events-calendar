@@ -273,6 +273,16 @@ export interface EventChecklistItemRow {
   created_at: string;
 }
 
+// An unticked, dated checklist item together with its event: the raw input
+// for the "needs attention" pill (overdue-ness is decided on the client, in
+// the viewer's own timezone, with the same rule the chip badge uses).
+export interface OpenChecklistRow {
+  id: string;
+  item: string;
+  weeks_before: number;
+  event: EventRow;
+}
+
 // Per-event roll-up shown as the "3/8" badge on calendar chips.
 export interface EventChecklistProgress {
   done: number;

@@ -8,6 +8,19 @@ items (features/fixes) that push contains — a push with 1 item goes up by
 `1.05`). If MINOR would pass `.99`, MAJOR increments and MINOR carries the
 remainder (e.g. `1.99` + 2 items → `2.01`).
 
+## v2.07 — 2026-10-02
+
+- New "N overdue" pill in the month bar: unticked checklist items past their
+  due date on any upcoming event (and events from the last two weeks), whatever
+  month you are looking at. Click it for a short list (event, date, the worst
+  overdue item and how many days late, "+N more"), and click a row to open that
+  event on its checklist. It only appears when something is overdue, is visible
+  to Editors and Viewers, never sends anything, and counts "overdue" with the
+  same rule as the chip badges. On phones it sits just under the month bar.
+- On wide-but-not-huge screens the "Category" button in the month bar shows
+  just its icon (the full label returns on very wide screens), so the bar
+  stays on one line.
+
 ## v2.05 — 2026-10-02
 
 - Event checklist is easier to read and use. Reopening an event with unfinished
