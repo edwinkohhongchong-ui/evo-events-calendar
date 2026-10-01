@@ -15,7 +15,7 @@ import { TABLE_CARD, TABLE, TH, TD, TR, EMPTY_CELL, ROW_ACTION, TOOLBAR_SELECT }
 import Button, { buttonClass } from "./ui/Button";
 import IconButton from "./ui/IconButton";
 import Pill from "./ui/Pill";
-import { PlusIcon, TrashIcon, CheckCircleIcon } from "./icons";
+import { PlusIcon, TrashIcon } from "./icons";
 
 type ModalState = { type: "closed" } | { type: "add" } | { type: "edit"; holiday: HolidayRow };
 

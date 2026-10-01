@@ -99,7 +99,7 @@ export function UndoProvider({ children }: { children: ReactNode }) {
         isBusyRef.current = false;
         forceRender();
       });
-  }, [router]);
+  }, [router, showLastAction]);
 
   const redo = useCallback(() => {
     if (isBusyRef.current || futureRef.current.length === 0) return;
@@ -123,7 +123,7 @@ export function UndoProvider({ children }: { children: ReactNode }) {
         isBusyRef.current = false;
         forceRender();
       });
-  }, [router]);
+  }, [router, showLastAction]);
 
   useEffect(() => {
     function onKeyDown(e: KeyboardEvent) {

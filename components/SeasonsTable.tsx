@@ -14,8 +14,7 @@ import { unwrap } from "@/lib/actionResult";
 import { TABLE_CARD, TABLE, TH, TD, TR, EMPTY_CELL, ROW_ACTION, TOOLBAR_SELECT } from "./ui/tableStyles";
 import Button, { buttonClass } from "./ui/Button";
 import IconButton from "./ui/IconButton";
-import Pill from "./ui/Pill";
-import { PlusIcon, TrashIcon, CheckCircleIcon } from "./icons";
+import { PlusIcon, TrashIcon } from "./icons";
 import { LEVEL_DOT_CLASSES } from "@/lib/constants";
 import { resolveSeasonColor } from "@/lib/seasonColor";
 

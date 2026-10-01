@@ -8,6 +8,14 @@ items (features/fixes) that push contains — a push with 1 item goes up by
 `1.05`). If MINOR would pass `.99`, MAJOR increments and MINOR carries the
 remainder (e.g. `1.99` + 2 items → `2.01`).
 
+## v1.88 — 2026-10-01
+
+- Fixed the Vercel build failures on v1.79, v1.82, v1.84, v1.85 and v1.87.
+  Unused imports left behind by the table restyle failed the production lint
+  step (type-checking alone doesn't catch them), so those versions never went
+  live. Also fixed two React hook warnings in Undo. Production builds are
+  green again, so everything since v1.77 deploys together.
+
 ## v1.87 — 2026-10-01
 
 - Monthly events set on the 31st (and yearly events on Feb 29) no longer
