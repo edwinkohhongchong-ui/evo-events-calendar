@@ -1,10 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useUndo } from "@/lib/undo/UndoProvider";
 import { useIsEditor } from "@/lib/roleContext";
+import { useOnboardingTour } from "@/lib/useOnboardingTour";
+import { useEscapeKey } from "@/lib/useEscapeKey";
 import ErrorBanner from "./ErrorBanner";
 
 const LINKS = [
@@ -20,7 +22,9 @@ const LINKS = [
 export default function NavBar() {
   const pathname = usePathname();
   const isEditor = useIsEditor();
-  const [exportOpen, setExportOpen] = useState(false);
+  const { start: startTour } = useOnboardingTour();
+  const [menuOpen, setMenuOpen] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
   const {
     undo,
     redo,
@@ -34,6 +38,9 @@ export default function NavBar() {
     lastAction,
     dismissLastAction,
   } = useUndo();
+
+  const closeMenu = () => setMenuOpen(false);
+  useEscapeKey(closeMenu);
 
   if (pathname === "/login") return null;
 
@@ -61,6 +68,7 @@ export default function NavBar() {
       )}
       <div className="max-w-6xl mx-auto px-4 sm:px-6 flex items-center h-12 gap-3">
         <span className="font-semibold text-sm whitespace-nowrap shrink-0">+EVO Events</span>
+
         {isEditor && (
           <div className="flex items-center gap-1.5 shrink-0">
             <button
@@ -83,54 +91,83 @@ export default function NavBar() {
             </button>
           </div>
         )}
-        {/* Scrolls horizontally instead of wrapping/overflowing the page at
-            narrow widths — see PROJECT decision: NavBar is in-scope for the
-            mobile pass, the calendar grid it sits above is not. */}
-        <div className="flex items-center gap-1 overflow-x-auto">
-          {links.map((link) => {
-            const active = pathname === link.href;
-            return (
-              <Link
-                key={link.href}
-                href={link.href}
-                className={[
-                  "px-3 py-1.5 text-sm rounded whitespace-nowrap shrink-0",
-                  active ? "bg-white/15 font-medium" : "hover:bg-white/10",
-                ].join(" ")}
-              >
-                {link.label}
-              </Link>
-            );
-          })}
-        </div>
 
-        {isEditor && (
-        <div className="relative ml-auto shrink-0">
+        <div className="ml-auto relative shrink-0" ref={menuRef}>
           <button
             type="button"
-            onClick={() => setExportOpen((prev) => !prev)}
-            onBlur={() => setTimeout(() => setExportOpen(false), 150)}
-            className="px-3 py-1.5 text-sm rounded whitespace-nowrap hover:bg-white/10"
+            onClick={() => setMenuOpen((prev) => !prev)}
+            aria-expanded={menuOpen}
+            aria-label="Open menu"
+            className="flex flex-col justify-center gap-[3px] w-8 h-8 rounded hover:bg-white/10 items-center"
           >
-            Export ▾
+            <span className="block w-4 h-[2px] bg-white rounded-full" />
+            <span className="block w-4 h-[2px] bg-white rounded-full" />
+            <span className="block w-4 h-[2px] bg-white rounded-full" />
           </button>
-          {exportOpen && (
-            <div className="absolute right-0 top-full mt-1 w-64 bg-white text-gray-800 rounded-md shadow-lg border border-gray-200 overflow-hidden z-50">
-              <a
-                href="/api/export/ics"
-                className="block px-3 py-2 text-sm hover:bg-gray-50"
-              >
-                <div className="font-medium text-navy">Add to Calendar (.ics)</div>
-                <div className="text-xs text-gray-500">For Apple Calendar or Google Calendar</div>
-              </a>
-              <Link href="/export" className="block px-3 py-2 text-sm hover:bg-gray-50 border-t border-gray-100">
-                <div className="font-medium text-navy">Export Document (PDF/Word)</div>
-                <div className="text-xs text-gray-500">Pick a date range and categories</div>
-              </Link>
-            </div>
+
+          {menuOpen && (
+            <>
+              {/* Click-outside backdrop — transparent, sits below the panel. */}
+              <div
+                className="fixed inset-0 z-40"
+                onClick={closeMenu}
+                aria-hidden="true"
+              />
+              <div className="absolute right-0 top-full mt-1 w-60 bg-white text-gray-800 rounded-md shadow-lg border border-gray-200 overflow-hidden z-50 py-1">
+                {links.map((link) => {
+                  const active = pathname === link.href;
+                  return (
+                    <Link
+                      key={link.href}
+                      href={link.href}
+                      onClick={closeMenu}
+                      className={[
+                        "block px-3 py-2 text-sm",
+                        active ? "bg-gray-100 font-medium text-navy" : "hover:bg-gray-50 text-gray-800",
+                      ].join(" ")}
+                    >
+                      {link.label}
+                    </Link>
+                  );
+                })}
+
+                {isEditor && (
+                  <>
+                    <div className="border-t border-gray-100 my-1" />
+                    <a
+                      href="/api/export/ics"
+                      onClick={closeMenu}
+                      className="block px-3 py-2 text-sm hover:bg-gray-50"
+                    >
+                      <div className="font-medium text-navy">Add to Calendar (.ics)</div>
+                      <div className="text-xs text-gray-500">For Apple Calendar or Google Calendar</div>
+                    </a>
+                    <Link
+                      href="/export"
+                      onClick={closeMenu}
+                      className="block px-3 py-2 text-sm hover:bg-gray-50"
+                    >
+                      <div className="font-medium text-navy">Export Document (PDF/Word)</div>
+                      <div className="text-xs text-gray-500">Pick a date range and categories</div>
+                    </Link>
+                  </>
+                )}
+
+                <div className="border-t border-gray-100 my-1" />
+                <button
+                  type="button"
+                  onClick={() => {
+                    closeMenu();
+                    startTour();
+                  }}
+                  className="w-full text-left px-3 py-2 text-sm hover:bg-gray-50 text-gray-800"
+                >
+                  Replay tour
+                </button>
+              </div>
+            </>
           )}
         </div>
-        )}
       </div>
     </nav>
   );

@@ -8,6 +8,28 @@ items (features/fixes) that push contains — a push with 1 item goes up by
 `1.05`). If MINOR would pass `.99`, MAJOR increments and MINOR carries the
 remainder (e.g. `1.99` + 2 items → `2.01`).
 
+## v1.50 — 2026-10-01
+
+- Added a first-run onboarding tour (14 steps: using the calendar, the
+  sidebar notes panels, how Editor vs. Viewer access works, and what to do
+  / avoid) — shown automatically the first time a browser visits, and
+  replayable anytime from the new menu. Tracked per-browser via
+  `localStorage`, not by IP — this app only has two shared passcodes, not
+  per-person accounts, so an IP can't identify "a new person" any more
+  reliably than a browser flag can, and IP tracking would misfire on
+  shared wifi (skips the tour for genuinely new people) and across network
+  switches (shows it twice to the same person).
+- Added a collapsible "How to use this page" panel (collapsed by default)
+  to Holidays, Seasons, Checklist, Categories, Reminders, Backup, and
+  Export — each a short, one-sentence-per-line list of what the page's
+  buttons actually do.
+- Replaced the nav bar's row of tab links with a single hamburger menu
+  listing the same destinations (role-filtered exactly as before); Undo
+  and Redo stay as their own visible buttons next to it, since they're
+  used too often to bury a click deeper.
+- Removed descriptive paragraphs on the Backup and Export pages that
+  duplicated what the new instructions panel now says.
+
 ## v1.46 — 2026-09-30
 
 - Fixed the real cause of PDF/Word export failing in production only (not

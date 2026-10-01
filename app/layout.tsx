@@ -6,6 +6,8 @@ import { EventFilterProvider } from "@/lib/eventFilterContext";
 import { UndoProvider } from "@/lib/undo/UndoProvider";
 import { RoleProvider } from "@/lib/roleContext";
 import { Role } from "@/lib/auth";
+import { OnboardingTourProvider } from "@/lib/useOnboardingTour";
+import OnboardingTourModal from "@/components/OnboardingTourModal";
 import "./globals.css";
 
 const geistSans = localFont({
@@ -42,8 +44,11 @@ export default async function RootLayout({
         <RoleProvider role={role}>
           <UndoProvider>
             <EventFilterProvider>
-              <NavBar />
-              {children}
+              <OnboardingTourProvider>
+                <NavBar />
+                {children}
+                <OnboardingTourModal />
+              </OnboardingTourProvider>
             </EventFilterProvider>
           </UndoProvider>
         </RoleProvider>
