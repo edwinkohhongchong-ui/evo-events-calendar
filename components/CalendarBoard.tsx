@@ -318,6 +318,7 @@ export default function CalendarBoard({
               onEventClick={(occ) => setModal({ type: "edit", occurrence: occ })}
               onHolidayClick={(holiday) => setHolidayModal({ type: "edit", holiday })}
               onSeasonClick={(season) => setSeasonModal({ type: "edit", season })}
+              onAddClick={isEditor ? (date) => setQuickAdd({ date, anchor: null }) : undefined}
             />
           </div>
           <div className="hidden sm:block">

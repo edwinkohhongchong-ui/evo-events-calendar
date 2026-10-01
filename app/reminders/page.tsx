@@ -1,3 +1,4 @@
+import { headers } from "next/headers";
 import { getAllChecklistTemplates, getAllReminderTemplates } from "@/lib/data";
 import RemindersForm from "@/components/RemindersForm";
 import ChecklistTemplatesSection from "@/components/ChecklistTemplatesSection";
@@ -14,16 +15,19 @@ const INSTRUCTIONS = [
 ];
 
 export default async function RemindersPage() {
+  // Middleware already keeps Viewers off /reminders; this is a second guard so
+  // checklist templates are never fetched or rendered for anyone but an Editor.
+  const isEditor = (await headers()).get("x-evo-role") === "editor";
   const [templates, checklistTemplates] = await Promise.all([
     getAllReminderTemplates(),
-    getAllChecklistTemplates(),
+    isEditor ? getAllChecklistTemplates() : Promise.resolve([]),
   ]);
 
   return (
     <main className="max-w-2xl mx-auto p-4 sm:p-6">
       <h1 className="text-xl font-semibold text-navy mb-4">Reminders</h1>
       <InstructionsPanel lines={INSTRUCTIONS} />
-      <ChecklistTemplatesSection templates={checklistTemplates} />
+      {isEditor && <ChecklistTemplatesSection templates={checklistTemplates} />}
       <RemindersForm templates={templates} checklistTemplates={checklistTemplates} />
     </main>
   );

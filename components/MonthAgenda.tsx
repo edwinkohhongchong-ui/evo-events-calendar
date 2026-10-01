@@ -24,6 +24,8 @@ interface MonthAgendaProps {
   onEventClick: (occurrence: EventOccurrence) => void;
   onHolidayClick: (holiday: HolidayRow) => void;
   onSeasonClick: (season: SeasonRow) => void;
+  // Editors only: when set, each day row shows a "+" that quick-adds on that date.
+  onAddClick?: (date: string) => void;
 }
 
 // Phone-width alternative to the 7-column month grid (which would be ~50px
@@ -39,6 +41,7 @@ export default function MonthAgenda({
   onEventClick,
   onHolidayClick,
   onSeasonClick,
+  onAddClick,
 }: MonthAgendaProps) {
   const router = useRouter();
   const touchStart = useRef<{ x: number; y: number } | null>(null);
@@ -139,6 +142,16 @@ export default function MonthAgenda({
                 </button>
               ))}
             </div>
+            {onAddClick && (
+              <button
+                type="button"
+                onClick={() => onAddClick(dateStr)}
+                aria-label={`Add event on ${format(parseDateStr(dateStr), "EEEE d MMMM")}`}
+                className="flex h-11 w-11 shrink-0 items-center justify-center rounded-ctl bg-fill text-xl font-semibold leading-none text-navy"
+              >
+                +
+              </button>
+            )}
           </div>
         );
       })}

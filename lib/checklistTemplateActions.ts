@@ -29,12 +29,9 @@ async function saveChecklistTemplateImpl(
   items: ChecklistTemplateItemInput[],
   expectedUpdatedAt?: string
 ): Promise<AffectedRow[]> {
-  // Creating a brand-new template (templateId == null) is a create action
-  // (Editor-only); replacing an existing template's name/items in place is
-  // an edit of something that already exists (Viewer-allowed), matching the
-  // product decision that Viewers can edit existing rows but not add new
-  // top-level ones.
-  await requireRole(templateId ? "viewer" : "editor");
+  // Checklist templates are Editor-only for both create and edit: Viewers
+  // never see or use them.
+  await requireRole("editor");
   const affected: AffectedRow[] = [];
   let id = templateId;
 

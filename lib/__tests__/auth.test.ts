@@ -13,6 +13,8 @@ describe("isPathAllowedForRole", () => {
   });
   it("still blocks every other viewer route, including other /api paths", () => {
     expect(isPathAllowedForRole("/checklist", "viewer")).toBe(false);
+    expect(isPathAllowedForRole("/reminders", "viewer")).toBe(false);
+    expect(isPathAllowedForRole("/reminders", "editor")).toBe(true);
     expect(isPathAllowedForRole("/api/activity/extra", "viewer")).toBe(false);
     expect(isPathAllowedForRole("/api/admin/backup", "viewer")).toBe(false);
     expect(isPathAllowedForRole("/api/export/ics", "viewer")).toBe(false);

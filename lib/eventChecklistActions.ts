@@ -37,7 +37,7 @@ async function getEventChecklistImpl(eventId: string): Promise<EventChecklistIte
 
 // Name + id of every template, for the "Add checklist" picker.
 async function getChecklistTemplateOptionsImpl(): Promise<ChecklistTemplateWithItems[]> {
-  await requireRole("viewer");
+  await requireRole("editor");
   const [{ data: templates, error: tErr }, { data: items, error: iErr }] = await Promise.all([
     supabase.from("checklist_templates").select("id, name").order("name"),
     supabase.from("checklist_template_items").select("*").order("sort_order"),

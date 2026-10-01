@@ -8,6 +8,11 @@ items (features/fixes) that push contains — a push with 1 item goes up by
 `1.05`). If MINOR would pass `.99`, MAJOR increments and MINOR carries the
 remainder (e.g. `1.99` + 2 items → `2.01`).
 
+## v2.44 — 2026-10-01
+
+- Viewers can no longer see or use checklist templates: saving or reading templates now requires the Editor role on the server, and the Reminders page no longer loads them for non-Editors. Viewers can still see and tick an event's own checklist.
+- Phone agenda: Editors get a "+" button on each day row that opens the quick-add bottom sheet.
+
 ## v2.42 — 2026-10-01
 
 - Added quick-add: an Editor clicking a day on the month grid now gets a small popover (name, optional start time, event type) that saves with Enter; "More options" opens the full Add Event window with the typed details carried over. It remembers the last event type used this session. The Add button and the `n` shortcut still open the full window.
