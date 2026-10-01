@@ -6,7 +6,8 @@ import { EventOccurrence } from "@/lib/types";
 import { LEVEL_DOT_CLASSES } from "@/lib/constants";
 import { useLevelColor } from "@/lib/levelColorContext";
 import { formatDateDisplay, formatEventTimeRange } from "@/lib/dates";
-import { ClockIcon, MapPinIcon, RepeatIcon, StickyNoteIcon } from "./icons";
+import { CheckSquareIcon, ClockIcon, MapPinIcon, RepeatIcon, StickyNoteIcon } from "./icons";
+import { useEventChecklistProgress } from "@/lib/eventChecklistContext";
 
 const SHOW_DELAY_MS = 150;
 const CARD_WIDTH = 280;
@@ -74,6 +75,7 @@ export function useEventPreview(occurrence: EventOccurrence, suppress = false) {
 function PreviewCard({ occurrence, anchor }: { occurrence: EventOccurrence; anchor: Anchor }) {
   const { event } = occurrence;
   const color = useLevelColor(event.level);
+  const checklist = useEventChecklistProgress(event.id);
   const [mounted, setMounted] = useState(false);
   useEffect(() => setMounted(true), []);
   if (!mounted) return null;
@@ -117,6 +119,12 @@ function PreviewCard({ occurrence, anchor }: { occurrence: EventOccurrence; anch
         <div className="flex items-center gap-1.5 text-ink-2">
           <MapPinIcon className="!h-4 !w-4" />
           {event.location}
+        </div>
+      )}
+      {checklist && checklist.total > 0 && (
+        <div className="flex items-center gap-1.5 text-ink-2">
+          <CheckSquareIcon className="!h-4 !w-4" />
+          Checklist {checklist.done}/{checklist.total}
         </div>
       )}
       {event.recurring !== "None" && (

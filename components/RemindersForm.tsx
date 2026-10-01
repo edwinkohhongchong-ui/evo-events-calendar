@@ -328,7 +328,7 @@ export default function RemindersForm({ templates, checklistTemplates }: Reminde
                           onChange={(e) => setEventTemplate(ev.occurrenceKey, e.target.value)}
                           className="min-h-[28px] rounded-pill border border-line-strong bg-white px-2.5 text-body"
                         >
-                          <option value="">No message snippet</option>
+                          <option value="">No checklist template</option>
                           {checklistTemplates.map((t) => (
                             <option key={t.id} value={t.id}>
                               {t.name}
@@ -339,7 +339,7 @@ export default function RemindersForm({ templates, checklistTemplates }: Reminde
                           <button
                             type="button"
                             onClick={() => setEventTemplate(ev.occurrenceKey, "")}
-                            title="Remove this message snippet from the message"
+                            title="Remove this checklist template from the message"
                             className="text-ink-3 hover:text-danger leading-none"
                           >
                             ×

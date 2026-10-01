@@ -1,6 +1,6 @@
 import { isSameMonth } from "date-fns";
 import { getMonthGrid } from "@/lib/calendar";
-import { getCalendarData, getGeneralComments, getMonthComments } from "@/lib/data";
+import { getCalendarData, getEventChecklistProgress, getGeneralComments, getMonthComments } from "@/lib/data";
 import { expandEvents } from "@/lib/recurrence";
 import { applyOverrides } from "@/lib/overrides";
 import { computeSeasonSegments } from "@/lib/seasonBars";
@@ -40,6 +40,7 @@ export default async function Home({ searchParams }: HomeProps) {
       getGeneralComments(),
       getMonthComments(year, month),
     ]);
+  const checklistProgress = await getEventChecklistProgress(events.map((e) => e.id));
   const eventsById = new Map(events.map((e) => [e.id, e]));
   const exceptionsByEventId = new Map<string, Set<string>>();
   for (const exception of exceptions) {
@@ -79,6 +80,7 @@ export default async function Home({ searchParams }: HomeProps) {
             seasonSegmentsByWeek={seasonSegmentsByWeek}
             levels={levels}
             defaultAddDate={defaultAddDate}
+            checklistProgress={checklistProgress}
           />
           <CategoryListView occurrences={inMonthOccurrences} levels={levels} defaultAddDate={defaultAddDate} />
         </div>

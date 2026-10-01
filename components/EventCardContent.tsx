@@ -3,6 +3,9 @@ import { LEVEL_CHIP_CLASSES } from "@/lib/constants";
 import { useLevelColor } from "@/lib/levelColorContext";
 import { formatEventTimeRange } from "@/lib/dates";
 import { endsNextDay } from "@/lib/timeMath";
+import { useEventChecklistProgress } from "@/lib/eventChecklistContext";
+import { progressOverdue } from "@/lib/eventChecklist";
+import { toDateStr } from "@/lib/dates";
 
 export default function EventCardContent({
   occurrence,
@@ -14,6 +17,8 @@ export default function EventCardContent({
 }) {
   const { event } = occurrence;
   const colorKey = useLevelColor(event.level);
+  const checklist = useEventChecklistProgress(event.id);
+  const checklistOverdue = checklist ? progressOverdue(checklist, event.event_date, toDateStr(new Date())) : false;
   // Effective time (post-override), not event.event_time/event.end_time
   // directly — a time override from day-view must show here too.
   const time = formatEventTimeRange(occurrence.startTime, occurrence.endTime);
@@ -37,6 +42,17 @@ export default function EventCardContent({
         {event.name}
         {nextDay && <span className="ml-1 text-micro font-normal text-ink-2">(next day)</span>}
         {occurrence.isOverridden && <span className="ml-1 text-micro font-normal text-ink-2">(moved)</span>}
+        {checklist && checklist.total > 0 && (
+          <span
+            className={[
+              "ml-1 rounded-pill px-1.5 text-micro font-medium tabular-nums",
+              checklistOverdue ? "bg-danger/15 text-danger" : checklist.done === checklist.total ? "bg-ok/15 text-ok" : "bg-black/5 text-ink-2",
+            ].join(" ")}
+            title={checklistOverdue ? "Checklist: something is overdue" : "Checklist progress"}
+          >
+            {checklist.done}/{checklist.total}
+          </span>
+        )}
       </div>
       {subtitle && <div className="text-chip text-ink-2 truncate">{subtitle}</div>}
       {time && <div className="text-chip text-ink-2 truncate">{time}</div>}

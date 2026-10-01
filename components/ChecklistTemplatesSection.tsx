@@ -51,12 +51,12 @@ export default function ChecklistTemplatesSection({
     setRemovingId(template.id);
     try {
       const affected = unwrap(await deleteChecklistTemplate(template.id));
-      record(`Delete message snippet "${template.name}"`, affected);
+      record(`Delete checklist template "${template.name}"`, affected);
       setPendingDelete(null);
       router.refresh();
     } catch (err) {
       setDeleteError(
-        err instanceof Error ? err.message : "Something went wrong deleting this message snippet."
+        err instanceof Error ? err.message : "Something went wrong deleting this checklist template."
       );
     } finally {
       setRemovingId(null);
@@ -71,7 +71,7 @@ export default function ChecklistTemplatesSection({
         aria-expanded={open}
         className="flex w-full items-center justify-between gap-2 px-4 py-3 text-ui font-medium text-ink hover:bg-canvas"
       >
-        <span>Message Checklist Snippets ({templates.length})</span>
+        <span>Checklist Templates ({templates.length})</span>
         <span className="text-ink-3">
           <ChevronIcon open={open} />
         </span>
@@ -79,9 +79,7 @@ export default function ChecklistTemplatesSection({
       {open && (
         <div className="flex flex-col gap-2 border-t border-line p-4">
           <p className="text-body text-ink-2">
-            Pre-written checklist text you can drop into a drafted Telegram message. This does NOT
-            update the real Checklist tab — selecting one here only adds text to the message,
-            nothing is tracked.
+            Reusable checklists. Drop one into a drafted Telegram message, or add it to an event from the event&rsquo;s details, where items can be ticked and given due dates (“weeks before”). This is separate from the monthly Checklist tab, which it never changes.
           </p>
           {templates.map((t) => (
             <div
@@ -110,10 +108,10 @@ export default function ChecklistTemplatesSection({
             </div>
           ))}
           {templates.length === 0 && (
-            <p className="py-2 text-center text-body text-ink-2">No message snippets yet.</p>
+            <p className="py-2 text-center text-body text-ink-2">No checklist templates yet.</p>
           )}
           <Button size="sm" icon={<PlusIcon className="!h-4 !w-4" />} className="self-start" onClick={() => setModal({ type: "add" })}>
-            Add Snippet
+            Add Checklist Template
           </Button>
         </div>
       )}

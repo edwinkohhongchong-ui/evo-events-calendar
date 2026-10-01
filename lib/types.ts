@@ -244,6 +244,7 @@ export interface ChecklistTemplateItemRow {
   template_id: string;
   item: string;
   repeat_count: number;
+  weeks_before: number | null; // optional due offset (migration 024)
   sort_order: number;
 }
 
@@ -255,7 +256,30 @@ export interface ChecklistTemplateRow {
 export interface ChecklistTemplateWithItems {
   id: string;
   name: string;
-  items: { id: string; item: string; repeat_count: number }[];
+  items: { id: string; item: string; repeat_count: number; weeks_before: number | null }[];
+}
+
+// A tickable to-do copied onto one event from a checklist template (migration 024).
+export interface EventChecklistItemRow {
+  id: string;
+  event_id: string;
+  item: string;
+  weeks_before: number | null;
+  done: boolean;
+  done_at: string | null;
+  done_by: string | null;
+  source_template: string | null;
+  sort_order: number;
+  created_at: string;
+}
+
+// Per-event roll-up shown as the "3/8" badge on calendar chips.
+export interface EventChecklistProgress {
+  done: number;
+  total: number;
+  // Largest weeks_before among unticked items with a due date: the earliest
+  // deadline still open. null when nothing open has a due date.
+  openWeeksBefore: number | null;
 }
 
 // One logged note — general (left column, shown for every month) or

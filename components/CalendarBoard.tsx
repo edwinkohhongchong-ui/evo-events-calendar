@@ -28,11 +28,12 @@ import { SeasonSegment } from "@/lib/seasonBars";
 import { computeEventBarSegments } from "@/lib/eventBars";
 import { resolveLevelColor } from "@/lib/levelColor";
 import { LevelColorProvider } from "@/lib/levelColorContext";
+import { EventChecklistProvider } from "@/lib/eventChecklistContext";
 import { useEventFilter } from "@/lib/eventFilterContext";
 import { useUndo } from "@/lib/undo/UndoProvider";
 import { useIsEditor } from "@/lib/roleContext";
 import FocusHighlighter from "./FocusHighlighter";
-import { DayNoteRow, EventOccurrence, HolidayRow, LevelRow, SeasonRow } from "@/lib/types";
+import { DayNoteRow, EventChecklistProgress, EventOccurrence, HolidayRow, LevelRow, SeasonRow } from "@/lib/types";
 
 interface CalendarBoardProps {
   weeks: Date[][];
@@ -43,6 +44,7 @@ interface CalendarBoardProps {
   seasonSegmentsByWeek: SeasonSegment[][];
   levels: LevelRow[];
   defaultAddDate: string;
+  checklistProgress: Record<string, EventChecklistProgress>;
 }
 
 type ModalState =
@@ -62,6 +64,7 @@ export default function CalendarBoard({
   seasonSegmentsByWeek,
   levels,
   defaultAddDate,
+  checklistProgress,
 }: CalendarBoardProps) {
   const router = useRouter();
   const { isVisible } = useEventFilter();
@@ -228,6 +231,7 @@ export default function CalendarBoard({
 
   return (
     <LevelColorProvider colorMap={colorMap}>
+      <EventChecklistProvider progress={checklistProgress}>
       <FocusHighlighter />
       {error && <ErrorBanner message={error} onDismiss={() => setError(null)} />}
       <DndContext
@@ -324,6 +328,7 @@ export default function CalendarBoard({
           }}
         />
       )}
+      </EventChecklistProvider>
     </LevelColorProvider>
   );
 }

@@ -9,6 +9,7 @@ import { runAction } from "./actionResult";
 export interface ChecklistTemplateItemInput {
   item: string;
   repeat_count: number;
+  weeks_before?: number | null;
 }
 
 // Creates a template, or fully replaces an existing one's name + item list
@@ -90,6 +91,8 @@ async function saveChecklistTemplateImpl(
       item: item.item,
       repeat_count: item.repeat_count,
       sort_order: index,
+      // Only sent when set, so saving still works before migration 024 adds the column.
+      ...(item.weeks_before != null ? { weeks_before: item.weeks_before } : {}),
     }));
     const { data: inserted, error } = await supabase.from("checklist_template_items").insert(rows).select();
     if (error) {

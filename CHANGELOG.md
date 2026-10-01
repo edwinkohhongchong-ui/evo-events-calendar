@@ -8,6 +8,24 @@ items (features/fixes) that push contains — a push with 1 item goes up by
 `1.05`). If MINOR would pass `.99`, MAJOR increments and MINOR carries the
 remainder (e.g. `1.99` + 2 items → `2.01`).
 
+## v1.97 — 2026-10-02
+
+- Events can now have a checklist. Open an event, choose a checklist template
+  (e.g. Big Event Prep) and click Add checklist: its items are copied onto that
+  event so they can be ticked off (Editors and Viewers can tick; only Editors
+  add or remove). The template is suggested, never applied automatically, for
+  "+EVO YTH Big Day" and "Easter/XMAS" gatherings. "Re-add missing items" brings
+  in anything added to the template later. One-off events only; repeating events
+  don't get checklists yet. **Needs migration 024** (run in Supabase).
+- Checklist templates (formerly "message snippets" on the Reminders page) can
+  give each item an optional due date in weeks before the event. Due dates are
+  calculated from the event's current date, so they follow it if it is moved,
+  and unticked items past their date show in red as Overdue.
+- Calendar chips show a small checklist badge (e.g. 3/8, red when overdue,
+  green when complete), also on the hover preview card. The templates are
+  renamed "Checklist Templates" on the Reminders page; they still work in
+  drafted Telegram messages.
+
 ## v1.94 — 2026-10-01
 
 - The month bar (title, previous/next arrows, Today, Add event) now stays

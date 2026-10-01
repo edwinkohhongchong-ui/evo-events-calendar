@@ -28,6 +28,7 @@ import { ChevronIcon, MapPinIcon, RepeatIcon, StickyNoteIcon, ClockIcon } from "
 import { useLevelColor } from "@/lib/levelColorContext";
 import { LEVEL_DOT_CLASSES } from "@/lib/constants";
 import RecurringScopeDialog from "./RecurringScopeDialog";
+import EventChecklist from "./EventChecklist";
 
 interface EventModalProps {
   mode: "add" | "edit";
@@ -592,6 +593,7 @@ export default function EventModal({
               <span>{notes}</span>
             </div>
           )}
+          {mode === "edit" && event && <EventChecklist event={event} />}
           {formError && <p className="text-body text-danger">{formError}</p>}
         </div>
       ) : step === "editScope" ? (

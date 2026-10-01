@@ -5,6 +5,7 @@ import {
   ChecklistTemplateRow,
   ChecklistTemplateWithItems,
   DayNoteRow,
+  EventChecklistProgress,
   EventOption,
   EventRow,
   ExceptionRow,
@@ -19,6 +20,7 @@ import {
 import { expandEvents } from "./recurrence";
 import { applyOverrides } from "./overrides";
 import { parseDateStr } from "./dates";
+import { progressOf } from "./eventChecklist";
 
 export interface CalendarData {
   events: EventRow[];
@@ -399,10 +401,15 @@ export async function getAllChecklistTemplates(): Promise<ChecklistTemplateWithI
       return [];
     }
 
-    const itemsByTemplate = new Map<string, { id: string; item: string; repeat_count: number }[]>();
+    const itemsByTemplate = new Map<string, ChecklistTemplateWithItems["items"]>();
     for (const item of items ?? []) {
       const list = itemsByTemplate.get(item.template_id) ?? [];
-      list.push({ id: item.id, item: item.item, repeat_count: item.repeat_count });
+      list.push({
+        id: item.id,
+        item: item.item,
+        repeat_count: item.repeat_count,
+        weeks_before: item.weeks_before ?? null,
+      });
       itemsByTemplate.set(item.template_id, list);
     }
 
@@ -414,6 +421,36 @@ export async function getAllChecklistTemplates(): Promise<ChecklistTemplateWithI
   } catch (err) {
     console.error("getAllChecklistTemplates threw:", err);
     return [];
+  }
+}
+
+// Per-event checklist roll-ups for the "3/8" chip badge. Returns {} (no
+// badges) if migration 024 hasn't been run yet or the query fails.
+export async function getEventChecklistProgress(eventIds: string[]): Promise<Record<string, EventChecklistProgress>> {
+  if (eventIds.length === 0) return {};
+  try {
+    const { data, error } = await supabase
+      .from("event_checklist_items")
+      .select("event_id, done, weeks_before")
+      .in("event_id", eventIds);
+    if (error) {
+      console.error("getEventChecklistProgress failed:", error.message);
+      return {};
+    }
+    const byEvent = new Map<string, { done: boolean; weeks_before: number | null }[]>();
+    for (const row of data ?? []) {
+      const list = byEvent.get(row.event_id) ?? [];
+      list.push({ done: row.done, weeks_before: row.weeks_before });
+      byEvent.set(row.event_id, list);
+    }
+    const out: Record<string, EventChecklistProgress> = {};
+    byEvent.forEach((items, id) => {
+      out[id] = progressOf(items);
+    });
+    return out;
+  } catch (err) {
+    console.error("getEventChecklistProgress threw:", err);
+    return {};
   }
 }
 
