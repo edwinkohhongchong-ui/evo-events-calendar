@@ -2,7 +2,7 @@
 -- Run this in Supabase: Project -> SQL Editor -> New Query -> paste -> Run
 -- (Same workflow as supabase_schema.sql — this is additive, does not touch existing tables/data.)
 
-create table event_overrides (
+create table if not exists event_overrides (
   id uuid primary key default gen_random_uuid(),
   event_id uuid not null references events(id) on delete cascade,
   original_date date not null,  -- the date this occurrence falls on per the recurrence rule (anchor-derived)
@@ -12,5 +12,6 @@ create table event_overrides (
 );
 
 alter table event_overrides enable row level security;
+drop policy if exists "allow all - event_overrides" on event_overrides;
 
 create policy "allow all - event_overrides" on event_overrides for all using (true) with check (true);

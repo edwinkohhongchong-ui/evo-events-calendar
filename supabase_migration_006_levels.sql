@@ -1,3 +1,5 @@
+-- NOTE: structure is re-run safe, but this file also renames/moves existing
+-- data. Apply once, in order; do not re-run on a database already past it.
 -- +EVO Events Calendar — Migration 006: dynamic event categories (Levels)
 -- Run this in Supabase: Project -> SQL Editor -> New Query -> paste -> Run
 --
@@ -12,7 +14,7 @@
 -- event — the app surfaces this as a save error rather than silently
 -- orphaning events.
 
-create table levels (
+create table if not exists levels (
   id uuid primary key default gen_random_uuid(),
   name text not null unique,
   color_key text not null check (color_key in (
@@ -24,6 +26,7 @@ create table levels (
 );
 
 alter table levels enable row level security;
+drop policy if exists "allow all - levels" on levels;
 create policy "allow all - levels" on levels for all using (true) with check (true);
 
 -- Seed with the previous 7 built-in levels, minus "Tertiary" (retired —
@@ -36,7 +39,8 @@ insert into levels (name, color_key, sort_order) values
 ('Adults', 'teal', 4),
 ('COW', 'rose', 5),
 ('Thirdspace', 'sky', 6),
-('Gathering', 'amber', 7);
+('Gathering', 'amber', 7)
+on conflict (name) do nothing;
 
 -- Drop the old inline CHECK constraint (name looked up dynamically since
 -- Postgres's auto-generated constraint name isn't guaranteed across setups).
@@ -54,6 +58,7 @@ begin
   end if;
 end $$;
 
+alter table events drop constraint if exists events_level_fkey;
 alter table events
   add constraint events_level_fkey
   foreign key (level) references levels(name)

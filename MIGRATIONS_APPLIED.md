@@ -45,7 +45,7 @@ Note: numbering starts at 002 — there is no `supabase_migration_001_*.sql` fil
 in this repo (the initial schema lives in `supabase_schema.sql`).
 
 
-Next available migration number: **025**.
+Next available migration number: **025**. (Indexes on event_overrides and event_exceptions were considered and skipped: their unique (event_id, original_date) constraints already index those lookups.)
 
 ## Process for new migrations
 Whenever a new migration file is added, add a row here as **"Not yet

@@ -7,7 +7,7 @@
 -- a message and opens Telegram's own compose screen (t.me/<handle>?text=...)
 -- for a human to review and send — no bot token, no server-side scheduling.
 
-create table reminder_templates (
+create table if not exists reminder_templates (
   id uuid primary key default gen_random_uuid(),
   name text not null,
   default_message text,
@@ -18,4 +18,5 @@ create table reminder_templates (
 );
 
 alter table reminder_templates enable row level security;
+drop policy if exists "allow all - reminder_templates" on reminder_templates;
 create policy "allow all - reminder_templates" on reminder_templates for all using (true) with check (true);

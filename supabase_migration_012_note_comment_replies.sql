@@ -5,4 +5,4 @@
 -- not at another reply. ON DELETE CASCADE: removing a top-level comment
 -- removes its replies too, rather than leaving them orphaned.
 
-alter table note_comments add column parent_id uuid references note_comments(id) on delete cascade;
+alter table note_comments add column if not exists parent_id uuid references note_comments(id) on delete cascade;

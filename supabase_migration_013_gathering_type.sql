@@ -7,7 +7,7 @@
 -- the saved name, same reasoning as pastoral_* in migration 008: robust,
 -- not fragile string-matching.
 
-alter table events add column gathering_type text
+alter table events add column if not exists gathering_type text
   check (gathering_type is null or gathering_type in (
     'Gathering', 'YTH Gathering', '+EVO YTH Big Day', 'Easter/XMAS'
   ));

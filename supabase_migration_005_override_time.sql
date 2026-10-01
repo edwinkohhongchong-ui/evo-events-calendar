@@ -8,4 +8,4 @@
 -- that only overrides time, so no existing code that reads new_date as
 -- "the current effective date" needs to learn a new null-handling case.
 
-alter table event_overrides add column new_time time;
+alter table event_overrides add column if not exists new_time time;

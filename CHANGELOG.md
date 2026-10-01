@@ -8,6 +8,13 @@ items (features/fixes) that push contains — a push with 1 item goes up by
 `1.05`). If MINOR would pass `.99`, MAJOR increments and MINOR carries the
 remainder (e.g. `1.99` + 2 items → `2.01`).
 
+## v2.21 — 2026-10-01
+
+- Added a GitHub Actions check (`.github/workflows/ci.yml`) that runs type-check, lint, tests and `next build` on every push and pull request, plus a non-blocking `npm audit`.
+- Pinned Node to 20.x (`engines` in `package.json`).
+- Added `.env.example` listing every environment variable name (no values).
+- Made migrations 002–023 re-run safe (`if not exists`, `drop ... if exists`, seed guards); 006 and 016 carry a note that they also move data and should still be applied once, in order.
+
 ## v2.17 — 2026-10-01
 
 Correctness and safety batch (7 items):

@@ -8,5 +8,5 @@
 -- multi-day (via the drag-to-resize handle) without changing the series'
 -- own end_date, which stays the template every future occurrence inherits.
 
-alter table events add column end_date date;
-alter table event_overrides add column new_end_date date;
+alter table events add column if not exists end_date date;
+alter table event_overrides add column if not exists new_end_date date;

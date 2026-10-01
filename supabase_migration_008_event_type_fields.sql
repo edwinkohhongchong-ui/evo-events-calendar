@@ -15,14 +15,14 @@
 -- series/preacher_name/sermon_title/theme are only meaningful when
 -- event_type = 'Gathering'; left null for 'Event' rows.
 
-alter table events add column event_type text not null default 'Event' check (event_type in ('Event', 'Gathering'));
+alter table events add column if not exists event_type text not null default 'Event' check (event_type in ('Event', 'Gathering'));
 
-alter table events add column pastoral_youth boolean not null default false;
-alter table events add column pastoral_poly boolean not null default false;
-alter table events add column pastoral_uni boolean not null default false;
-alter table events add column pastoral_adults boolean not null default false;
+alter table events add column if not exists pastoral_youth boolean not null default false;
+alter table events add column if not exists pastoral_poly boolean not null default false;
+alter table events add column if not exists pastoral_uni boolean not null default false;
+alter table events add column if not exists pastoral_adults boolean not null default false;
 
-alter table events add column series text;
-alter table events add column preacher_name text;
-alter table events add column sermon_title text;
-alter table events add column theme text;
+alter table events add column if not exists series text;
+alter table events add column if not exists preacher_name text;
+alter table events add column if not exists sermon_title text;
+alter table events add column if not exists theme text;

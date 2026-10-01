@@ -4,6 +4,6 @@
 -- event_time remains the start time column (not renamed), to avoid touching
 -- every place that already reads it.
 
-alter table events add column end_time time;
-alter table events add column duration_minutes integer
+alter table events add column if not exists end_time time;
+alter table events add column if not exists duration_minutes integer
   check (duration_minutes is null or duration_minutes >= 0);

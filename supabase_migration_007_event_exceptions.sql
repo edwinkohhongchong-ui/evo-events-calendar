@@ -10,7 +10,7 @@
 -- ON DELETE CASCADE: deleting the whole series (the base event row) cleans
 -- up its exceptions automatically, same as event_overrides already does.
 
-create table event_exceptions (
+create table if not exists event_exceptions (
   id uuid primary key default gen_random_uuid(),
   event_id uuid not null references events(id) on delete cascade,
   original_date date not null,
@@ -19,4 +19,5 @@ create table event_exceptions (
 );
 
 alter table event_exceptions enable row level security;
+drop policy if exists "allow all - event_exceptions" on event_exceptions;
 create policy "allow all - event_exceptions" on event_exceptions for all using (true) with check (true);

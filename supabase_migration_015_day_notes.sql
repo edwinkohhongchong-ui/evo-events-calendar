@@ -7,14 +7,15 @@
 -- deletable independently. No author tracking, unlike note_comments
 -- (migration 011) — these are meant to be quick, not a discussion log.
 
-create table day_notes (
+create table if not exists day_notes (
   id uuid primary key default gen_random_uuid(),
   note_date date not null,
   content text not null,
   created_at timestamptz default now()
 );
 
-create index day_notes_note_date_idx on day_notes (note_date);
+create index if not exists day_notes_note_date_idx on day_notes (note_date);
 
 alter table day_notes enable row level security;
+drop policy if exists "allow all - day_notes" on day_notes;
 create policy "allow all - day_notes" on day_notes for all using (true) with check (true);

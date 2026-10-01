@@ -4,7 +4,7 @@
 -- Nullable on purpose: a null color means "use the deterministic auto-suggested
 -- color for this season's name" — computed at render time, not backfilled.
 
-alter table seasons add column color text
+alter table seasons add column if not exists color text
   check (color is null or color in (
     'indigo', 'teal', 'rose', 'amber', 'sky',
     'purple', 'emerald', 'orange', 'pink', 'cyan'

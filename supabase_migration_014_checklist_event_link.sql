@@ -8,4 +8,4 @@
 -- (Done when linked, Not Started when not) against whatever the link
 -- currently says.
 
-alter table checklist add column linked_event_id uuid references events(id) on delete set null;
+alter table checklist add column if not exists linked_event_id uuid references events(id) on delete set null;

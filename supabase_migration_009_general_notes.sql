@@ -8,13 +8,15 @@
 -- id is always 'singleton' — pre-seeded below so the app can always UPDATE
 -- rather than needing upsert logic.
 
-create table general_notes (
+create table if not exists general_notes (
   id text primary key default 'singleton',
   content text,
   updated_at timestamptz default now()
 );
 
-insert into general_notes (id, content) values ('singleton', null);
+insert into general_notes (id, content) values ('singleton', null)
+on conflict (id) do nothing;
 
 alter table general_notes enable row level security;
+drop policy if exists "allow all - general_notes" on general_notes;
 create policy "allow all - general_notes" on general_notes for all using (true) with check (true);

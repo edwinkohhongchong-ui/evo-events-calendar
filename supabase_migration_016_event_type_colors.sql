@@ -1,3 +1,5 @@
+-- NOTE: structure is re-run safe, but this file also renames/moves existing
+-- data. Apply once, in order; do not re-run on a database already past it.
 -- +EVO Events Calendar — Migration 016: Event Type colors (Churchwide/Zone/TG)
 -- Run this in Supabase: Project -> SQL Editor -> New Query -> paste -> Run
 --
@@ -25,6 +27,7 @@ begin
   end if;
 end $$;
 
+alter table levels drop constraint if exists levels_color_key_check;
 alter table levels add constraint levels_color_key_check check (color_key in (
   'indigo', 'teal', 'rose', 'amber', 'sky',
   'purple', 'emerald', 'orange', 'pink', 'cyan',
@@ -48,6 +51,7 @@ begin
   end if;
 end $$;
 
+alter table seasons drop constraint if exists seasons_color_check;
 alter table seasons add constraint seasons_color_check check (color is null or color in (
   'indigo', 'teal', 'rose', 'amber', 'sky',
   'purple', 'emerald', 'orange', 'pink', 'cyan',

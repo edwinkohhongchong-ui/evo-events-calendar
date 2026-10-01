@@ -1,7 +1,7 @@
 -- +EVO Events Calendar — Migration 021: season source dates (manual exam/term entry assist)
 -- Run this in Supabase: Project -> SQL Editor -> New Query -> paste -> Run
 
-create table season_source_dates (
+create table if not exists season_source_dates (
   id uuid primary key default gen_random_uuid(),
   group_name text not null,   -- e.g. 'Polytechnic Exams', 'University Exams', 'MOE School Terms'
   institution text not null,  -- e.g. 'Ngee Ann Polytechnic', 'NUS'
@@ -11,6 +11,7 @@ create table season_source_dates (
   updated_at timestamptz not null default now(),
   unique (group_name, institution, year)
 );
+drop trigger if exists season_source_dates_set_updated_at on season_source_dates;
 
 create trigger season_source_dates_set_updated_at
   before update on season_source_dates

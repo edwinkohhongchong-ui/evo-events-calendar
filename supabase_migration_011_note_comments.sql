@@ -12,7 +12,7 @@
 -- (Series/Sermon Focus and Key Theme are also retired as a UI concept per
 -- PROJECT decision — redundant with the notes columns and rarely used.)
 
-create table note_comments (
+create table if not exists note_comments (
   id uuid primary key default gen_random_uuid(),
   scope text not null check (scope in ('general', 'month')),
   year int,
@@ -27,9 +27,11 @@ create table note_comments (
 );
 
 alter table note_comments enable row level security;
+drop policy if exists "allow all - note_comments" on note_comments;
 create policy "allow all - note_comments" on note_comments for all using (true) with check (true);
 
 -- Carries forward the one real note that existed under the old design
 -- (July 2026's month_focus.notes) so it isn't silently lost from view.
 insert into note_comments (scope, year, month, author_name, content)
-values ('month', 2026, 7, 'Imported note', 'test');
+select 'month', 2026, 7, 'Imported note', 'test'
+where not exists (select 1 from note_comments where author_name = 'Imported note' and year = 2026 and month = 7);

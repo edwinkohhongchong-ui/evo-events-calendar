@@ -6,4 +6,4 @@
 -- Reminders page's event picker, and drafted reminder messages, since a
 -- leader planning e-invites/logistics needs to know where, not just when.
 
-alter table events add column location text;
+alter table events add column if not exists location text;

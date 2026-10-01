@@ -6,7 +6,7 @@
 -- the real change). Read back by /api/activity for the notification bell.
 -- Rows older than 30 days are pruned opportunistically by logActivity.
 
-create table activity_log (
+create table if not exists activity_log (
   id uuid primary key default gen_random_uuid(),
   created_at timestamptz not null default now(),
   actor_role text not null check (actor_role in ('editor','viewer')),
@@ -18,7 +18,8 @@ create table activity_log (
   href text                -- precomputed in-app link, nullable
 );
 
-create index activity_log_created_at_idx on activity_log (created_at desc);
+create index if not exists activity_log_created_at_idx on activity_log (created_at desc);
 
 alter table activity_log enable row level security;
+drop policy if exists "allow all - activity_log" on activity_log;
 create policy "allow all - activity_log" on activity_log for all using (true) with check (true);

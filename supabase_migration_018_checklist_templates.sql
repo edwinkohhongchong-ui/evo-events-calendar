@@ -8,13 +8,13 @@
 -- repeat_count > 1 expands one template line into that many numbered
 -- checklist rows (e.g. a weekly check-in repeated across several weeks).
 
-create table checklist_templates (
+create table if not exists checklist_templates (
   id uuid primary key default gen_random_uuid(),
   name text not null,
   created_at timestamptz default now()
 );
 
-create table checklist_template_items (
+create table if not exists checklist_template_items (
   id uuid primary key default gen_random_uuid(),
   template_id uuid not null references checklist_templates(id) on delete cascade,
   item text not null,
@@ -24,9 +24,11 @@ create table checklist_template_items (
 );
 
 alter table checklist_templates enable row level security;
+drop policy if exists "allow all - checklist_templates" on checklist_templates;
 create policy "allow all - checklist_templates" on checklist_templates for all using (true) with check (true);
 
 alter table checklist_template_items enable row level security;
+drop policy if exists "allow all - checklist_template_items" on checklist_template_items;
 create policy "allow all - checklist_template_items" on checklist_template_items for all using (true) with check (true);
 
 -- Seed with the standard "Big Event Prep" checklist for Churchwide-scale
@@ -36,6 +38,9 @@ do $$
 declare
   new_template_id uuid;
 begin
+  if exists (select 1 from checklist_templates where name = 'Big Event Prep') then
+    return;
+  end if;
   insert into checklist_templates (name) values ('Big Event Prep')
   returning id into new_template_id;
 
