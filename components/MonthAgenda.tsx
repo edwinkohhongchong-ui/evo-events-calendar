@@ -1,7 +1,9 @@
 "use client";
 
+import { useRef } from "react";
 import Link from "next/link";
-import { format, isToday } from "date-fns";
+import { useRouter } from "next/navigation";
+import { addMonths, format, isToday, subMonths } from "date-fns";
 import EventCardContent from "./EventCardContent";
 import { FlagIcon } from "./icons";
 import { DayData } from "@/lib/dayIndex";
@@ -37,7 +39,28 @@ export default function MonthAgenda({
   onHolidayClick,
   onSeasonClick,
 }: MonthAgendaProps) {
+  const router = useRouter();
+  const touchStart = useRef<{ x: number; y: number } | null>(null);
   const month = monthStart.getMonth();
+
+  // Horizontal swipe changes month (the arrows remain the fallback).
+  function goTo(d: Date) {
+    router.push(`/?year=${d.getFullYear()}&month=${d.getMonth() + 1}`);
+  }
+  function onTouchStart(e: React.TouchEvent) {
+    const t = e.touches[0];
+    touchStart.current = e.touches.length === 1 ? { x: t.clientX, y: t.clientY } : null;
+  }
+  function onTouchEnd(e: React.TouchEvent) {
+    const start = touchStart.current;
+    touchStart.current = null;
+    if (!start) return;
+    const t = e.changedTouches[0];
+    const dx = t.clientX - start.x;
+    const dy = t.clientY - start.y;
+    if (Math.abs(dx) < 60 || Math.abs(dx) < 2 * Math.abs(dy)) return;
+    goTo(dx < 0 ? addMonths(monthStart, 1) : subMonths(monthStart, 1));
+  }
   const multiDay = occurrences.filter((o) => o.spanEndDate !== o.occurrenceDate);
 
   const seasons = new Map<string, SeasonRow>();
@@ -54,7 +77,7 @@ export default function MonthAgenda({
     .filter((r) => r.holidays.length || r.events.length || r.spanning.length);
 
   return (
-    <div className="flex flex-col gap-3">
+    <div className="flex flex-col gap-3" onTouchStart={onTouchStart} onTouchEnd={onTouchEnd}>
       {seasons.size > 0 && (
         <div className="flex flex-wrap gap-1.5">
           {Array.from(seasons.values()).map((season) => (

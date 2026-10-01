@@ -76,7 +76,7 @@ export default function EventCard({ occurrence, onClick }: EventCardProps) {
         }}
         title="Drag to start this event on an earlier day"
         className={[
-          "absolute top-0 left-0 h-full w-1.5 rounded-l-chip cursor-ew-resize bg-black/25 opacity-0 group-hover:opacity-100",
+          "absolute top-0 left-0 h-full w-2.5 cursor-ew-resize opacity-0 group-hover:opacity-100 after:absolute after:inset-y-0 after:left-0 after:w-1.5 after:rounded-l-chip after:bg-black/25",
           isResizingStart ? "opacity-100" : "",
         ].join(" ")}
       />
@@ -89,7 +89,7 @@ export default function EventCard({ occurrence, onClick }: EventCardProps) {
         }}
         title="Drag to make this a multi-day event"
         className={[
-          "absolute top-0 right-0 h-full w-1.5 rounded-r-chip cursor-ew-resize bg-black/25 opacity-0 group-hover:opacity-100",
+          "absolute top-0 right-0 h-full w-2.5 cursor-ew-resize opacity-0 group-hover:opacity-100 after:absolute after:inset-y-0 after:right-0 after:w-1.5 after:rounded-r-chip after:bg-black/25",
           isResizing ? "opacity-100" : "",
         ].join(" ")}
       />

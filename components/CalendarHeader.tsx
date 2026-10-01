@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { format, addMonths, subMonths } from "date-fns";
@@ -19,7 +19,7 @@ function NavChevron({ href, label, icon }: { href: string; label: string; icon: 
       <Link
         href={href}
         aria-label={label}
-        className="inline-flex h-8 w-8 items-center justify-center rounded-full text-ink-2 transition-colors duration-fast ease-apple hover:bg-fill hover:text-navy"
+        className="inline-flex h-10 w-10 items-center justify-center rounded-full text-ink-2 transition-colors duration-fast ease-apple hover:bg-fill hover:text-navy active:bg-line [@media(pointer:coarse)]:h-11 [@media(pointer:coarse)]:w-11"
       >
         {icon}
       </Link>
@@ -73,27 +73,48 @@ export default function CalendarHeader({ monthStart, levels, onAddClick }: Calen
     return () => window.removeEventListener("keydown", onKeyDown);
   }, [router, prevHref, nextHref, isEditor, onAddClick]);
 
+  // The title row sticks under the top bar while the month scrolls. A
+  // sentinel above it tells us when it is stuck so a hairline can appear.
+  // The wrapper uses `contents` so the sticky row's containing block is the
+  // tall calendar column, not this short header (sticky is bounded by its parent).
+  const sentinelRef = useRef<HTMLDivElement>(null);
+  const [stuck, setStuck] = useState(false);
+  useEffect(() => {
+    const el = sentinelRef.current;
+    if (!el || typeof IntersectionObserver === "undefined") return;
+    const io = new IntersectionObserver(([entry]) => setStuck(!entry.isIntersecting), { threshold: 0 });
+    io.observe(el);
+    return () => io.disconnect();
+  }, []);
+
   return (
-    <div className="flex flex-col gap-3 mb-3">
-      <div className="flex items-center justify-between flex-wrap gap-x-4 gap-y-2">
-        <div className="flex items-center gap-2 flex-wrap">
-          <h1 className="text-display text-navy mr-1">{format(monthStart, "MMMM yyyy")}</h1>
+    <div className="contents">
+      <div ref={sentinelRef} aria-hidden="true" className="h-px -mb-px" />
+      <div
+        className={[
+          "sticky top-0 z-30 -mx-1 mb-1 flex items-center justify-between gap-x-2 gap-y-2 sm:gap-x-4 bg-canvas/95 px-1 py-2 backdrop-blur-sm transition-[border-color] duration-fast",
+          "border-b",
+          stuck ? "border-line" : "border-transparent",
+        ].join(" ")}
+      >
+        <div className="flex items-center gap-1 sm:gap-2">
+          <h1 className="text-title sm:text-display text-navy mr-1">{format(monthStart, "MMMM yyyy")}</h1>
           <div className="flex items-center gap-0.5">
             <NavChevron
               href={prevHref}
-              label="Previous month (←)"
+              label={`${format(prev, "MMMM yyyy")} (←)`}
               icon={<ChevronLeftIcon />}
             />
             <NavChevron
               href={nextHref}
-              label="Next month (→)"
+              label={`${format(next, "MMMM yyyy")} (→)`}
               icon={<ChevronRightIcon />}
             />
           </div>
           <Link
             href="/"
             title="Jump to this month (T)"
-            className="inline-flex min-h-[28px] items-center rounded-pill bg-fill px-3 text-body font-medium text-navy transition-colors duration-fast ease-apple hover:bg-line"
+            className="inline-flex min-h-[36px] items-center rounded-pill bg-fill px-3 sm:px-4 [@media(pointer:coarse)]:min-h-[44px] text-body font-medium text-navy transition-colors duration-fast ease-apple hover:bg-line"
           >
             Today
           </Link>
@@ -104,6 +125,7 @@ export default function CalendarHeader({ monthStart, levels, onAddClick }: Calen
               variant="ghost"
               size="sm"
               icon={<TagPlusIcon />}
+              className="hidden sm:inline-flex"
               onClick={() => setLevelModal({ type: "add" })}
               aria-label="Add category"
               title="Add category"
@@ -116,18 +138,22 @@ export default function CalendarHeader({ monthStart, levels, onAddClick }: Calen
               icon={<PlusIcon />}
               data-tour="add-event-button"
               title="Add event (N)"
+              aria-label="Add event"
+              className="[@media(pointer:coarse)]:min-h-[44px]"
               onClick={onAddClick}
             >
-              Add event
+              <span className="hidden sm:inline">Add event</span>
             </Button>
           </div>
         )}
       </div>
 
-      <LevelChips
-        levels={levels}
-        onEdit={isEditor ? (level) => setLevelModal({ type: "edit", level }) : undefined}
-      />
+      <div className="mb-3 mt-2">
+        <LevelChips
+          levels={levels}
+          onEdit={isEditor ? (level) => setLevelModal({ type: "edit", level }) : undefined}
+        />
+      </div>
 
       {levelModal.type !== "closed" && (
         <LevelModal

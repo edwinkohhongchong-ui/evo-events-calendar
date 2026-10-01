@@ -8,6 +8,17 @@ items (features/fixes) that push contains — a push with 1 item goes up by
 `1.05`). If MINOR would pass `.99`, MAJOR increments and MINOR carries the
 remainder (e.g. `1.99` + 2 items → `2.01`).
 
+## v1.94 — 2026-10-01
+
+- The month bar (title, previous/next arrows, Today, Add event) now stays
+  pinned at the top while you scroll the calendar, so you can change month
+  from anywhere on the page. A thin line appears under it once it is stuck.
+- Previous/next arrows are bigger (40px, 44px on touch screens) and their hover
+  label names the target month (e.g. "October 2026 (←)"). On phones the bar is
+  one compact row, and swiping left or right on the month list changes month.
+- Easier to grab: the event resize handles have a wider invisible hit area
+  (10px), and the Today button is taller.
+
 ## v1.91 — 2026-10-01
 
 - "Check Calendar" on the Checklist now adds a single bell entry ("Check
