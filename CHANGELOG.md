@@ -8,6 +8,10 @@ items (features/fixes) that push contains — a push with 1 item goes up by
 `1.05`). If MINOR would pass `.99`, MAJOR increments and MINOR carries the
 remainder (e.g. `1.99` + 2 items → `2.01`).
 
+## v2.41 — 2026-10-01
+
+- The Event type buttons in the Add/Edit Event form now come straight from the Categories list, using each category's exact name: add a category and it appears; delete or rename one and the buttons follow. Only "Zone" stays a group (Youth, Poly, Uni, Adults, whichever exist), and it is hidden if none exist. The fixed "TG Meetings" label is gone: rename the "TG" category on the Categories page to change what is shown.
+
 ## v2.40 — 2026-10-01
 
 - Dragging several events in quick succession now feels instant: each move, resize and start-edge drag is tracked per event, so a second drag no longer makes the first snap back until the server catches up. A failed save puts back only that event.

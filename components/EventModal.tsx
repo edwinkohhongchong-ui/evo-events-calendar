@@ -20,7 +20,7 @@ import { isEventConflict } from "@/lib/eventConflict";
 import { computeDuration, computeEndTime, endsNextDay } from "@/lib/timeMath";
 import { formatDateDisplay, formatEventTimeRange } from "@/lib/dates";
 import { PastoralFocus, applyTitlePrefix, stripTitlePrefix } from "@/lib/pastoralFocus";
-import { CHURCHWIDE_LEVEL_NAME, COW_LEVEL_NAME, GATHERING_TYPES, TG_LEVEL_NAME, ZONE_LEVEL_NAMES } from "@/lib/constants";
+import { GATHERING_TYPES, ZONE_LEVEL_NAMES } from "@/lib/constants";
 import { useUndo } from "@/lib/undo/UndoProvider";
 import { useIsEditor } from "@/lib/roleContext";
 import { useEscapeKey } from "@/lib/useEscapeKey";
@@ -343,49 +343,26 @@ function EventModalInner({
     }
   }
 
-  // The three-way Churchwide/Zone/TG picker (Event type only — Gatherings
-  // keep their own flat Level dropdown, unchanged) is a grouping over the
-  // same underlying `level` field, not a separate one — derived from its
-  // current value rather than tracked as its own state, so there's only
-  // ever one source of truth for which Level is actually selected.
-  function topCategoryFor(levelName: string): "Churchwide" | "Zone" | "TG" | "COW" | "" {
-    if (!levelName) return "";
-    if (levelName === CHURCHWIDE_LEVEL_NAME) return "Churchwide";
-    if (levelName === TG_LEVEL_NAME) return "TG";
-    if (levelName === COW_LEVEL_NAME) return "COW";
-    return "Zone";
-  }
-
-  // Like topCategoryFor, but also reports "Zone" while the user has clicked
-  // Zone as the top category yet hasn't picked a specific zone Level yet
-  // (level is still "" in that state) — topCategoryFor("") alone can't
-  // distinguish "Zone, undecided" from "nothing picked at all".
-  function displayCategoryFor(levelName: string): "Churchwide" | "Zone" | "TG" | "COW" | "" {
-    const cat = topCategoryFor(levelName);
-    if (cat) return cat;
+  // The Event-type picker is built from the Categories table, so adding,
+  // renaming or deleting a category shows up here with its exact name. The
+  // only grouping kept is "Zone", which folds the youth-stage categories in
+  // ZONE_LEVEL_NAMES (those that still exist) into one dropdown. Gatherings
+  // keep their own flat Level dropdown. Everything is derived from `level`
+  // (one source of truth), not tracked as separate state.
+  function displayCategoryFor(levelName: string): string {
+    if (levelName) return ZONE_LEVEL_NAMES.includes(levelName) ? "Zone" : levelName;
     return zonePickedWithoutLevel ? "Zone" : "";
   }
 
-  function typeLevelName(cat: "Churchwide" | "TG" | "COW"): string {
-    return cat === "Churchwide" ? CHURCHWIDE_LEVEL_NAME : cat === "TG" ? TG_LEVEL_NAME : COW_LEVEL_NAME;
-  }
-
-  function handleEventTypeCategoryChange(category: "Churchwide" | "Zone" | "TG" | "COW") {
-    if (category === "Churchwide") {
+  function handleEventTypeCategoryChange(category: string) {
+    if (category !== "Zone") {
       setZonePickedWithoutLevel(false);
-      setLevel(CHURCHWIDE_LEVEL_NAME);
-    } else if (category === "TG") {
-      setZonePickedWithoutLevel(false);
-      setLevel(TG_LEVEL_NAME);
-    } else if (category === "COW") {
-      setZonePickedWithoutLevel(false);
-      setLevel(COW_LEVEL_NAME);
+      setLevel(category);
     } else if (!ZONE_LEVEL_NAMES.includes(level)) {
       // Zone: do NOT auto-select whichever zone Level happens to sort
       // first — leave the choice unset and force the user to explicitly
-      // open the sub-dropdown and pick one (see Bug 1 fix). If a zone
-      // Level is already selected (e.g. editing an existing event), leave
-      // it as-is.
+      // open the sub-dropdown and pick one. If a zone Level is already
+      // selected (e.g. editing an existing event), leave it as-is.
       setLevel("");
       setZonePickedWithoutLevel(true);
     }
@@ -645,7 +622,17 @@ function EventModalInner({
   }
 
   const zoneLevels = levels.filter((l) => ZONE_LEVEL_NAMES.includes(l.name));
-  const missingTypeNames = [TG_LEVEL_NAME, CHURCHWIDE_LEVEL_NAME, COW_LEVEL_NAME].filter((n) => !levels.some((l) => l.name === n));
+  // Buttons: every non-zone category by its exact name (Churchwide first),
+  // with "Zone" placed after it when any zone category exists. "Gathering"
+  // is a Gathering-type category, not an Event type.
+  const directTypeNames = levels
+    .filter((l) => !ZONE_LEVEL_NAMES.includes(l.name) && l.name !== "Gathering")
+    .map((l) => l.name)
+    .sort((x, y) => (x === "Churchwide" ? -1 : y === "Churchwide" ? 1 : 0));
+  const eventTypeButtons =
+    zoneLevels.length > 0
+      ? [...directTypeNames.slice(0, directTypeNames[0] === "Churchwide" ? 1 : 0), "Zone", ...directTypeNames.slice(directTypeNames[0] === "Churchwide" ? 1 : 0)]
+      : directTypeNames;
 
   return (
     <ModalShell title={title} subtitle={subtitle} onClose={onClose} footer={footer}>
@@ -917,36 +904,19 @@ function EventModalInner({
             <div className="flex flex-col gap-2">
               <span className={LABEL}>Event type</span>
               <div className="grid grid-cols-2 gap-2" role="group" aria-label="Event type">
-                {(["Churchwide", "Zone", "TG", "COW"] as const).map((cat) => {
-                  // A type whose category row is missing from Categories can
-                  // never save (the database rejects it), so don't offer it.
-                  const missing =
-                    cat === "Zone"
-                      ? zoneLevels.length === 0
-                      : !levels.some((l) => l.name === typeLevelName(cat));
-                  const dotLevel = cat === "Zone" ? level : typeLevelName(cat);
-                  return (
-                    <Seg
-                      key={cat}
-                      disabled={missing}
-                      title={missing ? `There's no “${cat}” category yet — add it with + Category first.` : undefined}
-                      active={displayCategoryFor(level) === cat}
-                      onClick={() => handleEventTypeCategoryChange(cat)}
-                    >
-                      {!missing && (cat !== "Zone" || ZONE_LEVEL_NAMES.includes(level)) && (
-                        <CategoryDot levelName={dotLevel} />
-                      )}
-                      {cat === "TG" ? "TG Meetings" : cat === "COW" ? COW_LEVEL_NAME : cat}
-                    </Seg>
-                  );
-                })}
+                {eventTypeButtons.map((cat) => (
+                  <Seg
+                    key={cat}
+                    active={displayCategoryFor(level) === cat}
+                    onClick={() => handleEventTypeCategoryChange(cat)}
+                  >
+                    {(cat !== "Zone" || ZONE_LEVEL_NAMES.includes(level)) && (
+                      <CategoryDot levelName={cat === "Zone" ? level : cat} />
+                    )}
+                    {cat}
+                  </Seg>
+                ))}
               </div>
-              {missingTypeNames.length > 0 && (
-                <p className="text-micro text-ink-2">
-                  A greyed-out type has no matching category yet. Add one with + Category (use the exact name{" "}
-                  {missingTypeNames.map((n) => `“${n}”`).join(" or ")}).
-                </p>
-              )}
               {displayCategoryFor(level) === "Zone" && (
                 <select
                   value={level}
