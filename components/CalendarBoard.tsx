@@ -105,8 +105,12 @@ export default function CalendarBoard({
   // Once the post-move router.refresh() lands (isPending flips back to
   // false), the server-provided `occurrences` prop already reflects the
   // move, so the local optimistic patch is no longer needed.
+  // A refresh from an earlier gesture finishing must not wipe the optimistic
+  // patch of a later gesture whose server call is still in flight (the card
+  // would snap back, then reappear) — so only clear when none is in flight.
+  const inFlightRef = useRef(0);
   useEffect(() => {
-    if (!isPending) {
+    if (!isPending && inFlightRef.current === 0) {
       setOptimisticMove(null);
       setOptimisticResize(null);
       setOptimisticStart(null);
@@ -199,6 +203,7 @@ export default function CalendarBoard({
       if (targetDate === resizeStartOccurrence.occurrenceDate) return; // dropped on its current start
       if (targetDate > resizeStartOccurrence.spanEndDate) return; // can't start after the end
       setOptimisticStart({ key: occurrenceKey(resizeStartOccurrence), newStartDate: targetDate });
+      inFlightRef.current++;
       try {
         const affected = unwrap(await moveOccurrenceStart(
           resizeStartOccurrence.event,
@@ -211,6 +216,8 @@ export default function CalendarBoard({
       } catch (err) {
         setOptimisticStart(null);
         setError(err instanceof Error ? err.message : "Couldn't resize that event — it's back where it was. Please try again.");
+      } finally {
+        inFlightRef.current--;
       }
       return;
     }
@@ -220,6 +227,7 @@ export default function CalendarBoard({
       if (targetDate === resizeOccurrence.spanEndDate) return; // dropped on its current end
       if (targetDate < resizeOccurrence.occurrenceDate) return; // can't resize to before the start
       setOptimisticResize({ key: occurrenceKey(resizeOccurrence), newEndDate: targetDate });
+      inFlightRef.current++;
       try {
         const affected = unwrap(await extendOccurrenceSpan(
           resizeOccurrence.event,
@@ -236,6 +244,8 @@ export default function CalendarBoard({
       } catch (err) {
         setOptimisticResize(null);
         setError(err instanceof Error ? err.message : "Couldn't resize that event — it's back where it was. Please try again.");
+      } finally {
+        inFlightRef.current--;
       }
       return;
     }
@@ -245,6 +255,7 @@ export default function CalendarBoard({
     if (targetDate === occurrence.occurrenceDate) return; // dropped on its own cell
 
     setOptimisticMove({ key: occurrenceKey(occurrence), newDate: targetDate });
+    inFlightRef.current++;
     try {
       const affected = unwrap(await moveOccurrence(occurrence.event, occurrence.originalDate, targetDate));
       record(`Move "${occurrence.event.name}"`, affected);
@@ -252,6 +263,8 @@ export default function CalendarBoard({
     } catch (err) {
       setOptimisticMove(null);
       setError(err instanceof Error ? err.message : "Couldn't move that event — it's back where it was. Please try again.");
+    } finally {
+      inFlightRef.current--;
     }
   }
 

@@ -1,3 +1,4 @@
+import { cache } from "react";
 import { supabase } from "./supabase";
 import {
   ChecklistRow,
@@ -478,12 +479,15 @@ export async function getOpenChecklistRows(): Promise<OpenChecklistRow[]> {
       console.error("getOpenChecklistRows failed:", error.message);
       return [];
     }
-    return (data ?? []).map((r) => ({
-      id: r.id,
-      item: r.item,
-      weeks_before: r.weeks_before as number,
-      event: (Array.isArray(r.event) ? r.event[0] : r.event) as EventRow,
-    }));
+    // One shared event object per event (not one copy per item), so an event
+    // with many open items is serialized to the client once.
+    const eventsById = new Map<string, EventRow>();
+    return (data ?? []).map((r) => {
+      const raw = (Array.isArray(r.event) ? r.event[0] : r.event) as EventRow;
+      const event = eventsById.get(raw.id) ?? raw;
+      eventsById.set(event.id, event);
+      return { id: r.id, item: r.item, weeks_before: r.weeks_before as number, event };
+    });
   } catch (err) {
     console.error("getOpenChecklistRows threw:", err);
     return [];
@@ -509,7 +513,9 @@ export async function getEventOptions(): Promise<EventOption[]> {
 }
 
 // Newest first — a log reads most-recent-on-top. See migration 011.
-export async function getGeneralComments(): Promise<NoteCommentRow[]> {
+// cache(): the root layout (top-bar drawer) and the home page both read this in
+// one request; React dedupes it to a single query per render.
+export const getGeneralComments = cache(async (): Promise<NoteCommentRow[]> => {
   try {
     const { data, error } = await supabase
       .from("note_comments")
@@ -525,7 +531,7 @@ export async function getGeneralComments(): Promise<NoteCommentRow[]> {
     console.error("getGeneralComments threw:", err);
     return [];
   }
-}
+});
 
 export async function getMonthComments(year: number, month: number): Promise<NoteCommentRow[]> {
   try {

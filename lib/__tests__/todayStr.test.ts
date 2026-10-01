@@ -51,3 +51,28 @@ describe("clampYearMonth", () => {
     vi.useRealTimers();
   });
 });
+
+describe("URL input hardening (/day/abc, ?month=13 style)", () => {
+  it("isValidDateStr rejects path-ish and padded junk", () => {
+    for (const s of ["abc", "2026-10-1", " 2026-10-01", "2026-10-01\n", "2026/10/01", "٢٠٢٦-١٠-٠١", "2026-00-10", "2026-10-00", "0000-00-00", [], {}, undefined]) {
+      expect(isValidDateStr(s)).toBe(false);
+    }
+  });
+  it("isValidDateStr handles leap-day boundaries", () => {
+    expect(isValidDateStr("2100-02-29")).toBe(false); // 2100 is not a leap year
+    expect(isValidDateStr("2000-02-29")).toBe(true);
+  });
+  it("clampYearMonth truncates fractions and clamps month 13 / year bounds", () => {
+    expect(clampYearMonth("2026.9", "10.9")).toEqual({ year: 2026, month: 10 });
+    expect(clampYearMonth("1999", "13")).toEqual({ year: 2000, month: 12 });
+    expect(clampYearMonth("2101", "1")).toEqual({ year: 2100, month: 1 });
+    expect(clampYearMonth("Infinity", "-Infinity")).toEqual(clampYearMonth(undefined, undefined));
+  });
+  it("clampYearMonth treats 0 and non-scalar input as missing", () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-10-01T10:00:00Z"));
+    expect(clampYearMonth("0", "0")).toEqual({ year: 2026, month: 10 });
+    expect(clampYearMonth(["2027"], { a: 1 })).toEqual({ year: 2027, month: 10 });
+    vi.useRealTimers();
+  });
+});

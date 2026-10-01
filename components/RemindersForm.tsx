@@ -1,11 +1,12 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { useUndo } from "@/lib/undo/UndoProvider";
 import { deleteReminderTemplate } from "@/lib/reminderTemplateActions";
 import { ChecklistTemplateWithItems, ReminderTemplateRow } from "@/lib/types";
 import { ReminderPickerEvent } from "@/lib/data";
+import { expandTemplateItems } from "@/lib/eventChecklist";
 import { todayDate, todayStr, toDateStr, formatDateDisplay, formatEventTimeRange } from "@/lib/dates";
 import ReminderTemplateModal from "./ReminderTemplateModal";
 import ConfirmModal from "./ConfirmModal";
@@ -28,21 +29,6 @@ function addDays(date: Date, days: number): Date {
   const next = new Date(date);
   next.setDate(next.getDate() + days);
   return next;
-}
-
-// Expands a checklist template's items by their repeat_count into plain
-// text lines (e.g. a weekly check-in ×4 becomes 4 separately numbered
-// lines) — message-composition only, no relation to the real `checklist`
-// table.
-function expandChecklistTemplate(template: ChecklistTemplateWithItems): string[] {
-  const lines: string[] = [];
-  for (const item of template.items) {
-    const count = item.repeat_count ?? 1;
-    for (let i = 1; i <= count; i++) {
-      lines.push(count > 1 ? `${item.item} — Week ${i} of ${count}` : item.item);
-    }
-  }
-  return lines;
 }
 
 // Same layout as originally designed: intro text, then each selected event
@@ -70,7 +56,7 @@ function buildMessage(
     const templateId = eventTemplates[ev.occurrenceKey];
     const template = templateId ? checklistTemplates.find((t) => t.id === templateId) : undefined;
     if (template) {
-      for (const line of expandChecklistTemplate(template)) {
+      for (const { item: line } of expandTemplateItems(template)) {
         lines.push(`  ☐ ${line}`);
       }
     }
@@ -105,25 +91,36 @@ export default function RemindersForm({ templates, checklistTemplates }: Reminde
   const [pendingDelete, setPendingDelete] = useState<ReminderTemplateRow | null>(null);
   const [deleteError, setDeleteError] = useState<string | null>(null);
 
+  // Each fetch gets a sequence number; only the newest may write state, so a
+  // slow earlier response can't overwrite a newer lookahead's list.
+  const fetchSeq = useRef(0);
+  const fetchAbort = useRef<AbortController | null>(null);
+
   const fetchEvents = useCallback(async (days: number) => {
+    const seq = ++fetchSeq.current;
+    fetchAbort.current?.abort();
+    const controller = new AbortController();
+    fetchAbort.current = controller;
     setLoadingEvents(true);
     setError(null);
     try {
       const start = todayStr();
       const end = toDateStr(addDays(todayDate(), days));
-      const res = await fetch(`/api/reminders/events?start=${start}&end=${end}`);
+      const res = await fetch(`/api/reminders/events?start=${start}&end=${end}`, { signal: controller.signal });
       const data = await res.json();
+      if (seq !== fetchSeq.current) return;
       if (!res.ok) throw new Error(data?.error ?? "Couldn't load upcoming events.");
       const events: ReminderPickerEvent[] = data.events;
       setPickerEvents(events);
       setSelectedKeys(new Set(events.filter((e) => e.flagged).map((e) => e.occurrenceKey)));
       setEventTemplates({});
     } catch (err) {
+      if (seq !== fetchSeq.current) return;
       setError(err instanceof Error ? err.message : "Couldn't load upcoming events.");
       setPickerEvents([]);
       setSelectedKeys(new Set());
     } finally {
-      setLoadingEvents(false);
+      if (seq === fetchSeq.current) setLoadingEvents(false);
     }
   }, []);
 
@@ -350,7 +347,7 @@ export default function RemindersForm({ templates, checklistTemplates }: Reminde
                         (() => {
                           const template = checklistTemplates.find((t) => t.id === chosenTemplateId);
                           if (!template) return null;
-                          return expandChecklistTemplate(template).map((line, i) => (
+                          return expandTemplateItems(template).map(({ item: line }, i) => (
                             <div key={i} className="text-body text-ink-2">
                               ☐ {line}
                             </div>

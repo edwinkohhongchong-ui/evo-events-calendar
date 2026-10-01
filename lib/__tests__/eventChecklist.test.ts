@@ -57,6 +57,16 @@ describe("eventChecklist", () => {
     expect(isOverdue("2026-12-20", null, false, "2027-01-01")).toBe(false);
   });
 
+  it("treats the due day itself as not yet overdue, and dates after the event as overdue-able", () => {
+    // weeks_before 0 = due on the event day; overdue only the day after.
+    expect(isOverdue("2026-12-20", 0, false, "2026-12-20")).toBe(false);
+    expect(isOverdue("2026-12-20", 0, false, "2026-12-21")).toBe(true);
+    // Month/year rollover in the due-date arithmetic.
+    expect(dueDate("2027-01-05", 2)).toBe("2026-12-22");
+    expect(dueDate("2028-03-06", 1)).toBe("2028-02-28");
+    expect(dueDate("2028-03-06", 2)).toBe("2028-02-21");
+  });
+
   it("rolls up progress and the earliest open deadline", () => {
     const p = progressOf([
       { done: true, weeks_before: 4 },

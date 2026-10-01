@@ -8,6 +8,14 @@ items (features/fixes) that push contains — a push with 1 item goes up by
 `1.05`). If MINOR would pass `.99`, MAJOR increments and MINOR carries the
 remainder (e.g. `1.99` + 2 items → `2.01`).
 
+## v2.38 — 2026-10-01
+
+- Faster home page: General Notes is fetched once per page load instead of twice, and the overdue-pill data loads in parallel with events instead of after them; events with several open checklist items are sent once.
+- Fixed a flicker where a dragged or resized event could snap back and reappear when an earlier save finished while a later one was still in flight.
+- Fixed the Reminders form so a slow earlier lookup can no longer overwrite a newer one.
+- Removed a duplicate checklist-expansion routine in Reminders (now uses the tested one; a repeat count of 0 now counts as 1).
+- Added 10 tests (undo ordering with checklists, URL/date edge cases, overdue dates across year/leap boundaries); 142 total.
+
 ## v2.33 — 2026-10-01
 
 - Fixed "TG Meetings" wrapping onto two lines in the Event type picker: the four buttons (Churchwide, Zone, TG Meetings, COW/Thirdspace) now sit in a 2×2 grid with labels that never wrap.

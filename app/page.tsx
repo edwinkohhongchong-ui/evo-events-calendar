@@ -32,16 +32,16 @@ export default async function Home({ searchParams }: HomeProps) {
     { events, holidays, seasons, overrides, levels, exceptions, dayNotes },
     generalComments,
     monthComments,
+    openChecklistRows,
   ] =
     await Promise.all([
       getCalendarData(gridStartStr, gridEndStr),
       getGeneralComments(),
       getMonthComments(year, month),
+      getOpenChecklistRows(),
     ]);
-  const [checklistProgress, openChecklistRows] = await Promise.all([
-    getEventChecklistProgress(events.map((e) => e.id)),
-    getOpenChecklistRows(),
-  ]);
+  // Only this one depends on the events just loaded.
+  const checklistProgress = await getEventChecklistProgress(events.map((e) => e.id));
   const eventsById = new Map(events.map((e) => [e.id, e]));
   const exceptionsByEventId = new Map<string, Set<string>>();
   for (const exception of exceptions) {
