@@ -83,7 +83,7 @@ function Seg({
       aria-pressed={active}
       onClick={onClick}
       className={[
-        "inline-flex min-h-[36px] flex-1 items-center justify-center gap-1.5 rounded-pill px-3 text-body font-medium transition-colors duration-fast disabled:cursor-not-allowed disabled:opacity-40",
+        "inline-flex min-h-[36px] min-w-0 flex-1 items-center whitespace-nowrap justify-center gap-1.5 rounded-pill px-3 text-body font-medium transition-colors duration-fast disabled:cursor-not-allowed disabled:opacity-40",
         active ? "bg-navy text-white" : "bg-fill text-ink hover:bg-line",
       ].join(" ")}
     >
@@ -916,7 +916,7 @@ function EventModalInner({
           {eventType === "Event" ? (
             <div className="flex flex-col gap-2">
               <span className={LABEL}>Event type</span>
-              <div className="flex gap-2" role="group" aria-label="Event type">
+              <div className="grid grid-cols-2 gap-2" role="group" aria-label="Event type">
                 {(["Churchwide", "Zone", "TG", "COW"] as const).map((cat) => {
                   // A type whose category row is missing from Categories can
                   // never save (the database rejects it), so don't offer it.
