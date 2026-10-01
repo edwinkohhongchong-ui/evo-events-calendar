@@ -7,35 +7,38 @@ not public-facing.
 
 - **Live app:** https://evo-events-calendar.vercel.app (passcode-gated — see
   "Secrets you'll need" below)
-- **Repo:** https://github.com/edwinkohhongchong-ui/evo-events-calendar (private)
+- **Repo:** https://github.com/edwinkohhongchong-ui/evo-events-calendar (**public** —
+  anything committed is world-readable; never commit `.env*` files or secrets)
 - **Stack:** Next.js 14 (App Router), Supabase (Postgres + client SDK), Vercel
   (hosting/deploy), Tailwind CSS, `@dnd-kit/core` for drag-and-drop.
 
-## ⚠️ One unresolved item — do this first
-`EVO_PASSCODE` (the app's login gate) was accidentally created as a **"Sensitive"**
-environment variable in Vercel, which means its value can never be viewed again
-through the dashboard — not by anyone, ever, by design. **We were mid-process of
-resetting it to a new value when this handover was written — confirm with Edwin
-whether that reset actually happened, and if not, do it now:** Vercel → Settings
-→ Environment Variables → edit `EVO_PASSCODE` → set a new value (don't mark it
-Sensitive this time, or if you do, immediately save the value somewhere retrievable
-like a password manager) → redeploy for it to take effect.
+## Secrets and environment variables
+The app has two logins, **Editor** (full access) and **Viewer** (view, edit
+existing items, comment — no adding or deleting). Their passcodes live in the
+`EVO_PASSCODE_EDITOR` and `EVO_PASSCODE_VIEWER` environment variables (the old
+single `EVO_PASSCODE` is no longer read). Values marked "Sensitive" in Vercel
+can never be viewed again, so keep every real value in a password manager.
+After changing any variable in Vercel, redeploy for it to take effect.
 
 ## Getting set up locally
 1. Clone the repo (`gh repo clone edwinkohhongchong-ui/evo-events-calendar`) —
    use `gh`/git, not GitHub's "Download ZIP" button, since a ZIP has no git
    connection and can't push/pull.
-2. Create `.env.local` in the project root with 4 values (ask Edwin for these
-   via a secure channel, not chat/email):
+2. Create `.env.local` in the project root with these values (ask Edwin for
+   them via a secure channel, not chat/email):
    ```
    NEXT_PUBLIC_SUPABASE_URL=...
    NEXT_PUBLIC_SUPABASE_ANON_KEY=...
-   EVO_PASSCODE=...
+   EVO_PASSCODE_EDITOR=...
+   EVO_PASSCODE_VIEWER=...
    CALENDARIFIC_API_KEY=...
+   CALENDAR_FEED_TOKEN=...
    ```
-   The first two are always re-viewable at supabase.com → project → Settings →
+   The Supabase pair is re-viewable at supabase.com → project → Settings →
    API. The Calendarific key is re-viewable by logging into calendarific.com.
-   The passcode is the one flagged above.
+   The two passcodes are the logins described above. `CALENDAR_FEED_TOKEN` is a
+   long random string that guards the Apple/Google calendar subscription link
+   (`/api/calendar-feed/<token>.ics`); only needed if you're testing that feed.
 3. `npm install`, then `npm run dev`, then open `http://localhost:3000`.
 
 ## How data/deploys actually flow
@@ -110,17 +113,21 @@ As of this handover, the app is at **CHANGELOG.md v1.08** — check that file's
 top entry for the exact current version and what's in it.
 
 ## Key design decisions worth knowing before changing things
-- **No day-crossing logic anywhere** — an event ending "after midnight" just
-  wraps within a 24-hour clock display; it doesn't span two calendar dates.
-  Don't try to "fix" this into real multi-day event spanning without a
-  deliberate design discussion first.
+- **Time wraps within a day; multi-day is a separate feature.** An event
+  whose time ends "after midnight" just wraps within the 24-hour clock display.
+  Multi-day events are a deliberate separate mechanism (an end date, migration
+  010) drawn as a bar across days — don't conflate the two.
 - **Recurring events store one rule, not one row per occurrence** — expansion
   happens at render time (`lib/recurrence.ts`), scoped to whichever date
   range is currently visible.
-- **RLS is "allow all"** — the anon key can read/write everything. This is a
-  known, accepted v1 tradeoff (see passcode gate note above), not an oversight.
-- **The passcode gate is a deterrent, not access control.** Don't treat it as
-  real security when reasoning about what's safe to build next.
+- **RLS is "allow all"** — the anon key can read/write everything in
+  Supabase directly. This is a known, accepted v1 tradeoff for an internal
+  tool, not an oversight; don't tighten it without checking with Edwin.
+- **Roles are enforced in the app, not in the database.** Middleware gates
+  pages by role, and every mutating Server Action re-checks the role from the
+  login cookie (`lib/authz.ts`), so hiding a button is never the only
+  protection. It still isn't database-level security (see RLS above), so don't
+  treat the passcodes as strong access control.
 - **The Churchwide/Zone/TG "Event Type" picker is a UI grouping over the
   existing `level` field, not a new column** — Zone's sub-options (Youth,
   Poly, Uni, Adults, COW/Thirdspace) are just `levels` rows, same as
@@ -132,11 +139,11 @@ top entry for the exact current version and what's in it.
   Supabase project (Edwin) — there's no migration runner. Since the database
   is shared (not per-developer), you generally won't need to run these
   yourself; just know they exist if a feature you're building needs a schema
-  change; next number is 021 (001 through 020 already exist; migrations
-  017-020 have been confirmed run against the live Supabase project per
-  Edwin's confirmation in a prior session: "Ran all the migrations, no other
-  errors"). See `MIGRATIONS_APPLIED.md` at the repo root for the full
-  confirmed-run tracking table.
+  change. `MIGRATIONS_APPLIED.md` at the repo root is the single source of
+  truth for which migrations exist, which have been confirmed run against the
+  live Supabase project, and what the next free number is — check it before
+  adding one, and add your row there as "Not yet confirmed". (Numbering starts
+  at 002; the original schema is `supabase_schema.sql`.)
 
 ## Working with Claude Code on this project
 This project was built almost entirely through conversational, phase-by-phase

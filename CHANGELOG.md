@@ -8,6 +8,21 @@ items (features/fixes) that push contains — a push with 1 item goes up by
 `1.05`). If MINOR would pass `.99`, MAJOR increments and MINOR carries the
 remainder (e.g. `1.99` + 2 items → `2.01`).
 
+## v1.67 — 2026-10-01
+
+- Removed code nothing uses anymore (about 50 lines): an old auto-grow text
+  hook replaced by the new shared one, and three unused helper functions.
+  Nothing visible changes.
+- Fixed the new-developer setup steps in ONBOARDING.md: they told people to
+  set a single `EVO_PASSCODE` that the app no longer reads and left out the
+  Editor and Viewer passcodes and the calendar-feed token, so a fresh setup
+  couldn't log in. Also corrected other stale claims there (repo is public,
+  multi-day events exist, roles are checked on the server) and removed the
+  hard-coded "next migration number" in favour of MIGRATIONS_APPLIED.md.
+- Replaced the create-next-app README template with a short pointer to the
+  real guides, and labelled the original schema file as a historical baseline
+  to be used together with the numbered migrations.
+
 ## v1.64 — 2026-10-01
 
 - Added a notification bell beside the menu icon. It lists recent activity

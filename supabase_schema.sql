@@ -1,4 +1,8 @@
 -- +EVO Events Calendar — Supabase schema
+-- HISTORICAL BASELINE (the original v0 schema). The live database has moved on:
+-- apply supabase_migration_002 onward on top of this, in order. Some definitions
+-- below (e.g. the events.level CHECK list) are superseded by later migrations.
+-- See MIGRATIONS_APPLIED.md for what exists and what has been run.
 -- Run this in Supabase: Project -> SQL Editor -> New Query -> paste -> Run
 
 create table events (

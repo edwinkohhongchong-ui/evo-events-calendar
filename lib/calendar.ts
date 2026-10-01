@@ -4,7 +4,6 @@ import {
   startOfWeek,
   endOfWeek,
   eachDayOfInterval,
-  isSameMonth,
 } from "date-fns";
 
 export interface MonthGrid {
@@ -30,8 +29,4 @@ export function getMonthGrid(year: number, month: number): MonthGrid {
   }
 
   return { monthStart, monthEnd, gridStart, gridEnd, weeks };
-}
-
-export function isInCurrentMonth(day: Date, monthStart: Date): boolean {
-  return isSameMonth(day, monthStart);
 }

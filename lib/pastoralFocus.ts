@@ -8,13 +8,6 @@ export interface PastoralFocus {
   adults: boolean;
 }
 
-export const NO_PASTORAL_FOCUS: PastoralFocus = {
-  youth: false,
-  poly: false,
-  uni: false,
-  adults: false,
-};
-
 // Order fixes the prefix's letter order (Y, P, U, A) regardless of which
 // order the checkboxes were ticked in.
 const LETTERS: Array<[keyof PastoralFocus, string]> = [
@@ -33,17 +26,6 @@ const PREFIX_REGEX = /^([YPUA]{1,4}): /;
 // across repeated saves never doubles up or leaves a stale prefix behind.
 export function stripTitlePrefix(name: string): string {
   return name.replace(PREFIX_REGEX, "");
-}
-
-export function parseTitlePrefix(name: string): PastoralFocus {
-  const match = name.match(PREFIX_REGEX);
-  const letters = match ? match[1] : "";
-  return {
-    youth: letters.includes("Y"),
-    poly: letters.includes("P"),
-    uni: letters.includes("U"),
-    adults: letters.includes("A"),
-  };
 }
 
 export function applyTitlePrefix(baseName: string, focus: PastoralFocus): string {
