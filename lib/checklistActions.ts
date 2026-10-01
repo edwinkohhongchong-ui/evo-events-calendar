@@ -25,7 +25,9 @@ async function createChecklistItemImpl(values: ChecklistFormValues): Promise<Aff
 async function updateChecklistItemImpl(
   id: string,
   values: ChecklistFormValues,
-  expectedUpdatedAt?: string
+  expectedUpdatedAt?: string,
+  // Bulk callers (Check Calendar) pass quiet and log one summary instead.
+  quiet?: boolean
 ): Promise<AffectedRow[]> {
   await requireRole("viewer");
   const before = await fetchRow("checklist", id);
@@ -43,7 +45,7 @@ async function updateChecklistItemImpl(
         : "Checklist item not found."
     );
   }
-  await logActivity({ action: "edited", entity: "checklist", entityId: id, label: values.item });
+  if (!quiet) await logActivity({ action: "edited", entity: "checklist", entityId: id, label: values.item });
   return [{ table: "checklist", id, before, after: data[0] }];
 }
 
@@ -51,7 +53,8 @@ async function updateChecklistItemImpl(
 async function updateChecklistStatusImpl(
   id: string,
   status: ChecklistStatus,
-  expectedUpdatedAt?: string
+  expectedUpdatedAt?: string,
+  quiet?: boolean
 ): Promise<AffectedRow[]> {
   await requireRole("viewer");
   const before = await fetchRow("checklist", id);
@@ -69,7 +72,7 @@ async function updateChecklistStatusImpl(
         : "Checklist item not found."
     );
   }
-  await logActivity({ action: "edited", entity: "checklist", entityId: id, label: String(data[0].item) });
+  if (!quiet) await logActivity({ action: "edited", entity: "checklist", entityId: id, label: String(data[0].item) });
   return [{ table: "checklist", id, before, after: data[0] }];
 }
 
@@ -84,6 +87,14 @@ async function deleteChecklistItemImpl(id: string): Promise<AffectedRow[]> {
   if (!before) return [];
   await logActivity({ action: "deleted", entity: "checklist", entityId: id, label: String(before.item) });
   return [{ table: "checklist", id, before, after: null }];
+}
+
+// One feed entry for a whole "Check Calendar" run, instead of one per item.
+async function logCheckCalendarSummaryImpl(count: number): Promise<void> {
+  await requireRole("viewer");
+  const n = Math.max(0, Math.min(999, Math.floor(Number(count) || 0)));
+  if (n === 0) return;
+  await logActivity({ action: "edited", entity: "checklist", entityId: null, label: `Check Calendar: ${n} item${n === 1 ? "" : "s"} updated` });
 }
 
 // Public Server Actions: every one returns an ActionResult (see lib/actionResult.ts).
@@ -101,4 +112,8 @@ export async function updateChecklistStatus(...args: Parameters<typeof updateChe
 
 export async function deleteChecklistItem(...args: Parameters<typeof deleteChecklistItemImpl>) {
   return runAction(() => deleteChecklistItemImpl(...args));
+}
+
+export async function logCheckCalendarSummary(...args: Parameters<typeof logCheckCalendarSummaryImpl>) {
+  return runAction(() => logCheckCalendarSummaryImpl(...args));
 }

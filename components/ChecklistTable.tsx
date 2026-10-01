@@ -6,7 +6,7 @@ import ChecklistModal from "./ChecklistModal";
 import ErrorBanner from "./ErrorBanner";
 import { ChecklistRow, ChecklistStatus, EventOption, SeasonRow } from "@/lib/types";
 import { CHECKLIST_STATUSES, STATUS_COLORS, TARGET_MONTHS } from "@/lib/constants";
-import { updateChecklistStatus, updateChecklistItem } from "@/lib/checklistActions";
+import { updateChecklistStatus, updateChecklistItem, logCheckCalendarSummary } from "@/lib/checklistActions";
 import { AUTO_CHECKS } from "@/lib/checklistAutoChecks";
 import { useUndo } from "@/lib/undo/UndoProvider";
 import { AffectedRow } from "@/lib/undo/types";
@@ -86,7 +86,7 @@ export default function ChecklistTable({
       const affected: AffectedRow[] = [];
       for (const row of toUpdate) {
         const expected: ChecklistStatus = row.linked_event_id ? "Done" : "Not Started";
-        affected.push(...(unwrap(await updateChecklistStatus(row.id, expected))));
+        affected.push(...(unwrap(await updateChecklistStatus(row.id, expected, undefined, true))));
       }
       if (affected.length > 0) record("Check Calendar", affected);
 
@@ -115,9 +115,13 @@ export default function ChecklistTable({
           linked_event_id: row.linked_event_id,
           auto_check_type: row.auto_check_type,
         };
-        autoCheckAffected.push(...(unwrap(await updateChecklistItem(row.id, values))));
+        autoCheckAffected.push(...(unwrap(await updateChecklistItem(row.id, values, undefined, true))));
       }
       if (autoCheckAffected.length > 0) record("Check Calendar (automated checks)", autoCheckAffected);
+
+      // One bell entry for the whole run (the per-item updates above are quiet).
+      const changed = new Set([...affected, ...autoCheckAffected].map((a) => a.id)).size;
+      if (changed > 0) await logCheckCalendarSummary(changed);
 
       router.refresh();
     } catch (err) {

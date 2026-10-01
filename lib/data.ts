@@ -50,6 +50,18 @@ export async function getCalendarData(
   return { events, holidays, seasons, overrides, levels, exceptions, dayNotes };
 }
 
+// The day page only renders events, so it skips the holidays, seasons and day
+// notes that getCalendarData also loads.
+export async function getDayViewData(dateStr: string) {
+  const [events, overrides, levels, exceptions] = await Promise.all([
+    getEvents(dateStr, dateStr),
+    getOverrides(dateStr, dateStr),
+    getAllLevels(),
+    getExceptions(dateStr, dateStr),
+  ]);
+  return { events, overrides, levels, exceptions };
+}
+
 // Events staff must not forget to prep collateral/to-dos for — Churchwide
 // carries the same weight for plain "Event" entries as it does for
 // Gatherings, so both are checked here rather than just gathering_type.

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { isToday } from "date-fns";
 import { useDroppable } from "@dnd-kit/core";
 import Link from "next/link";
@@ -44,7 +44,18 @@ export default function DayCell({
   const { setNodeRef, isOver } = useDroppable({ id: dateStr });
   const [expanded, setExpanded] = useState(false);
 
-  const occurrences = dayData?.occurrences ?? [];
+  const occurrences = useMemo(() => dayData?.occurrences ?? [], [dayData]);
+
+  // A notification link can point at an event hidden behind "+N more"
+  // (see FocusHighlighter): open this day if that event is one of ours.
+  useEffect(() => {
+    function onReveal(e: Event) {
+      const id = (e as CustomEvent<string>).detail;
+      if (occurrences.some((o) => o.event.id === id)) setExpanded(true);
+    }
+    window.addEventListener("evo:reveal-event", onReveal);
+    return () => window.removeEventListener("evo:reveal-event", onReveal);
+  }, [occurrences]);
   const hasOverflow = occurrences.length > MAX_VISIBLE;
   const visibleOccurrences = expanded || !hasOverflow ? occurrences : occurrences.slice(0, MAX_VISIBLE);
 

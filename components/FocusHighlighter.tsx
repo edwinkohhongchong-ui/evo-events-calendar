@@ -62,9 +62,16 @@ export default function FocusHighlighter() {
       router.replace(qs ? `${pathname}?${qs}` : pathname, { scroll: false });
     };
 
+    let askedToExpand = false;
     const attempt = () => {
       if (cancelled) return;
       const targets = findTargets(kind, value);
+      // An event can be tucked behind a day's "+N more" fold: ask the day
+      // cells to open it, then keep retrying until it renders.
+      if (targets.length === 0 && kind === "event" && !askedToExpand) {
+        askedToExpand = true;
+        window.dispatchEvent(new CustomEvent("evo:reveal-event", { detail: value }));
+      }
       if (targets.length > 0) {
         const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
         targets[0].scrollIntoView({

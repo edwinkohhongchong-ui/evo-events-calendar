@@ -8,6 +8,16 @@ items (features/fixes) that push contains — a push with 1 item goes up by
 `1.05`). If MINOR would pass `.99`, MAJOR increments and MINOR carries the
 remainder (e.g. `1.99` + 2 items → `2.01`).
 
+## v1.91 — 2026-10-01
+
+- "Check Calendar" on the Checklist now adds a single bell entry ("Check
+  Calendar: 3 items updated") instead of one per changed item.
+- Opening a notification for an event hidden behind a day's "+N more" now
+  expands that day and highlights the event, instead of saying it is no
+  longer on the calendar.
+- The single-day page no longer loads holidays, seasons and day notes it never
+  shows (three fewer database queries per visit).
+
 ## v1.88 — 2026-10-01
 
 - Fixed the Vercel build failures on v1.79, v1.82, v1.84, v1.85 and v1.87.

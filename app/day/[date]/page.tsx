@@ -1,6 +1,6 @@
 import { addDays, subDays, format } from "date-fns";
 import Link from "next/link";
-import { getCalendarData } from "@/lib/data";
+import { getDayViewData } from "@/lib/data";
 import { expandEvents } from "@/lib/recurrence";
 import { applyOverrides } from "@/lib/overrides";
 import { parseDateStr, toDateStr, formatDateDisplay } from "@/lib/dates";
@@ -19,7 +19,7 @@ export default async function DayPage({ params }: DayPageProps) {
   const year = date.getFullYear();
   const month = date.getMonth() + 1;
 
-  const { events, overrides, levels, exceptions } = await getCalendarData(dateStr, dateStr);
+  const { events, overrides, levels, exceptions } = await getDayViewData(dateStr);
   const eventsById = new Map(events.map((e) => [e.id, e]));
   const exceptionsByEventId = new Map<string, Set<string>>();
   for (const exception of exceptions) {
