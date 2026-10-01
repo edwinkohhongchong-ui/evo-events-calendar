@@ -8,6 +8,15 @@ items (features/fixes) that push contains — a push with 1 item goes up by
 `1.05`). If MINOR would pass `.99`, MAJOR increments and MINOR carries the
 remainder (e.g. `1.99` + 2 items → `2.01`).
 
+## v2.10 — 2026-10-01
+
+- Added about 60 automated tests (43 to 103) covering how repeating events
+  move between months, bars that span weeks and months, day/time maths, date
+  boundaries (also checked under UTC, US and NZ timezones), and the checklist
+  due-date rules. One test is deliberately skipped: it documents a real bug,
+  where a multi-day occurrence of a repeating event dragged in from another
+  month gets the wrong end date (on the fix list, not yet fixed).
+
 ## v2.09 — 2026-10-02
 
 - Checklists are now flexible per event: Editors can add their own item to any
