@@ -36,15 +36,12 @@ it immediately after confirming a migration has been run.
 | 018 | supabase_migration_018_checklist_templates.sql | Checklist templates | Yes (confirmed cleanly, run together with 019-020 in same session) |
 | 019 | supabase_migration_019_event_location.sql | Event location | Yes (confirmed cleanly, run together with 018/020 in same session) |
 | 020 | supabase_migration_020_updated_at.sql | updated_at + concurrent-edit detection | Yes (confirmed cleanly, run together with 018-019 in same session) |
-| 021 | supabase_migration_021_season_source_dates.sql | Per-institution exam/term dates (season_source_dates table) for Seasons' Update Calendar / Start a New Year | Not yet confirmed |
-| 022 | supabase_migration_022_checklist_auto_check.sql | Checklist "automated check" tag (auto_check_type column) | Not yet confirmed |
+| 021 | supabase_migration_021_season_source_dates.sql | Per-institution exam/term dates (season_source_dates table) for Seasons' Update Calendar / Start a New Year | Yes (confirmed run by Edwin, 1 Oct 2026) |
+| 022 | supabase_migration_022_checklist_auto_check.sql | Checklist "automated check" tag (auto_check_type column) | Yes (confirmed run by Edwin, 1 Oct 2026) |
 
 Note: numbering starts at 002 — there is no `supabase_migration_001_*.sql` file
 in this repo (the initial schema lives in `supabase_schema.sql`).
 
-**Deploy order matters for 022:** the Checklist form now sends `auto_check_type`
-on every save, so adding or editing any checklist item will fail until 022 has
-been run in Supabase. Run 021 and 022 before pushing/deploying this code.
 
 Next available migration number: **023**.
 
