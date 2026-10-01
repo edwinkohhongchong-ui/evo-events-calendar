@@ -2,6 +2,15 @@ import { isSameMonth } from "date-fns";
 import { parseDateStr, toDateStr } from "./dates";
 import { DayNoteRow, EventOccurrence, HolidayRow } from "./types";
 
+// Order within a day: all-day (no start time) first, then by start time, then
+// by name so the order is stable. Needed because moved occurrences are
+// appended after the day's existing ones.
+export function compareByStartTime(a: EventOccurrence, b: EventOccurrence): number {
+  if (!a.startTime !== !b.startTime) return a.startTime ? 1 : -1;
+  if (a.startTime && b.startTime && a.startTime !== b.startTime) return a.startTime < b.startTime ? -1 : 1;
+  return a.event.name.localeCompare(b.event.name);
+}
+
 export interface DayData {
   dateStr: string;
   holidays: HolidayRow[];
@@ -49,6 +58,8 @@ export function buildDayIndex(
     if (!isSameMonth(parseDateStr(occurrence.occurrenceDate), monthStart)) continue;
     index.get(occurrence.occurrenceDate)?.occurrences.push(occurrence);
   }
+
+  index.forEach((day) => day.occurrences.sort(compareByStartTime));
 
   return index;
 }

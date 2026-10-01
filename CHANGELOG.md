@@ -8,6 +8,10 @@ items (features/fixes) that push contains — a push with 1 item goes up by
 `1.05`). If MINOR would pass `.99`, MAJOR increments and MINOR carries the
 remainder (e.g. `1.99` + 2 items → `2.01`).
 
+## v2.39 — 2026-10-01
+
+- Events within a day are now ordered by start time (all-day events first, then earliest to latest), so a day no longer shows moved events in the order they were dropped. Applies to the month grid and the phone agenda.
+
 ## v2.38 — 2026-10-01
 
 - Faster home page: General Notes is fetched once per page load instead of twice, and the overdue-pill data loads in parallel with events instead of after them; events with several open checklist items are sent once.

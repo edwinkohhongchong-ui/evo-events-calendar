@@ -106,6 +106,13 @@ describe("buildDayIndex", () => {
     expect(idx.get("2026-09-29")!.occurrences).toEqual([]);
     expect(idx.size).toBe(g.days.length);
   });
+  it("orders a day's events by start time, all-day first, regardless of insertion order", () => {
+    const late = makeOcc(makeEvent({ id: "late", name: "Late", event_date: "2026-10-05", event_time: "19:30:00" }), "2026-10-05");
+    const early = makeOcc(makeEvent({ id: "early", name: "Early", event_date: "2026-10-05", event_time: "09:00:00" }), "2026-10-05");
+    const allDay = makeOcc(makeEvent({ id: "all", name: "All day", event_date: "2026-10-05", event_time: null }), "2026-10-05");
+    const idx = buildDayIndex(g.days, [late, early, allDay], [], g.ms);
+    expect(idx.get("2026-10-05")!.occurrences.map((o) => o.event.id)).toEqual(["all", "early", "late"]);
+  });
   it("silently drops holidays/notes/occurrences outside the grid", () => {
     const idx = buildDayIndex(g.days, [], [{ id: "h", holiday_date: "2027-01-01" } as never], g.ms, [{ id: "n", note_date: "2030-01-01" } as never]);
     expect(Array.from(idx.values()).every((d) => d.holidays.length === 0 && d.dayNotes.length === 0)).toBe(true);
