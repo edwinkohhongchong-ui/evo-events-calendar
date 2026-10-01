@@ -30,6 +30,19 @@ export default function EventCardContent({
   const subtitle =
     event.event_type === "Gathering" ? [event.series, event.sermon_title].filter(Boolean).join(" — ") : "";
 
+  const badge =
+    checklist && checklist.total > 0 ? (
+      <span
+        className={[
+          "shrink-0 rounded-pill px-1.5 text-micro font-medium tabular-nums",
+          checklistOverdue ? "bg-danger/15 text-danger" : checklist.done === checklist.total ? "bg-ok/15 text-ok" : "bg-black/5 text-ink-2",
+        ].join(" ")}
+        title={checklistOverdue ? "Checklist: something is overdue" : "Checklist progress"}
+      >
+        {checklist.done}/{checklist.total}
+      </span>
+    ) : null;
+
   return (
     <div
       className={[
@@ -42,20 +55,14 @@ export default function EventCardContent({
         {event.name}
         {nextDay && <span className="ml-1 text-micro font-normal text-ink-2">(next day)</span>}
         {occurrence.isOverridden && <span className="ml-1 text-micro font-normal text-ink-2">(moved)</span>}
-        {checklist && checklist.total > 0 && (
-          <span
-            className={[
-              "ml-1 rounded-pill px-1.5 text-micro font-medium tabular-nums",
-              checklistOverdue ? "bg-danger/15 text-danger" : checklist.done === checklist.total ? "bg-ok/15 text-ok" : "bg-black/5 text-ink-2",
-            ].join(" ")}
-            title={checklistOverdue ? "Checklist: something is overdue" : "Checklist progress"}
-          >
-            {checklist.done}/{checklist.total}
-          </span>
-        )}
       </div>
       {subtitle && <div className="text-chip text-ink-2 truncate">{subtitle}</div>}
-      {time && <div className="text-chip text-ink-2 truncate">{time}</div>}
+      {(time || badge) && (
+        <div className="flex items-center justify-between gap-1 text-chip text-ink-2">
+          <span className="truncate">{time}</span>
+          {badge}
+        </div>
+      )}
     </div>
   );
 }

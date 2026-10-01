@@ -8,6 +8,11 @@ items (features/fixes) that push contains — a push with 1 item goes up by
 `1.05`). If MINOR would pass `.99`, MAJOR increments and MINOR carries the
 remainder (e.g. `1.99` + 2 items → `2.01`).
 
+## v1.98 — 2026-10-02
+
+- The checklist badge on a calendar chip (e.g. 0/6) now sits on the time row
+  so it is no longer cut off when an event name is long.
+
 ## v1.97 — 2026-10-02
 
 - Events can now have a checklist. Open an event, choose a checklist template

@@ -39,7 +39,7 @@ it immediately after confirming a migration has been run.
 | 021 | supabase_migration_021_season_source_dates.sql | Per-institution exam/term dates (season_source_dates table) for Seasons' Update Calendar / Start a New Year | Yes (confirmed run by Edwin, 1 Oct 2026) |
 | 022 | supabase_migration_022_checklist_auto_check.sql | Checklist "automated check" tag (auto_check_type column) | Yes (confirmed run by Edwin, 1 Oct 2026) |
 | 023 | supabase_migration_023_activity_log.sql | Activity log table for the notification bell (activity_log) | Yes (table already existed when re-run on 1 Oct; bell shows live entries) |
-| 024 | supabase_migration_024_event_checklists.sql | Per-event checklists: event_checklist_items table + weeks_before on checklist_template_items (idempotent) | Not yet confirmed |
+| 024 | supabase_migration_024_event_checklists.sql | Per-event checklists: event_checklist_items table + weeks_before on checklist_template_items (idempotent) | Yes (run by Edwin, 2 Oct 2026; first checklist added to "Gathering with Regina", 4 Oct 2026) |
 
 Note: numbering starts at 002 — there is no `supabase_migration_001_*.sql` file
 in this repo (the initial schema lives in `supabase_schema.sql`).
