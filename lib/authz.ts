@@ -2,6 +2,7 @@
 
 import { cookies } from "next/headers";
 import { AUTH_COOKIE_NAME, expectedPasscodeFor, parseAuthCookie } from "./auth";
+import { safeEqual } from "./safeEqual";
 
 // Server-side backstop for the Editor/Viewer role split. Every mutating
 // Server Action in lib/*Actions.ts calls this first — it re-reads the
@@ -13,7 +14,7 @@ export async function requireRole(min: "viewer" | "editor"): Promise<void> {
   const raw = (await cookies()).get(AUTH_COOKIE_NAME)?.value;
   const parsed = parseAuthCookie(raw);
   const expected = parsed ? expectedPasscodeFor(parsed.role) : undefined;
-  if (!parsed || !expected || parsed.passcode !== expected) {
+  if (!parsed || !expected || !safeEqual(parsed.passcode, expected)) {
     throw new Error("Your session has expired. Please log in again.");
   }
   if (min === "editor" && parsed.role !== "editor") {

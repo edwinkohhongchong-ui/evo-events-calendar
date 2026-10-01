@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { AUTH_COOKIE_NAME, expectedPasscodeFor, parseAuthCookie } from "@/lib/auth";
+import { safeEqual } from "@/lib/safeEqual";
 import { getRecentActivity } from "@/lib/activity";
 
 export const dynamic = "force-dynamic";
@@ -9,7 +10,7 @@ const NO_STORE = { "Cache-Control": "no-store" };
 export async function GET(request: NextRequest) {
   const parsed = parseAuthCookie(request.cookies.get(AUTH_COOKIE_NAME)?.value);
   const expected = parsed ? expectedPasscodeFor(parsed.role) : undefined;
-  if (!parsed || !expected || parsed.passcode !== expected) {
+  if (!parsed || !expected || !safeEqual(parsed.passcode, expected)) {
     return NextResponse.json({ error: "Session expired. Please log in again." }, { status: 401, headers: NO_STORE });
   }
 

@@ -1,3 +1,4 @@
+import { requireRoleRoute } from "@/lib/authRoute";
 import { NextResponse } from "next/server";
 import { supabase } from "@/lib/supabase";
 import { buildIcsCalendar } from "@/lib/icsExport";
@@ -10,6 +11,9 @@ export const dynamic = "force-dynamic";
 // so Apple/Google Calendar handle "repeats weekly" the same way this app
 // does rather than importing hundreds of flat one-off entries.
 export async function GET() {
+  const denied = await requireRoleRoute("editor");
+  if (denied) return denied;
+
   const [eventsRes, overridesRes, exceptionsRes] = await Promise.all([
     supabase.from("events").select("*"),
     supabase.from("event_overrides").select("*"),
@@ -17,7 +21,8 @@ export async function GET() {
   ]);
 
   if (eventsRes.error) {
-    return NextResponse.json({ error: eventsRes.error.message }, { status: 500 });
+    console.error(eventsRes.error);
+    return NextResponse.json({ error: "Couldn't load the calendar. Please try again." }, { status: 500 });
   }
 
   const ics = buildIcsCalendar(

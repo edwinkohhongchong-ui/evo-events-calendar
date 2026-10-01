@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { todayDate } from "@/lib/dates";
 import { getAllSeasons, getSeasonSourceDates } from "@/lib/data";
 import UpdateCalendarForm from "@/components/UpdateCalendarForm";
 
@@ -11,7 +12,7 @@ export const dynamic = "force-dynamic";
 // types the dates in, and the app aggregates them into the matching Season
 // row. See lib/examScheduleSources.ts for why.
 export default async function UpdateCalendarPage() {
-  const year = new Date().getFullYear();
+  const year = todayDate().getFullYear();
   const [seasons, sourceDates] = await Promise.all([getAllSeasons(), getSeasonSourceDates(year)]);
 
   return (

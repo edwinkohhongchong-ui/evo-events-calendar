@@ -9,7 +9,7 @@ import { useEscapeKey } from "@/lib/useEscapeKey";
 import { deleteHoliday } from "@/lib/holidayActions";
 import { useUndo } from "@/lib/undo/UndoProvider";
 import { HolidayRow } from "@/lib/types";
-import { formatDateDisplay } from "@/lib/dates";
+import { formatDateDisplay, todayDate } from "@/lib/dates";
 import { unwrap } from "@/lib/actionResult";
 import { TABLE_CARD, TABLE, TH, TD, TR, EMPTY_CELL, ROW_ACTION, TOOLBAR_SELECT } from "./ui/tableStyles";
 import Button, { buttonClass } from "./ui/Button";
@@ -96,7 +96,7 @@ export default function HolidaysTable({ holidays }: { holidays: HolidayRow[] }) 
         </label>
         <div className="flex flex-wrap gap-2">
           <Link
-            href={`/holidays/new-year?year=${new Date().getFullYear()}`}
+            href={`/holidays/new-year?year=${todayDate().getFullYear()}`}
             className={buttonClass("secondary", "sm")}
             title="Re-checks Singapore public holidays for the current year via Calendarific — shows any missing ones for your approval, doesn't touch what's already here"
           >

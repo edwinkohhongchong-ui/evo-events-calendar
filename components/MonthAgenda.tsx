@@ -3,14 +3,14 @@
 import { useRef } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { addMonths, format, isToday, subMonths } from "date-fns";
+import { addMonths, format, subMonths } from "date-fns";
 import EventCardContent from "./EventCardContent";
 import { FlagIcon } from "./icons";
 import { DayData } from "@/lib/dayIndex";
 import { SeasonSegment } from "@/lib/seasonBars";
 import { resolveSeasonColor } from "@/lib/seasonColor";
 import { SEASON_BAR_COLORS } from "@/lib/constants";
-import { parseDateStr, toDateStr } from "@/lib/dates";
+import { parseDateStr, todayStr, toDateStr } from "@/lib/dates";
 import { occurrenceKey } from "@/lib/occurrenceKey";
 import { EventOccurrence, HolidayRow, SeasonRow } from "@/lib/types";
 
@@ -98,7 +98,7 @@ export default function MonthAgenda({
       )}
 
       {rows.map(({ d, dateStr, holidays, events, spanning }) => {
-        const today = isToday(d);
+        const today = dateStr === todayStr();
         return (
           <div key={dateStr} className="flex gap-3 rounded-card border border-line bg-surface p-3">
             <Link

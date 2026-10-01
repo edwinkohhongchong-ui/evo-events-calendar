@@ -1,3 +1,4 @@
+import { requireRoleRoute } from "@/lib/authRoute";
 import { NextResponse } from "next/server";
 import {
   getAllChecklist,
@@ -25,6 +26,9 @@ export const dynamic = "force-dynamic";
 // decision, CLAUDE.md/ONBOARDING.md context on the passcode gate being a
 // deterrent only.
 export async function GET() {
+  const denied = await requireRoleRoute("editor");
+  if (denied) return denied;
+
   const [
     events,
     holidays,

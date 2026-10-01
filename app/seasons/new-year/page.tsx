@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { todayDate } from "@/lib/dates";
 import { getAllSeasons, getLatestSeasonSourceDatesBefore } from "@/lib/data";
 import NewYearForm from "@/components/NewYearForm";
 
@@ -11,7 +12,7 @@ export const dynamic = "force-dynamic";
 // seasons it's a plain +1 year date shift, same as Holidays would propose if
 // it had no API either.
 export default async function SeasonsNewYearPage() {
-  const currentYear = new Date().getFullYear();
+  const currentYear = todayDate().getFullYear();
   const nextYear = currentYear + 1;
   const [seasons, priorSourceDates] = await Promise.all([
     getAllSeasons(),

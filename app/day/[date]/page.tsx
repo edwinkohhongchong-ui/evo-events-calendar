@@ -1,9 +1,10 @@
 import { addDays, subDays, format } from "date-fns";
 import Link from "next/link";
+import { notFound } from "next/navigation";
 import { getDayViewData } from "@/lib/data";
 import { expandEvents } from "@/lib/recurrence";
 import { applyOverrides } from "@/lib/overrides";
-import { parseDateStr, toDateStr, formatDateDisplay } from "@/lib/dates";
+import { isValidDateStr, parseDateStr, toDateStr, formatDateDisplay } from "@/lib/dates";
 import DayView from "@/components/DayView";
 
 // Same live-data reasoning as the month view — see app/page.tsx.
@@ -15,6 +16,7 @@ interface DayPageProps {
 
 export default async function DayPage({ params }: DayPageProps) {
   const dateStr = params.date;
+  if (!isValidDateStr(dateStr)) notFound();
   const date = parseDateStr(dateStr);
   const year = date.getFullYear();
   const month = date.getMonth() + 1;

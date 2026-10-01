@@ -7,6 +7,7 @@
 
 import { ChecklistAutoCheckType, ChecklistRow, SeasonRow, TargetMonth } from "./types";
 import { TARGET_MONTHS } from "./constants";
+import { todayDate } from "./dates";
 
 export interface AutoCheckResult {
   ok: boolean;
@@ -26,7 +27,7 @@ export type AutoCheckFn = (item: ChecklistRow, context: AutoCheckContext) => Pro
 // Reminders/Month Focus code) — this is the one place it lives for now.
 // Exported (beyond the AUTO_CHECKS registry itself) so tests can inject a
 // fixed `now` and assert the year-resolution logic deterministically.
-export function resolveTargetMonthYear(targetMonth: TargetMonth, now: Date = new Date()): number {
+export function resolveTargetMonthYear(targetMonth: TargetMonth, now: Date = todayDate()): number {
   const monthIndex = TARGET_MONTHS.indexOf(targetMonth); // 0-based, Jan = 0
   const currentYear = now.getFullYear();
   const currentMonthIndex = now.getMonth();

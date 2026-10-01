@@ -6,6 +6,9 @@ import { SnapshotRow, UndoTable } from "./types";
 // form happened to submit.
 export async function fetchRow(table: UndoTable, id: string): Promise<SnapshotRow | null> {
   const { data, error } = await supabase.from(table).select("*").eq("id", id).maybeSingle();
-  if (error) throw new Error(error.message);
+  if (error) {
+    console.error(error);
+    throw new Error("Something went wrong loading this item. Please try again.");
+  }
   return data;
 }

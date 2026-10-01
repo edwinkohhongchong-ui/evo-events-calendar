@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { AUTH_COOKIE_NAME, expectedPasscodeFor, isPathAllowedForRole, parseAuthCookie } from "@/lib/auth";
+import { safeEqual } from "@/lib/safeEqual";
 
 // Page-level deterrent only — this does not (and cannot) restrict the
 // Supabase REST API itself, which is governed by RLS policies independently
@@ -10,7 +11,7 @@ export function middleware(request: NextRequest) {
   const parsed = parseAuthCookie(request.cookies.get(AUTH_COOKIE_NAME)?.value);
   const expected = parsed ? expectedPasscodeFor(parsed.role) : undefined;
 
-  if (parsed && expected && parsed.passcode === expected) {
+  if (parsed && expected && safeEqual(parsed.passcode, expected)) {
     if (!isPathAllowedForRole(request.nextUrl.pathname, parsed.role)) {
       return NextResponse.redirect(new URL("/", request.url));
     }

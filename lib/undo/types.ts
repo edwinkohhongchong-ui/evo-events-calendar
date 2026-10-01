@@ -10,6 +10,7 @@ export type UndoTable =
   | "events"
   | "event_overrides"
   | "event_exceptions"
+  | "event_checklist_items"
   | "levels"
   | "holidays"
   | "seasons"

@@ -4,7 +4,7 @@ import { getCalendarData, getEventChecklistProgress, getGeneralComments, getMont
 import { expandEvents } from "@/lib/recurrence";
 import { applyOverrides } from "@/lib/overrides";
 import { computeSeasonSegments } from "@/lib/seasonBars";
-import { parseDateStr, toDateStr } from "@/lib/dates";
+import { clampYearMonth, parseDateStr, toDateStr } from "@/lib/dates";
 import CalendarBoard from "@/components/CalendarBoard";
 import CategoryListView from "@/components/CategoryListView";
 import NotesPanel from "@/components/NotesPanel";
@@ -21,9 +21,7 @@ interface HomeProps {
 }
 
 export default async function Home({ searchParams }: HomeProps) {
-  const now = new Date();
-  const year = Number(searchParams.year) || now.getFullYear();
-  const month = Number(searchParams.month) || now.getMonth() + 1;
+  const { year, month } = clampYearMonth(searchParams.year, searchParams.month);
 
   const { monthStart, gridStart, gridEnd, weeks } = getMonthGrid(year, month);
   const gridStartStr = toDateStr(gridStart);

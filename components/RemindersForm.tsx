@@ -6,7 +6,7 @@ import { useUndo } from "@/lib/undo/UndoProvider";
 import { deleteReminderTemplate } from "@/lib/reminderTemplateActions";
 import { ChecklistTemplateWithItems, ReminderTemplateRow } from "@/lib/types";
 import { ReminderPickerEvent } from "@/lib/data";
-import { toDateStr, formatDateDisplay, formatEventTimeRange } from "@/lib/dates";
+import { todayDate, todayStr, toDateStr, formatDateDisplay, formatEventTimeRange } from "@/lib/dates";
 import ReminderTemplateModal from "./ReminderTemplateModal";
 import ConfirmModal from "./ConfirmModal";
 import { unwrap } from "@/lib/actionResult";
@@ -109,8 +109,8 @@ export default function RemindersForm({ templates, checklistTemplates }: Reminde
     setLoadingEvents(true);
     setError(null);
     try {
-      const start = toDateStr(new Date());
-      const end = toDateStr(addDays(new Date(), days));
+      const start = todayStr();
+      const end = toDateStr(addDays(todayDate(), days));
       const res = await fetch(`/api/reminders/events?start=${start}&end=${end}`);
       const data = await res.json();
       if (!res.ok) throw new Error(data?.error ?? "Couldn't load upcoming events.");

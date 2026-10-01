@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { toDateStr } from "@/lib/dates";
+import { todayDate, toDateStr } from "@/lib/dates";
 import { LevelRow } from "@/lib/types";
 import { LEVEL_DOT_CLASSES } from "@/lib/constants";
 import { resolveLevelColor } from "@/lib/levelColor";
@@ -43,7 +43,7 @@ const FORMATS: Array<{ id: "pdf" | "docx"; title: string; blurb: string }> = [
 ];
 
 export default function ExportForm({ levels }: { levels: LevelRow[] }) {
-  const now = new Date();
+  const now = todayDate();
   const [preset, setPreset] = useState<Preset>("this");
   const [startDate, setStartDate] = useState(toDateStr(startOfMonth(now)));
   const [endDate, setEndDate] = useState(toDateStr(endOfMonth(now)));
@@ -57,7 +57,7 @@ export default function ExportForm({ levels }: { levels: LevelRow[] }) {
   function pickPreset(id: Preset) {
     setPreset(id);
     if (id !== "custom") {
-      const [s, e] = rangeFor(id, new Date());
+      const [s, e] = rangeFor(id, todayDate());
       setStartDate(s);
       setEndDate(e);
     }

@@ -69,21 +69,13 @@ describe("applyOverrides", () => {
     expect(r.find((o) => o.originalDate === "2026-10-08")?.occurrenceDate).toBe("2026-10-31");
   });
 
-  // BUG (found by this suite): the "pulled in from another grid" branch seeds
-  // spanEndDate with baseEvent.end_date (the ANCHOR's end), not
-  // original_date + template span. For a recurring multi-day series whose
-  // occurrence is not the first one, the resulting span end is wrong.
-  // lib/overrides.ts ~line 98 (`spanEndDate: baseEvent.end_date ?? override.original_date`).
-  it.skip("recurring multi-day occurrence pulled in from another grid keeps the template length", () => {
+  // Regression: the "pulled in from another grid" branch used to seed spanEndDate
+  // from the anchor's end_date instead of original_date + series span.
+  it("recurring multi-day occurrence pulled in from another grid keeps the template length", () => {
     const camp = makeEvent({ id: "camp", event_date: "2026-09-01", end_date: "2026-09-03", recurring: "Monthly" });
     // 1 Nov occurrence (spans 1-3 Nov) dragged to 20 Oct; expect 20-22 Oct.
     const r = applyOverrides([], [ov({ event_id: "camp", original_date: "2026-11-01", new_date: "2026-10-20" })], new Map([["camp", camp]]), "2026-10-01", "2026-10-31");
     expect(r[0].spanEndDate).toBe("2026-10-22");
-  });
-  it("documents current (wrong) value for the bug above so a fix is noticed", () => {
-    const camp = makeEvent({ id: "camp", event_date: "2026-09-01", end_date: "2026-09-03", recurring: "Monthly" });
-    const r = applyOverrides([], [ov({ event_id: "camp", original_date: "2026-11-01", new_date: "2026-10-20" })], new Map([["camp", camp]]), "2026-10-01", "2026-10-31");
-    expect(r[0].spanEndDate).not.toBe("2026-10-22"); // flip to toBe once fixed, then delete the skip above
   });
   it("optimistic move mirrors server override for a multi-day occurrence", () => {
     expect(optimisticParity()).toBe(true);

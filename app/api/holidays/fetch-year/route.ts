@@ -1,3 +1,4 @@
+import { requireRoleRoute } from "@/lib/authRoute";
 import { NextRequest, NextResponse } from "next/server";
 import { getHolidaysForYear } from "@/lib/data";
 import { classifyHoliday, isTentativeHoliday, suggestHolidayType } from "@/lib/calendarific";
@@ -14,6 +15,9 @@ interface CalendarificRawHoliday {
 }
 
 export async function POST(request: NextRequest) {
+  const denied = await requireRoleRoute("editor");
+  if (denied) return denied;
+
   const { year } = await request.json().catch(() => ({ year: null }));
   if (typeof year !== "number" || !Number.isInteger(year) || year < 2000 || year > 2100) {
     return NextResponse.json({ ok: false, error: "Invalid year." }, { status: 400 });

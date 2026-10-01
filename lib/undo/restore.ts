@@ -7,13 +7,13 @@ import { runAction } from "../actionResult";
 import { logActivity } from "../activity";
 
 // Parent rows must exist before their children are written (events before
-// event_overrides/event_exceptions; a top-level note_comments row before its
+// event_overrides/event_exceptions/event_checklist_items; a top-level note_comments row before its
 // replies), and children should be removed before their parents when a
 // parent is also being deleted — though ON DELETE CASCADE would clean them
 // up anyway, doing it explicitly keeps behavior predictable if a child's
 // snapshot differs from what cascade alone would produce.
 function rank(table: UndoTable, row: SnapshotRow): number {
-  if (table === "event_overrides" || table === "event_exceptions") return 1;
+  if (table === "event_overrides" || table === "event_exceptions" || table === "event_checklist_items") return 1;
   if (table === "note_comments") return row.parent_id ? 1 : 0;
   if (table === "checklist_template_items") return 1;
   return 0;

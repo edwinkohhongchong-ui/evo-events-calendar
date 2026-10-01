@@ -1,14 +1,13 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { isToday } from "date-fns";
 import { useDroppable } from "@dnd-kit/core";
 import Link from "next/link";
 import EventCard from "./EventCard";
 import DayNotes from "./DayNotes";
 import { FlagIcon } from "./icons";
 import { DayData } from "@/lib/dayIndex";
-import { toDateStr } from "@/lib/dates";
+import { todayStr, toDateStr } from "@/lib/dates";
 import { occurrenceKey } from "@/lib/occurrenceKey";
 import { EventOccurrence, HolidayRow } from "@/lib/types";
 
@@ -40,7 +39,7 @@ export default function DayCell({
 }: DayCellProps) {
   const dateStr = toDateStr(day);
   const dayNumber = day.getDate();
-  const today = isToday(day);
+  const today = dateStr === todayStr();
   const { setNodeRef, isOver } = useDroppable({ id: dateStr });
   const [expanded, setExpanded] = useState(false);
 

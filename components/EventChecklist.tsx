@@ -15,7 +15,7 @@ import {
 } from "@/lib/eventChecklistActions";
 import { unwrap } from "@/lib/actionResult";
 import { dueDate, isOverdue, progressOf, SUGGESTED_TEMPLATE_BY_GATHERING_TYPE } from "@/lib/eventChecklist";
-import { parseDateStr, toDateStr } from "@/lib/dates";
+import { parseDateStr, todayStr } from "@/lib/dates";
 import { useIsEditor } from "@/lib/roleContext";
 import ConfirmModal from "./ConfirmModal";
 import Button from "./ui/Button";
@@ -49,7 +49,7 @@ export default function EventChecklist({ event }: { event: EventRow }) {
   const [newItem, setNewItem] = useState("");
 
   const repeating = event.recurring !== "None";
-  const today = toDateStr(new Date());
+  const today = todayStr();
 
   const load = useCallback(async () => {
     try {

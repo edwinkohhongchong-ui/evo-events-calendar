@@ -1,8 +1,11 @@
+import { requireRoleRoute } from "@/lib/authRoute";
 import { NextRequest, NextResponse } from "next/server";
 import { getCalendarData } from "@/lib/data";
 import { expandEvents } from "@/lib/recurrence";
 import { applyOverrides } from "@/lib/overrides";
-import { parseDateStr } from "@/lib/dates";
+import { isValidDateStr, parseDateStr } from "@/lib/dates";
+
+const MAX_EXPORT_YEARS = 5;
 import { renderEventLineupPdf } from "@/lib/pdfExport";
 import { renderEventLineupDocx } from "@/lib/docxExport";
 
@@ -16,6 +19,9 @@ interface RequestBody {
 }
 
 export async function POST(request: NextRequest) {
+  const denied = await requireRoleRoute("editor");
+  if (denied) return denied;
+
   const body = (await request.json().catch(() => null)) as RequestBody | null;
   if (!body || !body.startDate || !body.endDate || (body.format !== "pdf" && body.format !== "docx")) {
     return NextResponse.json({ error: "Invalid request." }, { status: 400 });
@@ -33,8 +39,14 @@ export async function POST(request: NextRequest) {
   // surfaces as the generic "Something went wrong generating the document."
   // Catching it here, before any recurrence expansion or rendering work,
   // turns that crash into a clean, specific 400.
-  if (Number.isNaN(parseDateStr(startDate).getTime()) || Number.isNaN(parseDateStr(endDate).getTime())) {
+  if (!isValidDateStr(startDate) || !isValidDateStr(endDate)) {
     return NextResponse.json({ error: "Invalid date range." }, { status: 400 });
+  }
+  // Cap the range so a crafted request can't make the server expand years of
+  // recurring events into a huge PDF/DOCX.
+  const spanDays = (parseDateStr(endDate).getTime() - parseDateStr(startDate).getTime()) / 86_400_000;
+  if (spanDays < 0 || spanDays > MAX_EXPORT_YEARS * 366) {
+    return NextResponse.json({ error: "Date range must be between 0 and 5 years." }, { status: 400 });
   }
 
   // Everything below can throw for reasons that have nothing to do with the

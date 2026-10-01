@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { EventRow, OpenChecklistRow } from "@/lib/types";
 import { computeAttention, totalOverdueItems } from "@/lib/eventChecklist";
-import { formatDateDisplay, toDateStr } from "@/lib/dates";
+import { formatDateDisplay, todayStr } from "@/lib/dates";
 import { FlagIcon } from "./icons";
 
 const MAX_ROWS = 8;
@@ -21,7 +21,7 @@ export default function AttentionPill({
 }) {
   const [open, setOpen] = useState(false);
   const wrapRef = useRef<HTMLDivElement>(null);
-  const today = toDateStr(new Date());
+  const today = todayStr();
   const events = useMemo(() => computeAttention(rows, today), [rows, today]);
   const total = useMemo(() => totalOverdueItems(rows, today), [rows, today]);
 

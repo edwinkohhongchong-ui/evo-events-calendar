@@ -20,7 +20,8 @@ import {
 } from "./types";
 import { expandEvents } from "./recurrence";
 import { applyOverrides } from "./overrides";
-import { parseDateStr } from "./dates";
+import { addDays } from "date-fns";
+import { isValidDateStr, MAX_YEAR, MIN_YEAR, parseDateStr, toDateStr, todayDate } from "./dates";
 import { progressOf } from "./eventChecklist";
 
 export interface CalendarData {
@@ -129,6 +130,7 @@ export async function getUpcomingEventsForReminders(
 }
 
 async function getDayNotes(gridStartStr: string, gridEndStr: string): Promise<DayNoteRow[]> {
+  if (!isValidDateStr(gridStartStr) || !isValidDateStr(gridEndStr)) return [];
   try {
     const { data, error } = await supabase
       .from("day_notes")
@@ -149,6 +151,7 @@ async function getDayNotes(gridStartStr: string, gridEndStr: string): Promise<Da
 }
 
 async function getEvents(gridStartStr: string, gridEndStr: string): Promise<EventRow[]> {
+  if (!isValidDateStr(gridStartStr) || !isValidDateStr(gridEndStr)) return [];
   try {
     const [oneOff, recurring] = await Promise.all([
       // Overlap check, not just "does the start date fall in range" — a
@@ -180,6 +183,7 @@ async function getEvents(gridStartStr: string, gridEndStr: string): Promise<Even
 }
 
 async function getHolidays(gridStartStr: string, gridEndStr: string): Promise<HolidayRow[]> {
+  if (!isValidDateStr(gridStartStr) || !isValidDateStr(gridEndStr)) return [];
   try {
     const { data, error } = await supabase
       .from("holidays")
@@ -199,6 +203,7 @@ async function getHolidays(gridStartStr: string, gridEndStr: string): Promise<Ho
 }
 
 async function getSeasons(gridStartStr: string, gridEndStr: string): Promise<SeasonRow[]> {
+  if (!isValidDateStr(gridStartStr) || !isValidDateStr(gridEndStr)) return [];
   try {
     const { data, error } = await supabase
       .from("seasons")
@@ -222,6 +227,7 @@ async function getSeasons(gridStartStr: string, gridEndStr: string): Promise<Sea
 // excepted occurrence has no new_date to have been dragged elsewhere), so
 // unlike getOverrides this only needs one direction of range check.
 async function getExceptions(gridStartStr: string, gridEndStr: string): Promise<ExceptionRow[]> {
+  if (!isValidDateStr(gridStartStr) || !isValidDateStr(gridEndStr)) return [];
   try {
     const { data, error } = await supabase
       .from("event_exceptions")
@@ -260,6 +266,7 @@ export async function getAllHolidays(): Promise<HolidayRow[]> {
 // there — narrower than getAllHolidays since a new-year fetch only ever
 // needs one year's worth of existing rows to compare against.
 export async function getHolidaysForYear(year: number): Promise<HolidayRow[]> {
+  if (!Number.isInteger(year) || year < MIN_YEAR || year > MAX_YEAR) return [];
   try {
     const { data, error } = await supabase
       .from("holidays")
@@ -460,7 +467,7 @@ export async function getEventChecklistProgress(eventIds: string[]): Promise<Rec
 // client (viewer's timezone). Returns [] before migration 024 or on error.
 export async function getOpenChecklistRows(): Promise<OpenChecklistRow[]> {
   try {
-    const cutoff = new Date(Date.now() - 14 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+    const cutoff = toDateStr(addDays(todayDate(), -14));
     const { data, error } = await supabase
       .from("event_checklist_items")
       .select("id, item, weeks_before, event:events!inner(*)")
@@ -696,6 +703,7 @@ export async function getAllChecklistTemplateItemsRaw(): Promise<ChecklistTempla
 // — an occurrence can be dragged into view from another month, or out of
 // view from this one, so both directions must be checked.
 async function getOverrides(gridStartStr: string, gridEndStr: string): Promise<OverrideRow[]> {
+  if (!isValidDateStr(gridStartStr) || !isValidDateStr(gridEndStr)) return [];
   try {
     const { data, error } = await supabase
       .from("event_overrides")

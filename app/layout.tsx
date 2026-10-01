@@ -34,10 +34,11 @@ export default async function RootLayout({
   children: React.ReactNode;
 }>) {
   // Set by middleware.ts from the validated auth cookie — absent on the
-  // /login page itself (excluded from the middleware matcher), where
-  // "editor" as a fallback is harmless since NavBar renders nothing there.
+  // /login page itself (excluded from the middleware matcher), where the
+  // fallback doesn't matter since NavBar renders nothing there. Fail safe:
+  // a missing header means Viewer, never Editor.
   const roleHeader = (await headers()).get("x-evo-role") as Role | null;
-  const role = roleHeader ?? "editor";
+  const role = roleHeader ?? "viewer";
   // General Notes drawer (top bar) — only fetched for signed-in requests.
   const generalComments = roleHeader ? await getGeneralComments() : [];
 

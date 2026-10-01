@@ -9,6 +9,7 @@ import { createHoliday } from "@/lib/holidayActions";
 import { useUndo } from "@/lib/undo/UndoProvider";
 import { AffectedRow } from "@/lib/undo/types";
 import { unwrap } from "@/lib/actionResult";
+import { todayDate } from "@/lib/dates";
 
 interface ReviewRow extends HolidayDiffRow {
   id: string;
@@ -56,7 +57,7 @@ function NewYearPageInner() {
   const router = useRouter();
   const { record } = useUndo();
   const searchParams = useSearchParams();
-  const nextYear = new Date().getFullYear() + 1;
+  const nextYear = todayDate().getFullYear() + 1;
   // ?year= comes from the Holidays page's "Update Calendar" button (checks
   // the current year); typing a URL directly, or the default, checks next
   // year instead — same underlying fetch-and-review flow either way.

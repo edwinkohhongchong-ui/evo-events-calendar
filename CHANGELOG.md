@@ -8,6 +8,34 @@ items (features/fixes) that push contains — a push with 1 item goes up by
 `1.05`). If MINOR would pass `.99`, MAJOR increments and MINOR carries the
 remainder (e.g. `1.99` + 2 items → `2.01`).
 
+## v2.17 — 2026-10-01
+
+Correctness and safety batch (7 items):
+
+- Dates use Singapore time on the server too, so between midnight and 8am the
+  "today" ring, default month, overdue counts and new-year defaults are no
+  longer a day behind.
+- Bad dates in the address bar no longer crash pages: /day/abc is a clean "not
+  found", a silly month or year is clamped, and bad dates in the reminders,
+  export and database queries are rejected instead of passed through. Notes and
+  comments have length and format limits.
+- Error messages from the database are no longer shown to users or returned by
+  the calendar-feed and .ics routes; they are logged and replaced with plain
+  wording.
+- Login is harder to guess at: the passcode check is constant-time everywhere,
+  a wrong passcode waits about half a second, and 8 wrong tries from one place
+  in 10 minutes are paused. If the role header is ever missing the page now
+  assumes Viewer, not Editor, and the five Editor-only routes (backup, export,
+  .ics, reminders events, holiday fetch) check the role themselves as well as
+  in middleware.
+- Fixed a repeating multi-day event dragged into another month getting the
+  wrong end date.
+- Undoing the delete of an event now brings its checklist back too.
+- Splitting a repeating series ("this and future") now creates the new series
+  first and rolls back on any failure, so a half-finished split can no longer
+  leave the old series cut short with nothing after it.
+- Tests: 103 to 113.
+
 ## v2.10 — 2026-10-01
 
 - Added about 60 automated tests (43 to 103) covering how repeating events

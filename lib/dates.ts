@@ -52,3 +52,45 @@ export function formatEventTimeRange(
   const startLabel = startPeriod === endPeriod ? start.slice(0, -3) : start;
   return `${startLabel}–${end}`;
 }
+
+// "Today" for this app is always the Singapore calendar day. The server runs in
+// UTC, so between 00:00 and 08:00 SGT its own date is still yesterday.
+const SG_DATE_FORMAT = new Intl.DateTimeFormat("en-CA", {
+  timeZone: "Asia/Singapore",
+  year: "numeric",
+  month: "2-digit",
+  day: "2-digit",
+});
+
+export function todayStr(): string {
+  return SG_DATE_FORMAT.format(new Date());
+}
+
+// Local-midnight Date for the Singapore day (same convention as parseDateStr).
+export function todayDate(): Date {
+  return parseDateStr(todayStr());
+}
+
+// Strict "yyyy-MM-dd" that is also a real calendar date (rejects 2026-02-30).
+export function isValidDateStr(s: unknown): s is string {
+  if (typeof s !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(s)) return false;
+  const [y, m, d] = s.split("-").map(Number);
+  const dt = new Date(Date.UTC(y, m - 1, d));
+  return dt.getUTCFullYear() === y && dt.getUTCMonth() === m - 1 && dt.getUTCDate() === d;
+}
+
+export const MIN_YEAR = 2000;
+export const MAX_YEAR = 2100;
+
+// Clamps URL-supplied year/month into a safe range; non-numeric falls back to
+// today's (Singapore) year/month.
+export function clampYearMonth(year: unknown, month: unknown): { year: number; month: number } {
+  const today = todayDate();
+  let y = Number(year);
+  let m = Number(month);
+  if (!Number.isFinite(y) || !y) y = today.getFullYear();
+  if (!Number.isFinite(m) || !m) m = today.getMonth() + 1;
+  y = Math.min(MAX_YEAR, Math.max(MIN_YEAR, Math.trunc(y)));
+  m = Math.min(12, Math.max(1, Math.trunc(m)));
+  return { year: y, month: m };
+}

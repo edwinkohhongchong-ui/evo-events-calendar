@@ -7,6 +7,7 @@ import { fetchRow } from "./undo/capture";
 import { requireRole } from "./authz";
 import { runAction } from "./actionResult";
 import { logActivity } from "./activity";
+import { MAX_YEAR, MIN_YEAR } from "./dates";
 
 export interface NoteCommentValues {
   scope: NoteScope;
@@ -26,8 +27,32 @@ function noteLogTarget(scope: string, year: number | null, month: number | null)
   };
 }
 
+const MAX_COMMENT_LENGTH = 2000;
+const MAX_AUTHOR_LENGTH = 60;
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+function validateNoteComment(v: NoteCommentValues) {
+  if (v.scope !== "general" && v.scope !== "month") throw new Error("Unknown note type.");
+  if (v.scope === "month") {
+    const ok =
+      Number.isInteger(v.year) && v.year! >= MIN_YEAR && v.year! <= MAX_YEAR &&
+      Number.isInteger(v.month) && v.month! >= 1 && v.month! <= 12;
+    if (!ok) throw new Error("That month isn't valid.");
+  }
+  if (typeof v.content !== "string" || v.content.length > MAX_COMMENT_LENGTH) {
+    throw new Error(`Comments can be at most ${MAX_COMMENT_LENGTH} characters.`);
+  }
+  if (typeof v.author_name !== "string" || v.author_name.length > MAX_AUTHOR_LENGTH) {
+    throw new Error(`Names can be at most ${MAX_AUTHOR_LENGTH} characters.`);
+  }
+  if (v.parent_id != null && (typeof v.parent_id !== "string" || !UUID_RE.test(v.parent_id))) {
+    throw new Error("Couldn't find the comment you're replying to.");
+  }
+}
+
 async function createNoteCommentImpl(values: NoteCommentValues): Promise<AffectedRow[]> {
   await requireRole("viewer");
+  validateNoteComment(values);
   const { data, error } = await supabase.from("note_comments").insert(values).select().single();
   if (error) {
     console.error(error);

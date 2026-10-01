@@ -39,7 +39,8 @@ export async function GET(_request: NextRequest, { params }: { params: { token: 
   ]);
 
   if (eventsRes.error) {
-    return NextResponse.json({ error: eventsRes.error.message }, { status: 500 });
+    console.error(eventsRes.error);
+    return NextResponse.json({ error: "Couldn't load the calendar. Please try again." }, { status: 500 });
   }
 
   const ics = buildIcsCalendar(

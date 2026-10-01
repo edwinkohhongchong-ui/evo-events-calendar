@@ -2,6 +2,7 @@ import { differenceInCalendarDays, addDays } from "date-fns";
 import { EventRow, EventOccurrence, OverrideRow } from "./types";
 import { computeEndTime } from "./timeMath";
 import { parseDateStr, toDateStr } from "./dates";
+import { computeSpanDays } from "./eventSpan";
 
 // Applies an override's date/time/span deviation on top of an already-
 // expanded occurrence. new_date is always applied (it's always concrete —
@@ -94,7 +95,10 @@ export function applyOverrides(
           isOverridden: false,
           startTime: baseEvent.event_time,
           endTime: baseEvent.end_time,
-          spanEndDate: baseEvent.end_date ?? override.original_date,
+          // Natural span for THIS occurrence (series length from its own natural
+          // date), not the anchor's end_date; applyOverrideToOccurrence then
+          // shifts it with the date move, as recurrence.ts does for the first pass.
+          spanEndDate: toDateStr(addDays(parseDateStr(override.original_date), computeSpanDays(baseEvent))),
         },
         override
       )
