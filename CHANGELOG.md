@@ -8,6 +8,16 @@ items (features/fixes) that push contains — a push with 1 item goes up by
 `1.05`). If MINOR would pass `.99`, MAJOR increments and MINOR carries the
 remainder (e.g. `1.99` + 2 items → `2.01`).
 
+## v1.99 — 2026-10-02
+
+- Add Event now has an optional Checklist picker (below Date and Time): choose a
+  checklist template and it is copied onto the new event as soon as it is
+  saved. For "+EVO YTH Big Day" and "Easter/XMAS" gatherings, Big Event Prep is
+  pre-selected and labelled as a suggestion, and can be set to "No checklist".
+  Shown for Editors on one-off events only (it hides if you choose a repeat). If
+  the event saves but the checklist can't be added, the form says so and Save
+  retries just the checklist, so the event is never created twice.
+
 ## v1.98 — 2026-10-02
 
 - The checklist badge on a calendar chip (e.g. 0/6) now sits on the time row

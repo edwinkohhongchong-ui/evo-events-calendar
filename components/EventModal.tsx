@@ -1,7 +1,9 @@
 "use client";
 
-import { useState, FormEvent } from "react";
-import { EventOccurrence, EventRow, EventType, GatheringType, Level, LevelRow, Recurring } from "@/lib/types";
+import { useEffect, useState, FormEvent } from "react";
+import { ChecklistTemplateWithItems, EventOccurrence, EventRow, EventType, GatheringType, Level, LevelRow, Recurring } from "@/lib/types";
+import { applyChecklistTemplate, getChecklistTemplateOptions } from "@/lib/eventChecklistActions";
+import { SUGGESTED_TEMPLATE_BY_GATHERING_TYPE } from "@/lib/eventChecklist";
 import {
   createEvent,
   updateEvent,
@@ -24,7 +26,7 @@ import ModalShell from "./ui/ModalShell";
 import { INPUT, LABEL, TEXTAREA } from "./ui/fieldStyles";
 import Button from "./ui/Button";
 import Pill from "./ui/Pill";
-import { ChevronIcon, MapPinIcon, RepeatIcon, StickyNoteIcon, ClockIcon } from "./icons";
+import { CheckSquareIcon, ChevronIcon, MapPinIcon, RepeatIcon, StickyNoteIcon, ClockIcon } from "./icons";
 import { useLevelColor } from "@/lib/levelColorContext";
 import { LEVEL_DOT_CLASSES } from "@/lib/constants";
 import RecurringScopeDialog from "./RecurringScopeDialog";
@@ -176,6 +178,14 @@ export default function EventModal({
         (occurrence && (occurrence.spanEndDate !== occurrence.occurrenceDate || occurrence.endTime))
       )
   );
+  // Optional checklist copied onto a brand-new one-off event right after it is
+  // created. A suggested template is pre-selected (visibly) for Big Day and
+  // Easter/XMAS gatherings until the user picks something themselves.
+  const [checklistTemplates, setChecklistTemplates] = useState<ChecklistTemplateWithItems[]>([]);
+  const [checklistChoice, setChecklistChoice] = useState<string | null>(null); // null = untouched
+  // Set once the event row exists, so a retry after a failed checklist step
+  // doesn't create the event twice.
+  const [createdEventId, setCreatedEventId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
   const [confirmDelete, setConfirmDelete] = useState(false);
@@ -187,6 +197,23 @@ export default function EventModal({
   const [pendingValues, setPendingValues] = useState<EventFormValues | null>(null);
 
   useEscapeKey(onClose);
+
+  useEffect(() => {
+    if (mode !== "add" || !isEditor) return;
+    (async () => {
+      try {
+        setChecklistTemplates(unwrap(await getChecklistTemplateOptions()));
+      } catch {
+        /* no picker if templates can't be loaded; the event can still be saved */
+      }
+    })();
+  }, [mode, isEditor]);
+  const suggestedTemplateName =
+    eventType === "Gathering" ? SUGGESTED_TEMPLATE_BY_GATHERING_TYPE[gatheringType] : undefined;
+  const suggestedTemplate = suggestedTemplateName
+    ? checklistTemplates.find((t) => t.name === suggestedTemplateName)
+    : undefined;
+  const checklistTemplateId = checklistChoice ?? suggestedTemplate?.id ?? "";
 
   const isRecurringSeries = mode === "edit" && !!event && event.recurring !== "None";
   // Scope choices need to know which specific occurrence was clicked —
@@ -374,8 +401,26 @@ export default function EventModal({
     setSaving(true);
     try {
       if (mode === "add") {
-        const affected = unwrap(await createEvent(values));
-        record(`Add "${values.name}"`, affected);
+        let newId = createdEventId;
+        if (!newId) {
+          const affected = unwrap(await createEvent(values));
+          record(`Add "${values.name}"`, affected);
+          newId = affected.find((a) => a.table === "events")?.id ?? null;
+          setCreatedEventId(newId);
+        }
+        if (newId && recurring === "None" && checklistTemplateId) {
+          try {
+            unwrap(await applyChecklistTemplate(newId, checklistTemplateId));
+          } catch (err) {
+            setFormError(
+              `The event was saved, but its checklist couldn't be added: ${
+                err instanceof Error ? err.message : "please try again."
+              } Press Save to retry, or add it later from the event's details.`
+            );
+            setSaving(false);
+            return;
+          }
+        }
       } else if (event) {
         const affected = unwrap(await updateEvent(event.id, values));
         record(`Edit "${values.name}"`, affected);
@@ -842,6 +887,31 @@ export default function EventModal({
               />
             </label>
           </div>
+
+          {mode === "add" && isEditor && recurring === "None" && checklistTemplates.length > 0 && (
+            <label className="flex flex-col gap-1">
+              <span className={`${LABEL} flex items-center gap-1`}>
+                <CheckSquareIcon className="!h-3.5 !w-3.5" /> Checklist (optional)
+              </span>
+              <select
+                value={checklistTemplateId}
+                onChange={(e) => setChecklistChoice(e.target.value)}
+                className={INPUT}
+              >
+                <option value="">No checklist</option>
+                {checklistTemplates.map((t) => (
+                  <option key={t.id} value={t.id}>
+                    {t.name}
+                  </option>
+                ))}
+              </select>
+              {suggestedTemplate && checklistTemplateId === suggestedTemplate.id && checklistChoice === null && (
+                <span className="text-micro text-ink-2">
+                  Suggested for this type of event. Choose &ldquo;No checklist&rdquo; if you don&rsquo;t need one.
+                </span>
+              )}
+            </label>
+          )}
 
           <div className="rounded-card border border-line">
             <button
