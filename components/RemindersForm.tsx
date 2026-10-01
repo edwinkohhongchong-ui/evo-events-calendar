@@ -8,7 +8,7 @@ import { ChecklistTemplateWithItems, ReminderTemplateRow } from "@/lib/types";
 import { ReminderPickerEvent } from "@/lib/data";
 import { toDateStr, formatDateDisplay, formatEventTimeRange } from "@/lib/dates";
 import ReminderTemplateModal from "./ReminderTemplateModal";
-import ConfirmDialog from "./ConfirmDialog";
+import ConfirmModal from "./ConfirmModal";
 import { unwrap } from "@/lib/actionResult";
 
 interface RemindersFormProps {
@@ -465,23 +465,13 @@ export default function RemindersForm({ templates, checklistTemplates }: Reminde
       )}
 
       {pendingDelete && (
-        <div
-          className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4"
-          onClick={() => setPendingDelete(null)}
-        >
-          <div
-            className="bg-white rounded-lg shadow-lg w-full max-w-md p-5"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <ConfirmDialog
+        <ConfirmModal
               message={<>Delete &ldquo;{pendingDelete.name}&rdquo;?</>}
               error={deleteError}
               busy={removingId === pendingDelete.id}
-              onCancel={() => setPendingDelete(null)}
+              onClose={() => setPendingDelete(null)}
               onConfirm={handleConfirmRemoveTemplate}
             />
-          </div>
-        </div>
       )}
     </div>
   );

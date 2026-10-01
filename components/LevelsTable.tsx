@@ -4,8 +4,11 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import LevelModal from "./LevelModal";
 import { LevelRow } from "@/lib/types";
-import { LEVEL_COLOR_CLASSES } from "@/lib/constants";
+import { LEVEL_CHIP_CLASSES, LEVEL_DOT_CLASSES } from "@/lib/constants";
 import { resolveLevelColor } from "@/lib/levelColor";
+import { TABLE_CARD, TABLE, TH, TD, TR, EMPTY_CELL } from "./ui/tableStyles";
+import Button from "./ui/Button";
+import { PlusIcon } from "./icons";
 
 type ModalState = { type: "closed" } | { type: "add" } | { type: "edit"; level: LevelRow };
 
@@ -16,51 +19,50 @@ export default function LevelsTable({ levels }: { levels: LevelRow[] }) {
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-3 gap-3 flex-wrap">
-        <p className="text-sm text-gray-500">
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+        <p className="text-body text-ink-2">
           These are the event categories shown in the calendar legend, the Add Event form, and the
           list below the calendar.
         </p>
-        <button
-          onClick={() => setModal({ type: "add" })}
-          className="px-3 py-1.5 text-sm rounded bg-navy text-white whitespace-nowrap"
-        >
+        <Button size="sm" icon={<PlusIcon className="!h-4 !w-4" />} onClick={() => setModal({ type: "add" })}>
           Add Category
-        </button>
+        </Button>
       </div>
-      <div className="border border-gray-200 rounded-md overflow-hidden overflow-x-auto">
-        <table className="w-full text-sm whitespace-nowrap">
-          <thead className="bg-navy text-white text-left">
+      <div className={TABLE_CARD}>
+        <table className={TABLE}>
+          <thead>
             <tr>
-              <th className="px-3 py-2">Name</th>
-              <th className="px-3 py-2">Color</th>
-              <th className="px-3 py-2">Order</th>
+              <th className={TH}>Name</th>
+              <th className={TH}>Colour</th>
+              <th className={TH}>Order</th>
             </tr>
           </thead>
           <tbody>
             {levels.map((level) => (
-              <tr
-                key={level.id}
-                onClick={() => setModal({ type: "edit", level })}
-                className="border-t border-gray-200 hover:bg-gray-50 cursor-pointer"
-              >
-                <td className="px-3 py-2">
+              <tr key={level.id} onClick={() => setModal({ type: "edit", level })} className={TR}>
+                <td className={TD}>
                   <span
                     className={[
-                      "text-[11px] px-1.5 py-0.5 rounded border",
-                      LEVEL_COLOR_CLASSES[resolveLevelColor(level)],
+                      "inline-block rounded-chip px-2 py-0.5 text-chip font-medium",
+                      LEVEL_CHIP_CLASSES[resolveLevelColor(level)],
                     ].join(" ")}
                   >
                     {level.name}
                   </span>
                 </td>
-                <td className="px-3 py-2 text-gray-600">{resolveLevelColor(level)}</td>
-                <td className="px-3 py-2 text-gray-600">{level.sort_order}</td>
+                <td className={TD}>
+                  <span
+                    className={`inline-block h-3.5 w-3.5 rounded-full ${LEVEL_DOT_CLASSES[resolveLevelColor(level)]}`}
+                    title={resolveLevelColor(level)}
+                    aria-label={resolveLevelColor(level)}
+                  />
+                </td>
+                <td className={`${TD} text-ink-2`}>{level.sort_order}</td>
               </tr>
             ))}
             {levels.length === 0 && (
               <tr>
-                <td colSpan={3} className="px-3 py-6 text-center text-gray-400">
+                <td colSpan={3} className={EMPTY_CELL}>
                   No categories yet.
                 </td>
               </tr>

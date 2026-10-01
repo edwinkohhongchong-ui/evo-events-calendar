@@ -4,13 +4,20 @@ import { useMemo, useState, MouseEvent } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import SeasonModal from "./SeasonModal";
-import ConfirmDialog from "./ConfirmDialog";
+import ConfirmModal from "./ConfirmModal";
 import { useEscapeKey } from "@/lib/useEscapeKey";
 import { deleteSeason } from "@/lib/seasonActions";
 import { useUndo } from "@/lib/undo/UndoProvider";
 import { SeasonRow } from "@/lib/types";
 import { formatDateDisplay } from "@/lib/dates";
 import { unwrap } from "@/lib/actionResult";
+import { TABLE_CARD, TABLE, TH, TD, TR, EMPTY_CELL, ROW_ACTION, TOOLBAR_SELECT } from "./ui/tableStyles";
+import Button, { buttonClass } from "./ui/Button";
+import IconButton from "./ui/IconButton";
+import Pill from "./ui/Pill";
+import { PlusIcon, TrashIcon, CheckCircleIcon } from "./icons";
+import { LEVEL_DOT_CLASSES } from "@/lib/constants";
+import { resolveSeasonColor } from "@/lib/seasonColor";
 
 type ModalState = { type: "closed" } | { type: "add" } | { type: "edit"; season: SeasonRow };
 
@@ -72,13 +79,13 @@ export default function SeasonsTable({ seasons }: { seasons: SeasonRow[] }) {
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-3 gap-3 flex-wrap">
-        <label className="flex items-center gap-2 text-sm">
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+        <label className="flex items-center gap-2 text-body text-ink-2">
           Year
           <select
             value={yearFilter}
             onChange={(e) => setYearFilter(e.target.value)}
-            className="border rounded px-2 py-1"
+            className={TOOLBAR_SELECT}
           >
             <option value={ALL_YEARS}>All</option>
             {years.map((y) => (
@@ -88,74 +95,66 @@ export default function SeasonsTable({ seasons }: { seasons: SeasonRow[] }) {
             ))}
           </select>
         </label>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
           <Link
             href="/seasons/update-calendar"
-            className="px-3 py-1.5 text-sm rounded border border-navy text-navy"
+            className={buttonClass("secondary", "sm")}
             title="Manually enter this year's exam/term dates for each institution — there's no API for these, so this is an entry assist, not a live fetch"
           >
             Update Calendar
           </Link>
-          <Link
-            href="/seasons/new-year"
-            className="px-3 py-1.5 text-sm rounded border border-navy text-navy"
-          >
+          <Link href="/seasons/new-year" className={buttonClass("secondary", "sm")}>
             Start a New Year
           </Link>
-          <button
-            onClick={() => setModal({ type: "add" })}
-            className="px-3 py-1.5 text-sm rounded bg-navy text-white"
-          >
+          <Button size="sm" icon={<PlusIcon className="!h-4 !w-4" />} onClick={() => setModal({ type: "add" })}>
             Add Season
-          </button>
+          </Button>
         </div>
       </div>
-      <div className="border border-gray-200 rounded-md overflow-hidden overflow-x-auto">
-        <table className="w-full text-sm whitespace-nowrap">
-          <thead className="bg-navy text-white text-left">
+      <div className={TABLE_CARD}>
+        <table className={TABLE}>
+          <thead>
             <tr>
-              <th className="px-3 py-2">Name</th>
-              <th className="px-3 py-2">Category</th>
-              <th className="px-3 py-2">Start</th>
-              <th className="px-3 py-2">End</th>
-              <th className="px-3 py-2">Notes</th>
-              <th className="px-3 py-2 w-8"></th>
+              <th className={TH}>Name</th>
+              <th className={TH}>Category</th>
+              <th className={TH}>Dates</th>
+              <th className={TH}>Notes</th>
+              <th className={`${TH} w-12`}></th>
             </tr>
           </thead>
           <tbody>
             {filtered.map((season) => (
-              <tr
-                key={season.id}
-                onClick={() => setModal({ type: "edit", season })}
-                className="border-t border-gray-200 hover:bg-gray-50 cursor-pointer"
-              >
-                <td className="px-3 py-2">{season.name}</td>
-                <td className="px-3 py-2 text-gray-600">{season.category}</td>
-                <td className="px-3 py-2 whitespace-nowrap">
-                  {formatDateDisplay(season.start_date)}
+              <tr key={season.id} onClick={() => setModal({ type: "edit", season })} className={TR}>
+                <td className={`${TD} font-medium`}>
+                  <span className="flex items-center gap-2">
+                    <span
+                      className={`h-2.5 w-2.5 shrink-0 rounded-full ${LEVEL_DOT_CLASSES[resolveSeasonColor(season)]}`}
+                      aria-hidden="true"
+                    />
+                    {season.name}
+                  </span>
                 </td>
-                <td className="px-3 py-2 whitespace-nowrap">
-                  {formatDateDisplay(season.end_date)}
+                <td className={`${TD} text-ink-2`}>{season.category}</td>
+                <td className={TD}>
+                  {formatDateDisplay(season.start_date)} – {formatDateDisplay(season.end_date)}
                 </td>
-                <td className="px-3 py-2 text-gray-500 max-w-[200px] truncate">
-                  {season.notes}
-                </td>
-                <td className="px-3 py-2">
-                  <button
-                    type="button"
-                    onClick={(e) => handleRemove(e, season)}
-                    disabled={removingId === season.id}
-                    title={`Remove "${season.name}"`}
-                    className="text-gray-300 hover:text-red-600 disabled:opacity-30 leading-none"
-                  >
-                    ×
-                  </button>
+                <td className={`${TD} max-w-[200px] truncate text-ink-2`}>{season.notes}</td>
+                <td className={`${TD} text-right`}>
+                  <span className={ROW_ACTION}>
+                    <IconButton
+                      label={`Remove "${season.name}"`}
+                      icon={<TrashIcon className="!h-4 !w-4" />}
+                      onClick={(e) => handleRemove(e, season)}
+                      disabled={removingId === season.id}
+                      className="hover:!text-danger"
+                    />
+                  </span>
                 </td>
               </tr>
             ))}
             {filtered.length === 0 && (
               <tr>
-                <td colSpan={6} className="px-3 py-6 text-center text-gray-400">
+                <td colSpan={5} className={EMPTY_CELL}>
                   No seasons{yearFilter !== ALL_YEARS ? ` for ${yearFilter}` : " yet"}.
                 </td>
               </tr>
@@ -181,23 +180,13 @@ export default function SeasonsTable({ seasons }: { seasons: SeasonRow[] }) {
       )}
 
       {pendingDelete && (
-        <div
-          className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4"
-          onClick={() => setPendingDelete(null)}
-        >
-          <div
-            className="bg-white rounded-lg shadow-lg w-full max-w-md p-5 max-h-[90vh] overflow-y-auto"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <ConfirmDialog
+        <ConfirmModal
               message={<>Delete &ldquo;{pendingDelete.name}&rdquo;?</>}
               error={deleteError}
               busy={removingId === pendingDelete.id}
-              onCancel={() => setPendingDelete(null)}
+              onClose={() => setPendingDelete(null)}
               onConfirm={handleConfirmRemove}
             />
-          </div>
-        </div>
       )}
     </div>
   );

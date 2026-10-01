@@ -24,6 +24,11 @@ const SIZE: Record<ButtonSize, string> = {
   md: "min-h-[40px] px-5 text-ui",
 };
 
+/** Class string for non-<button> elements (e.g. next/link) that should look like a Button. */
+export function buttonClass(variant: ButtonVariant = "secondary", size: ButtonSize = "sm", extra = ""): string {
+  return `inline-flex items-center justify-center gap-1.5 rounded-pill font-medium whitespace-nowrap transition-colors duration-fast ease-apple ${VARIANT[variant]} ${SIZE[size]} ${extra}`;
+}
+
 export default function Button({
   variant = "primary",
   size = "md",

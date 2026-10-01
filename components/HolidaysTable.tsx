@@ -4,17 +4,29 @@ import { useMemo, useState, MouseEvent } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import HolidayModal from "./HolidayModal";
-import ConfirmDialog from "./ConfirmDialog";
+import ConfirmModal from "./ConfirmModal";
 import { useEscapeKey } from "@/lib/useEscapeKey";
 import { deleteHoliday } from "@/lib/holidayActions";
 import { useUndo } from "@/lib/undo/UndoProvider";
 import { HolidayRow } from "@/lib/types";
 import { formatDateDisplay } from "@/lib/dates";
 import { unwrap } from "@/lib/actionResult";
+import { TABLE_CARD, TABLE, TH, TD, TR, EMPTY_CELL, ROW_ACTION, TOOLBAR_SELECT } from "./ui/tableStyles";
+import Button, { buttonClass } from "./ui/Button";
+import IconButton from "./ui/IconButton";
+import Pill from "./ui/Pill";
+import { PlusIcon, TrashIcon, CheckCircleIcon } from "./icons";
 
 type ModalState = { type: "closed" } | { type: "add" } | { type: "edit"; holiday: HolidayRow };
 
 const ALL_YEARS = "All";
+
+function holidayPillVariant(type: string): "navy" | "ok" | "warn" | "neutral" {
+  if (type.startsWith("National")) return "navy";
+  if (type === "School Schedule") return "ok";
+  if (type === "Church Observance") return "warn";
+  return "neutral";
+}
 
 export default function HolidaysTable({ holidays }: { holidays: HolidayRow[] }) {
   const router = useRouter();
@@ -66,13 +78,13 @@ export default function HolidaysTable({ holidays }: { holidays: HolidayRow[] }) 
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-3 gap-3 flex-wrap">
-        <label className="flex items-center gap-2 text-sm">
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+        <label className="flex items-center gap-2 text-body text-ink-2">
           Year
           <select
             value={yearFilter}
             onChange={(e) => setYearFilter(e.target.value)}
-            className="border rounded px-2 py-1"
+            className={TOOLBAR_SELECT}
           >
             <option value={ALL_YEARS}>All</option>
             {years.map((y) => (
@@ -82,66 +94,56 @@ export default function HolidaysTable({ holidays }: { holidays: HolidayRow[] }) 
             ))}
           </select>
         </label>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
           <Link
             href={`/holidays/new-year?year=${new Date().getFullYear()}`}
-            className="px-3 py-1.5 text-sm rounded border border-navy text-navy"
+            className={buttonClass("secondary", "sm")}
             title="Re-checks Singapore public holidays for the current year via Calendarific — shows any missing ones for your approval, doesn't touch what's already here"
           >
             Update Calendar
           </Link>
-          <Link
-            href="/holidays/new-year"
-            className="px-3 py-1.5 text-sm rounded border border-navy text-navy"
-          >
+          <Link href="/holidays/new-year" className={buttonClass("secondary", "sm")}>
             Start a New Year
           </Link>
-          <button
-            onClick={() => setModal({ type: "add" })}
-            className="px-3 py-1.5 text-sm rounded bg-navy text-white"
-          >
+          <Button size="sm" icon={<PlusIcon className="!h-4 !w-4" />} onClick={() => setModal({ type: "add" })}>
             Add Holiday
-          </button>
+          </Button>
         </div>
       </div>
-      <div className="border border-gray-200 rounded-md overflow-hidden overflow-x-auto">
-        <table className="w-full text-sm whitespace-nowrap">
-          <thead className="bg-navy text-white text-left">
+      <div className={TABLE_CARD}>
+        <table className={TABLE}>
+          <thead>
             <tr>
-              <th className="px-3 py-2">Date</th>
-              <th className="px-3 py-2">Name</th>
-              <th className="px-3 py-2">Type</th>
-              <th className="px-3 py-2 w-8"></th>
+              <th className={TH}>Date</th>
+              <th className={TH}>Name</th>
+              <th className={TH}>Type</th>
+              <th className={`${TH} w-12`}></th>
             </tr>
           </thead>
           <tbody>
             {filtered.map((holiday) => (
-              <tr
-                key={holiday.id}
-                onClick={() => setModal({ type: "edit", holiday })}
-                className="border-t border-gray-200 hover:bg-gray-50 cursor-pointer"
-              >
-                <td className="px-3 py-2 whitespace-nowrap">
-                  {formatDateDisplay(holiday.holiday_date)}
+              <tr key={holiday.id} onClick={() => setModal({ type: "edit", holiday })} className={TR}>
+                <td className={TD}>{formatDateDisplay(holiday.holiday_date)}</td>
+                <td className={`${TD} font-medium`}>{holiday.name}</td>
+                <td className={TD}>
+                  <Pill variant={holidayPillVariant(holiday.type)}>{holiday.type}</Pill>
                 </td>
-                <td className="px-3 py-2">{holiday.name}</td>
-                <td className="px-3 py-2 text-gray-600">{holiday.type}</td>
-                <td className="px-3 py-2">
-                  <button
-                    type="button"
-                    onClick={(e) => handleRemove(e, holiday)}
-                    disabled={removingId === holiday.id}
-                    title={`Remove "${holiday.name}"`}
-                    className="text-gray-300 hover:text-red-600 disabled:opacity-30 leading-none"
-                  >
-                    ×
-                  </button>
+                <td className={`${TD} text-right`}>
+                  <span className={ROW_ACTION}>
+                    <IconButton
+                      label={`Remove "${holiday.name}"`}
+                      icon={<TrashIcon className="!h-4 !w-4" />}
+                      onClick={(e) => handleRemove(e, holiday)}
+                      disabled={removingId === holiday.id}
+                      className="hover:!text-danger"
+                    />
+                  </span>
                 </td>
               </tr>
             ))}
             {filtered.length === 0 && (
               <tr>
-                <td colSpan={4} className="px-3 py-6 text-center text-gray-400">
+                <td colSpan={4} className={EMPTY_CELL}>
                   No holidays{yearFilter !== ALL_YEARS ? ` for ${yearFilter}` : " yet"}.
                 </td>
               </tr>
@@ -167,23 +169,13 @@ export default function HolidaysTable({ holidays }: { holidays: HolidayRow[] }) 
       )}
 
       {pendingDelete && (
-        <div
-          className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4"
-          onClick={() => setPendingDelete(null)}
-        >
-          <div
-            className="bg-white rounded-lg shadow-lg w-full max-w-md p-5 max-h-[90vh] overflow-y-auto"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <ConfirmDialog
+        <ConfirmModal
               message={<>Delete &ldquo;{pendingDelete.name}&rdquo;?</>}
               error={deleteError}
               busy={removingId === pendingDelete.id}
-              onCancel={() => setPendingDelete(null)}
+              onClose={() => setPendingDelete(null)}
               onConfirm={handleConfirmRemove}
             />
-          </div>
-        </div>
       )}
     </div>
   );

@@ -9,7 +9,7 @@ import { useEventFilter } from "@/lib/eventFilterContext";
 import { deleteLevel } from "@/lib/levelActions";
 import { useUndo } from "@/lib/undo/UndoProvider";
 import { LevelRow } from "@/lib/types";
-import ConfirmDialog from "./ConfirmDialog";
+import ConfirmModal from "./ConfirmModal";
 import { unwrap } from "@/lib/actionResult";
 
 interface LevelChipsProps {
@@ -135,23 +135,13 @@ export default function LevelChips({ levels, onEdit }: LevelChipsProps) {
       {removeError && !pendingDelete && <p className="text-micro text-danger">{removeError}</p>}
 
       {pendingDelete && (
-        <div
-          className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4"
-          onClick={() => setPendingDelete(null)}
-        >
-          <div
-            className="bg-white rounded-lg shadow-lg w-full max-w-md p-5"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <ConfirmDialog
+        <ConfirmModal
               message={<>Delete the &ldquo;{pendingDelete.name}&rdquo; category?</>}
               error={removeError}
               busy={removingId === pendingDelete.id}
-              onCancel={() => setPendingDelete(null)}
+              onClose={() => setPendingDelete(null)}
               onConfirm={handleConfirmRemove}
             />
-          </div>
-        </div>
       )}
     </div>
   );

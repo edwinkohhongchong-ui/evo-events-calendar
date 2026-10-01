@@ -8,7 +8,7 @@ import { useUndo } from "@/lib/undo/UndoProvider";
 import { useIsEditor } from "@/lib/roleContext";
 import { NoteCommentRow, NoteScope } from "@/lib/types";
 import { useEscapeKey } from "@/lib/useEscapeKey";
-import ConfirmDialog from "./ConfirmDialog";
+import ConfirmModal from "./ConfirmModal";
 import Card from "./ui/Card";
 import Button from "./ui/Button";
 import AutoGrowTextarea from "./ui/AutoGrowTextarea";
@@ -294,23 +294,13 @@ export default function NotesPanel({
       {error && <p className="text-micro text-danger">{error}</p>}
 
       {pendingDeleteId && (
-        <div
-          className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4"
-          onClick={() => setPendingDeleteId(null)}
-        >
-          <div
-            className="bg-white rounded-lg shadow-lg w-full max-w-md p-5 max-h-[90vh] overflow-y-auto"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <ConfirmDialog
+        <ConfirmModal
               message="Delete this note?"
               error={deleteError}
               busy={removingId === pendingDeleteId}
-              onCancel={() => setPendingDeleteId(null)}
+              onClose={() => setPendingDeleteId(null)}
               onConfirm={handleConfirmRemove}
             />
-          </div>
-        </div>
       )}
     </Card>
   );

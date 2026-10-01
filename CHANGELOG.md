@@ -8,6 +8,18 @@ items (features/fixes) that push contains — a push with 1 item goes up by
 `1.05`). If MINOR would pass `.99`, MAJOR increments and MINOR carries the
 remainder (e.g. `1.99` + 2 items → `2.01`).
 
+## v1.79 — 2026-10-01
+
+- Restyled the Holidays, Seasons, Checklist and Categories tables: white
+  rounded card, quiet header row, soft hover, pill buttons in the toolbar.
+  Holidays show their type as a coloured pill; Seasons show a colour dot and a
+  single "start – end" date column; Categories show the real chip look and a
+  colour dot; Checklist shows an icon next to items with an automated check.
+  Row delete is now a trash icon (appears on hover on desktop, always visible
+  on small screens).
+- The "Delete this?" pop-ups on those screens, Reminders, Message snippets
+  and Notes now use the same modal look as the forms.
+
 ## v1.77 — 2026-10-01
 
 - Holiday, Season, Category, Checklist item, Reminder template and Message

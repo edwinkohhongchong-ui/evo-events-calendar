@@ -11,6 +11,9 @@ import { AUTO_CHECKS } from "@/lib/checklistAutoChecks";
 import { useUndo } from "@/lib/undo/UndoProvider";
 import { AffectedRow } from "@/lib/undo/types";
 import { unwrap } from "@/lib/actionResult";
+import { TABLE_CARD, TABLE, TH, TD, TR, EMPTY_CELL, TOOLBAR_SELECT } from "./ui/tableStyles";
+import Button from "./ui/Button";
+import { PlusIcon, CheckCircleIcon } from "./icons";
 
 type ModalState = { type: "closed" } | { type: "add" } | { type: "edit"; item: ChecklistRow };
 
@@ -127,13 +130,13 @@ export default function ChecklistTable({
   return (
     <div>
       {error && <ErrorBanner message={error} onDismiss={() => setError(null)} />}
-      <div className="flex items-center justify-between mb-3 gap-3 flex-wrap">
-        <label className="flex items-center gap-2 text-sm">
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+        <label className="flex items-center gap-2 text-body text-ink-2">
           Target month
           <select
             value={monthFilter}
             onChange={(e) => setMonthFilter(e.target.value)}
-            className="border rounded px-2 py-1"
+            className={TOOLBAR_SELECT}
           >
             <option value={ALL_MONTHS}>All</option>
             <option value="None">No target month</option>
@@ -144,49 +147,55 @@ export default function ChecklistTable({
             ))}
           </select>
         </label>
-        <div className="flex gap-2">
-          <button
+        <div className="flex flex-wrap gap-2">
+          <Button
+            variant="secondary"
+            size="sm"
             onClick={handleCheckCalendar}
-            disabled={checking}
+            loading={checking}
             title="Marks each linked item Done, and reverts to Not Started if its link is gone"
-            className="px-3 py-1.5 text-sm rounded border border-navy text-navy disabled:opacity-50"
           >
             {checking ? "Checking…" : "Check Calendar"}
-          </button>
-          <button
-            onClick={() => setModal({ type: "add" })}
-            className="px-3 py-1.5 text-sm rounded bg-navy text-white"
-          >
+          </Button>
+          <Button size="sm" icon={<PlusIcon className="!h-4 !w-4" />} onClick={() => setModal({ type: "add" })}>
             Add Item
-          </button>
+          </Button>
         </div>
       </div>
-      <div className="border border-gray-200 rounded-md overflow-hidden overflow-x-auto">
-        <table className="w-full text-sm whitespace-nowrap">
-          <thead className="bg-navy text-white text-left">
+      <div className={TABLE_CARD}>
+        <table className={TABLE}>
+          <thead>
             <tr>
-              <th className="px-3 py-2">Category</th>
-              <th className="px-3 py-2">Item</th>
-              <th className="px-3 py-2">Status</th>
-              <th className="px-3 py-2">Target Month</th>
-              <th className="px-3 py-2">Notes</th>
+              <th className={TH}>Category</th>
+              <th className={TH}>Item</th>
+              <th className={TH}>Status</th>
+              <th className={TH}>Target Month</th>
+              <th className={TH}>Notes</th>
             </tr>
           </thead>
           <tbody>
             {filtered.map((row) => (
-              <tr
-                key={row.id}
-                onClick={() => setModal({ type: "edit", item: row })}
-                className="border-t border-gray-200 hover:bg-gray-50 cursor-pointer"
-              >
-                <td className="px-3 py-2 text-gray-600">{row.category}</td>
-                <td className="px-3 py-2">{row.item}</td>
-                <td className="px-3 py-2" onClick={(e) => e.stopPropagation()}>
+              <tr key={row.id} onClick={() => setModal({ type: "edit", item: row })} className={TR}>
+                <td className={`${TD} text-ink-2`}>{row.category}</td>
+                <td className={`${TD} font-medium`}>
+                  <span className="flex items-center gap-1.5">
+                    {row.item}
+                    {row.auto_check_type && (
+                      <span
+                        title="Automated check — “Check Calendar” tests this item's rule"
+                        className="text-ink-3"
+                      >
+                        <CheckCircleIcon className="!h-4 !w-4" />
+                      </span>
+                    )}
+                  </span>
+                </td>
+                <td className={TD} onClick={(e) => e.stopPropagation()}>
                   <select
                     value={row.status}
                     onChange={(e) => handleStatusChange(row, e.target.value as ChecklistStatus)}
                     className={[
-                      "text-xs px-2 py-1 rounded border font-medium",
+                      "cursor-pointer rounded-pill border px-3 py-1 text-body font-medium",
                       STATUS_COLORS[row.status],
                     ].join(" ")}
                   >
@@ -197,13 +206,13 @@ export default function ChecklistTable({
                     ))}
                   </select>
                 </td>
-                <td className="px-3 py-2">{row.target_month ?? "—"}</td>
-                <td className="px-3 py-2 text-gray-500 max-w-[200px] truncate">{row.notes}</td>
+                <td className={TD}>{row.target_month ?? "—"}</td>
+                <td className={`${TD} max-w-[200px] truncate text-ink-2`}>{row.notes}</td>
               </tr>
             ))}
             {filtered.length === 0 && (
               <tr>
-                <td colSpan={5} className="px-3 py-6 text-center text-gray-400">
+                <td colSpan={5} className={EMPTY_CELL}>
                   No checklist items{monthFilter !== ALL_MONTHS ? " for this month" : ""}.
                 </td>
               </tr>
