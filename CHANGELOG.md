@@ -8,6 +8,27 @@ items (features/fixes) that push contains — a push with 1 item goes up by
 `1.05`). If MINOR would pass `.99`, MAJOR increments and MINOR carries the
 remainder (e.g. `1.99` + 2 items → `2.01`).
 
+## v1.64 — 2026-10-01
+
+- Added a notification bell beside the menu icon. It lists recent activity
+  from anyone using the app — events added, edited, moved or deleted,
+  holidays, seasons, categories, checklist items, notes and replies, and
+  undo/redo — as short one-line messages with "5m ago" style times. A badge
+  counts what's new since you last looked (tracked per browser; first-time
+  visitors start with a clean slate). Viewers only see items they can open
+  on the calendar. New `activity_log` table (migration 023). Logging is
+  best-effort and can never block a save.
+- Clicking a notification takes you to the item: it opens the right month,
+  scrolls to the event, day, season or notes panel, and flashes it with a
+  gold ring. If the item has since been deleted, a short message says so.
+- Note boxes now wrap and grow as you type so you can see everything you've
+  written: the day "+ note" box (now a roomy floating card — Enter saves,
+  Shift+Enter starts a new line) and the General/Month Notes and Reply boxes.
+  Saved day notes in the calendar cells now wrap instead of cutting off.
+- Housekeeping: ignore Google Drive's temporary sync folders so they can't
+  be committed by accident, and fixed a test file that was missing its `.ts`
+  ending so its 10 tests were silently never running.
+
 ## v1.60 — 2026-10-01
 
 - New look foundation, following apple.sg: quieter grey text hierarchy,

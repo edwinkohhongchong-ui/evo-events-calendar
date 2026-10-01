@@ -34,6 +34,7 @@ export default function EventCard({ occurrence, onClick }: EventCardProps) {
   return (
     <div
       ref={setNodeRef}
+      data-event-id={occurrence.event.id}
       {...listeners}
       {...attributes}
       onClick={(e) => {

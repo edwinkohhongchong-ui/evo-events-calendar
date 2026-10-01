@@ -11,6 +11,7 @@ import { useEscapeKey } from "@/lib/useEscapeKey";
 import ConfirmDialog from "./ConfirmDialog";
 import Card from "./ui/Card";
 import Button from "./ui/Button";
+import AutoGrowTextarea from "./ui/AutoGrowTextarea";
 import { XIcon } from "./icons";
 
 const AUTHOR_NAME_KEY = "evo-author-name";
@@ -205,6 +206,7 @@ export default function NotesPanel({
 
   return (
     <Card
+      data-notes-panel={scope}
       data-tour={scope === "general" ? "general-notes-panel" : "month-notes-panel"}
       padding="p-4"
       className="flex flex-col gap-3"
@@ -222,7 +224,7 @@ export default function NotesPanel({
             {(repliesByParent.get(c.id) ?? []).map((reply) => renderComment(reply, true))}
             {replyingTo === c.id && authorName && (
               <div className="pl-3 flex flex-col gap-1">
-                <textarea
+                <AutoGrowTextarea
                   value={replyDraft}
                   onChange={(e) => setReplyDraft(e.target.value)}
                   placeholder={`Reply to ${c.author_name}…`}
@@ -275,7 +277,7 @@ export default function NotesPanel({
 
         {authorName && (
           <form onSubmit={handleSubmit} className="flex flex-col gap-1.5">
-            <textarea
+            <AutoGrowTextarea
               value={content}
               onChange={(e) => setContent(e.target.value)}
               placeholder={placeholder}

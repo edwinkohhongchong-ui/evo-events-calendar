@@ -5,6 +5,7 @@ import { HolidayFormValues } from "./types";
 import { AffectedRow } from "./undo/types";
 import { fetchRow } from "./undo/capture";
 import { requireRole } from "./authz";
+import { logActivity } from "./activity";
 
 export async function createHoliday(values: HolidayFormValues): Promise<AffectedRow[]> {
   await requireRole("editor");
@@ -13,6 +14,7 @@ export async function createHoliday(values: HolidayFormValues): Promise<Affected
     console.error(error);
     throw new Error("Something went wrong saving this holiday. Please try again.");
   }
+  await logActivity({ action: "added", entity: "holiday", entityId: data.id, label: values.name, itemDate: values.holiday_date });
   return [{ table: "holidays", id: data.id, before: null, after: data }];
 }
 
@@ -51,6 +53,7 @@ export async function updateHoliday(
         : "Holiday not found."
     );
   }
+  await logActivity({ action: "edited", entity: "holiday", entityId: id, label: values.name, itemDate: values.holiday_date });
   return [{ table: "holidays", id, before, after: data[0] }];
 }
 
@@ -62,5 +65,7 @@ export async function deleteHoliday(id: string): Promise<AffectedRow[]> {
     console.error(error);
     throw new Error("Something went wrong deleting this holiday. Please try again.");
   }
-  return before ? [{ table: "holidays", id, before, after: null }] : [];
+  if (!before) return [];
+  await logActivity({ action: "deleted", entity: "holiday", entityId: id, label: String(before.name), itemDate: before.holiday_date });
+  return [{ table: "holidays", id, before, after: null }];
 }

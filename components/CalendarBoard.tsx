@@ -29,6 +29,7 @@ import { LevelColorProvider } from "@/lib/levelColorContext";
 import { useEventFilter } from "@/lib/eventFilterContext";
 import { useUndo } from "@/lib/undo/UndoProvider";
 import { useIsEditor } from "@/lib/roleContext";
+import FocusHighlighter from "./FocusHighlighter";
 import { DayNoteRow, EventOccurrence, HolidayRow, LevelRow, SeasonRow } from "@/lib/types";
 
 interface CalendarBoardProps {
@@ -187,6 +188,7 @@ export default function CalendarBoard({
 
   return (
     <LevelColorProvider colorMap={colorMap}>
+      <FocusHighlighter />
       {error && <ErrorBanner message={error} onDismiss={() => setError(null)} />}
       <DndContext
         id="calendar-dnd"

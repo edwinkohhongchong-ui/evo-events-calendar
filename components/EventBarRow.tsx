@@ -29,6 +29,7 @@ function SegmentBlock({
 
   return (
     <div
+      data-event-id={segment.occurrence.event.id}
       className={[
         "relative group text-chip font-medium leading-[20px] border",
         LEVEL_COLOR_CLASSES[colorKey],

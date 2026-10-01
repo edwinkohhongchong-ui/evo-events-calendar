@@ -5,6 +5,7 @@ import { LevelFormValues } from "./types";
 import { AffectedRow } from "./undo/types";
 import { fetchRow } from "./undo/capture";
 import { requireRole } from "./authz";
+import { logActivity } from "./activity";
 
 export async function createLevel(values: LevelFormValues): Promise<AffectedRow[]> {
   await requireRole("editor");
@@ -13,6 +14,7 @@ export async function createLevel(values: LevelFormValues): Promise<AffectedRow[
     console.error(error);
     throw new Error("Something went wrong saving this category. Please try again.");
   }
+  await logActivity({ action: "added", entity: "category", entityId: data.id, label: values.name, itemDate: null });
   return [{ table: "levels", id: data.id, before: null, after: data }];
 }
 
@@ -44,6 +46,7 @@ export async function updateLevel(
         : "Category not found."
     );
   }
+  await logActivity({ action: "edited", entity: "category", entityId: id, label: values.name, itemDate: null });
   return [{ table: "levels", id, before, after: data[0] }];
 }
 
@@ -58,5 +61,7 @@ export async function deleteLevel(id: string): Promise<AffectedRow[]> {
     console.error(error);
     throw new Error("Something went wrong deleting this category. Please try again.");
   }
-  return before ? [{ table: "levels", id, before, after: null }] : [];
+  if (!before) return [];
+  await logActivity({ action: "deleted", entity: "category", entityId: id, label: String(before.name), itemDate: null });
+  return [{ table: "levels", id, before, after: null }];
 }

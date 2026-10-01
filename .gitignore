@@ -36,3 +36,7 @@ yarn-error.log*
 next-env.d.ts
 .claude/settings.local.json
 .claude/agents/
+
+# Google Drive sync temp folders
+.tmp.driveupload/
+.tmp.drivedownload/

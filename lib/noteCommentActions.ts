@@ -5,6 +5,7 @@ import { NoteScope } from "./types";
 import { AffectedRow } from "./undo/types";
 import { fetchRow } from "./undo/capture";
 import { requireRole } from "./authz";
+import { logActivity } from "./activity";
 
 export interface NoteCommentValues {
   scope: NoteScope;
@@ -16,6 +17,14 @@ export interface NoteCommentValues {
   parent_id?: string | null;
 }
 
+// Month notes belong to a specific month; general notes to no month at all.
+function noteLogTarget(scope: string, year: number | null, month: number | null) {
+  return {
+    label: scope === "month" ? "Month Notes" : "General Notes",
+    itemDate: scope === "month" && year && month ? `${year}-${String(month).padStart(2, "0")}-01` : null,
+  };
+}
+
 export async function createNoteComment(values: NoteCommentValues): Promise<AffectedRow[]> {
   await requireRole("viewer");
   const { data, error } = await supabase.from("note_comments").insert(values).select().single();
@@ -23,6 +32,12 @@ export async function createNoteComment(values: NoteCommentValues): Promise<Affe
     console.error(error);
     throw new Error("Something went wrong posting this comment. Please try again.");
   }
+  await logActivity({
+    action: "commented",
+    entity: values.parent_id ? "comment" : "note",
+    entityId: data.id,
+    ...noteLogTarget(values.scope, values.year, values.month),
+  });
   return [{ table: "note_comments", id: data.id, before: null, after: data }];
 }
 
@@ -52,5 +67,11 @@ export async function deleteNoteComment(id: string): Promise<AffectedRow[]> {
   for (const reply of replies ?? []) {
     affected.push({ table: "note_comments", id: reply.id, before: reply, after: null });
   }
+  await logActivity({
+    action: "deleted",
+    entity: before.parent_id ? "comment" : "note",
+    entityId: id,
+    ...noteLogTarget(before.scope, before.year, before.month),
+  });
   return affected;
 }

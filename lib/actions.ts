@@ -9,6 +9,7 @@ import { EventRow, EventType, GatheringType, Level, Recurring } from "./types";
 import { AffectedRow } from "./undo/types";
 import { fetchRow } from "./undo/capture";
 import { requireRole } from "./authz";
+import { logActivity } from "./activity";
 
 // Moves a single occurrence to newDate. Never touches new_time/new_end_date —
 // the upsert below only ever sends event_id/original_date/new_date, so
@@ -42,6 +43,7 @@ export async function moveOccurrence(
       console.error(error);
       throw new Error("Something went wrong moving this event. Please try again.");
     }
+    await logActivity({ action: "moved", entity: "event", entityId: event.id, label: event.name, itemDate: newDate });
     return [{ table: "events", id: event.id, before, after: data }];
   }
 
@@ -66,6 +68,7 @@ export async function moveOccurrence(
         console.error(error);
         throw new Error("Something went wrong moving this event. Please try again.");
       }
+      await logActivity({ action: "moved", entity: "event", entityId: event.id, label: event.name, itemDate: newDate });
       return [{ table: "event_overrides", id: existing.id, before: existing, after: null }];
     }
     return [];
@@ -83,6 +86,7 @@ export async function moveOccurrence(
     console.error(error);
     throw new Error("Something went wrong moving this event. Please try again.");
   }
+  await logActivity({ action: "moved", entity: "event", entityId: event.id, label: event.name, itemDate: newDate });
   return [{ table: "event_overrides", id: data.id, before: existing, after: data }];
 }
 
@@ -118,6 +122,7 @@ export async function retimeOccurrence(
       console.error(error);
       throw new Error("Something went wrong retiming this event. Please try again.");
     }
+    await logActivity({ action: "edited", entity: "event", entityId: event.id, label: event.name, itemDate: originalDate });
     return [{ table: "events", id: event.id, before, after: data }];
   }
 
@@ -147,6 +152,7 @@ export async function retimeOccurrence(
         console.error(error);
         throw new Error("Something went wrong retiming this event. Please try again.");
       }
+      await logActivity({ action: "edited", entity: "event", entityId: event.id, label: event.name, itemDate: originalDate });
       return [{ table: "event_overrides", id: existing.id, before: existing, after: null }];
     }
     return [];
@@ -163,6 +169,7 @@ export async function retimeOccurrence(
       console.error(error);
       throw new Error("Something went wrong retiming this event. Please try again.");
     }
+    await logActivity({ action: "edited", entity: "event", entityId: event.id, label: event.name, itemDate: originalDate });
     return [{ table: "event_overrides", id: existing.id, before: existing, after: data }];
   }
 
@@ -180,6 +187,7 @@ export async function retimeOccurrence(
     console.error(error);
     throw new Error("Something went wrong retiming this event. Please try again.");
   }
+  await logActivity({ action: "edited", entity: "event", entityId: event.id, label: event.name, itemDate: originalDate });
   return [{ table: "event_overrides", id: data.id, before: null, after: data }];
 }
 
@@ -214,6 +222,7 @@ export async function createEvent(values: EventFormValues): Promise<AffectedRow[
     console.error(error);
     throw new Error("Something went wrong saving this event. Please try again.");
   }
+  await logActivity({ action: "added", entity: "event", entityId: data.id, label: values.name, itemDate: values.event_date });
   return [{ table: "events", id: data.id, before: null, after: data }];
 }
 
@@ -242,6 +251,7 @@ export async function updateEvent(
         : "Event not found."
     );
   }
+  await logActivity({ action: "edited", entity: "event", entityId: id, label: values.name, itemDate: values.event_date });
   return [{ table: "events", id, before, after: data[0] }];
 }
 
@@ -285,6 +295,9 @@ export async function deleteEvent(id: string): Promise<AffectedRow[]> {
   }
   for (const row of exceptions ?? []) {
     affected.push({ table: "event_exceptions", id: row.id, before: row, after: null });
+  }
+  if (before) {
+    await logActivity({ action: "deleted", entity: "event", entityId: id, label: String(before.name), itemDate: before.event_date });
   }
   return affected;
 }
@@ -348,6 +361,7 @@ export async function detachOccurrence(
     affected.push({ table: "event_overrides", id: existingOverride.id, before: existingOverride, after: null });
   }
 
+  await logActivity({ action: "edited", entity: "event", entityId: inserted.id, label: values.name, itemDate: values.event_date });
   return affected;
 }
 
@@ -468,6 +482,7 @@ export async function splitSeriesFromOccurrence(
     }
   }
 
+  await logActivity({ action: "edited", entity: "event", entityId: newEventId, label: values.name, itemDate: values.event_date });
   return affected;
 }
 
@@ -498,6 +513,7 @@ export async function extendOccurrenceSpan(
       console.error(error);
       throw new Error("Something went wrong resizing this event. Please try again.");
     }
+    await logActivity({ action: "edited", entity: "event", entityId: event.id, label: event.name, itemDate: originalDate });
     return [{ table: "events", id: event.id, before, after: data }];
   }
 
@@ -525,6 +541,7 @@ export async function extendOccurrenceSpan(
         console.error(error);
         throw new Error("Something went wrong resizing this event. Please try again.");
       }
+      await logActivity({ action: "edited", entity: "event", entityId: event.id, label: event.name, itemDate: originalDate });
       return [{ table: "event_overrides", id: existing.id, before: existing, after: null }];
     }
     return [];
@@ -541,6 +558,7 @@ export async function extendOccurrenceSpan(
       console.error(error);
       throw new Error("Something went wrong resizing this event. Please try again.");
     }
+    await logActivity({ action: "edited", entity: "event", entityId: event.id, label: event.name, itemDate: originalDate });
     return [{ table: "event_overrides", id: existing.id, before: existing, after: data }];
   }
 
@@ -558,6 +576,7 @@ export async function extendOccurrenceSpan(
     console.error(error);
     throw new Error("Something went wrong resizing this event. Please try again.");
   }
+  await logActivity({ action: "edited", entity: "event", entityId: event.id, label: event.name, itemDate: originalDate });
   return [{ table: "event_overrides", id: data.id, before: null, after: data }];
 }
 
@@ -603,5 +622,6 @@ export async function deleteOccurrence(event: EventRow, originalDate: string): P
     affected.push({ table: "event_overrides", id: existingOverride.id, before: existingOverride, after: null });
   }
 
+  await logActivity({ action: "deleted", entity: "event", entityId: event.id, label: event.name, itemDate: originalDate });
   return affected;
 }

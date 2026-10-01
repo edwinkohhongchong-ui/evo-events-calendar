@@ -51,6 +51,7 @@ export default function DayCell({
   return (
     <div
       ref={setNodeRef}
+      data-date={dateStr}
       onClick={() => onDayClick(dateStr)}
       className={[
         "group/cell min-h-[160px] border-b border-r border-line [&:nth-child(7n)]:border-r-0 p-1.5 flex flex-col gap-1 cursor-pointer transition-[filter] duration-fast hover:brightness-[0.97]",

@@ -319,3 +319,27 @@ export interface EventOccurrence {
   // bar" (see lib/eventBars.ts, lib/dayIndex.ts).
   spanEndDate: string;
 }
+
+// Notification bell / activity feed — see lib/activity.ts and migration 023.
+export type ActivityAction = "added" | "edited" | "deleted" | "moved" | "commented" | "undid" | "redid";
+export type ActivityEntity =
+  | "event"
+  | "holiday"
+  | "season"
+  | "category"
+  | "checklist"
+  | "note"
+  | "comment"
+  | "day_note"
+  | "undo";
+
+export interface ActivityItem {
+  id: string;
+  created_at: string;
+  actor_role: "editor" | "viewer";
+  action: ActivityAction;
+  entity: ActivityEntity;
+  label: string;
+  summary: string;
+  href: string | null;
+}

@@ -266,3 +266,19 @@ export const NotebookPenIcon = (p: P) => (
     <path d="M21.4 5.6a2 2 0 0 0-2.8-2.8L12 9.4V12h2.6z" />
   </Icon>
 );
+export const MoveIcon = (p: P) => (
+  <Icon {...p}>
+    <path d="M5 9l-3 3 3 3M9 5l3-3 3 3M15 19l-3 3-3-3M19 9l3 3-3 3M2 12h20M12 2v20" />
+  </Icon>
+);
+export const MessageIcon = (p: P) => (
+  <Icon {...p}>
+    <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+  </Icon>
+);
+export const RotateCcwIcon = (p: P) => (
+  <Icon {...p}>
+    <path d="M1 4v6h6" />
+    <path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10" />
+  </Icon>
+);

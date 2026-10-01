@@ -65,3 +65,35 @@ nav.bg-navy :focus-visible,
     text-wrap: balance;
   }
 }
+
+/* "Lead me to the item" attention pulse (components/FocusHighlighter.tsx).
+   Gold ring that fades out; reduced-motion users get a static ring that is
+   removed by the same timer. */
+@keyframes evo-focus-pulse {
+  0% {
+    outline-color: rgba(217, 164, 65, 1);
+    box-shadow: 0 0 0 6px rgba(217, 164, 65, 0.45);
+  }
+  60% {
+    outline-color: rgba(217, 164, 65, 1);
+    box-shadow: 0 0 0 10px rgba(217, 164, 65, 0.12);
+  }
+  100% {
+    outline-color: rgba(217, 164, 65, 0);
+    box-shadow: 0 0 0 12px rgba(217, 164, 65, 0);
+  }
+}
+.evo-focus-pulse {
+  outline: 3px solid #d9a441;
+  outline-offset: 1px;
+  border-radius: 6px;
+  position: relative;
+  z-index: 5;
+  animation: evo-focus-pulse 2.5s ease-out 1 forwards;
+}
+@media (prefers-reduced-motion: reduce) {
+  .evo-focus-pulse {
+    animation: none !important;
+    box-shadow: 0 0 0 4px rgba(217, 164, 65, 0.35);
+  }
+}

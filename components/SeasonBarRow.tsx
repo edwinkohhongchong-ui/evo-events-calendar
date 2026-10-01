@@ -25,6 +25,7 @@ export default function SeasonBarRow({ segments, onSeasonClick }: SeasonBarRowPr
           <button
             key={`${segment.season.id}-w${segment.weekIndex}`}
             type="button"
+            data-season-id={segment.season.id}
             onClick={(e) => {
               e.stopPropagation();
               onSeasonClick(segment.season);

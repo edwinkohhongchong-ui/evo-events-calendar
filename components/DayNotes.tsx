@@ -1,11 +1,14 @@
 "use client";
 
-import { useState, FormEvent } from "react";
+import { useState, useRef, useEffect, FormEvent } from "react";
+import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
+import { useEscapeKey } from "@/lib/useEscapeKey";
 import { createDayNote, deleteDayNote } from "@/lib/dayNoteActions";
 import { useUndo } from "@/lib/undo/UndoProvider";
 import { useIsEditor } from "@/lib/roleContext";
 import { DayNoteRow } from "@/lib/types";
+import AutoGrowTextarea from "./ui/AutoGrowTextarea";
 
 interface DayNotesProps {
   dateStr: string;
@@ -25,6 +28,45 @@ export default function DayNotes({ dateStr, notes }: DayNotesProps) {
   const [saving, setSaving] = useState(false);
   const [removingId, setRemovingId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const btnRef = useRef<HTMLButtonElement | null>(null);
+  const cardRef = useRef<HTMLDivElement | null>(null);
+  const [pos, setPos] = useState<{ top?: number; bottom?: number; left: number; width: number } | null>(null);
+
+  // The editor floats over the page (not inside the narrow day cell, which
+  // the grid also clips), so a long note has room to wrap and stay visible.
+  useEffect(() => {
+    if (!open) return;
+    const place = () => {
+      const r = btnRef.current?.getBoundingClientRect();
+      if (!r) return;
+      const width = Math.min(288, window.innerWidth - 16);
+      const left = Math.max(8, Math.min(r.left, window.innerWidth - width - 8));
+      const nearBottom = r.bottom > window.innerHeight - 280;
+      setPos(
+        nearBottom
+          ? { bottom: window.innerHeight - r.top + 6, left, width }
+          : { top: r.bottom + 6, left, width }
+      );
+    };
+    place();
+    const close = () => setOpen(false);
+    const onDown = (e: MouseEvent) => {
+      const t = e.target as Node;
+      if (!cardRef.current?.contains(t) && !btnRef.current?.contains(t)) setOpen(false);
+    };
+    window.addEventListener("resize", close);
+    window.addEventListener("scroll", close, true);
+    document.addEventListener("mousedown", onDown);
+    return () => {
+      window.removeEventListener("resize", close);
+      window.removeEventListener("scroll", close, true);
+      document.removeEventListener("mousedown", onDown);
+    };
+  }, [open]);
+
+  useEscapeKey(() => {
+    if (open) setOpen(false);
+  });
 
   async function handleAdd(e: FormEvent) {
     e.preventDefault();
@@ -63,7 +105,7 @@ export default function DayNotes({ dateStr, notes }: DayNotesProps) {
       {notes.map((n) => (
         <span
           key={n.id}
-          className="text-micro font-medium text-green-700 truncate"
+          className="text-micro font-medium text-green-700 break-words"
           title={n.content}
         >
           {n.content}
@@ -72,6 +114,7 @@ export default function DayNotes({ dateStr, notes }: DayNotesProps) {
 
       {isEditor && (
         <button
+          ref={btnRef}
           type="button"
           onClick={() => setOpen((prev) => !prev)}
           title="Add a note to this day"
@@ -88,40 +131,57 @@ export default function DayNotes({ dateStr, notes }: DayNotesProps) {
         </button>
       )}
 
-      {isEditor && open && (
-        <div className="flex flex-col gap-1 border border-line rounded-chip p-1.5 bg-surface">
-          {notes.map((n) => (
-            <div key={n.id} className="flex items-start justify-between gap-1">
-              <span className="text-micro text-green-700 flex-1 break-words">{n.content}</span>
+      {isEditor && open && pos &&
+        createPortal(
+          <div
+            ref={cardRef}
+            data-day-note-editor
+            style={{ position: "fixed", top: pos.top, bottom: pos.bottom, left: pos.left, width: pos.width }}
+            className="z-40 flex flex-col gap-2 bg-surface rounded-card shadow-pop p-3 max-h-[70vh] overflow-y-auto"
+          >
+            <p className="text-micro font-medium text-ink-2">Note for {dateStr}</p>
+            {notes.map((n) => (
+              <div key={n.id} className="flex items-start justify-between gap-2">
+                <span className="text-chip text-green-700 flex-1 break-words">{n.content}</span>
+                <button
+                  type="button"
+                  onClick={() => handleRemove(n.id)}
+                  disabled={removingId === n.id}
+                  title="Delete this note"
+                  aria-label="Delete this note"
+                  className="leading-none text-ink-3 hover:text-danger disabled:opacity-30 shrink-0"
+                >
+                  ×
+                </button>
+              </div>
+            ))}
+            <form onSubmit={handleAdd} className="flex flex-col gap-2">
+              <AutoGrowTextarea
+                autoFocus
+                value={draft}
+                onChange={(e) => setDraft(e.target.value)}
+                onKeyDown={(e) => {
+                  // Enter saves; Shift+Enter starts a new line.
+                  if (e.key === "Enter" && !e.shiftKey) {
+                    e.preventDefault();
+                    e.currentTarget.form?.requestSubmit();
+                  }
+                }}
+                placeholder="Add a note…"
+                className="border border-line-strong rounded-ctl px-2.5 py-1.5 text-chip w-full"
+              />
               <button
-                type="button"
-                onClick={() => handleRemove(n.id)}
-                disabled={removingId === n.id}
-                title="Delete this note"
-                className="leading-none text-gray-300 hover:text-red-600 disabled:opacity-30 shrink-0"
+                type="submit"
+                disabled={saving || !draft.trim()}
+                className="self-end px-3 py-1 text-chip rounded-pill bg-navy text-white disabled:opacity-50"
               >
-                ×
+                {saving ? "Saving…" : "Add"}
               </button>
-            </div>
-          ))}
-          <form onSubmit={handleAdd} className="flex gap-1">
-            <input
-              value={draft}
-              onChange={(e) => setDraft(e.target.value)}
-              placeholder="Send a card to friends…"
-              className="border border-line-strong rounded-chip px-1.5 py-0.5 text-micro flex-1 min-w-0"
-            />
-            <button
-              type="submit"
-              disabled={saving || !draft.trim()}
-              className="px-2 py-0.5 text-micro rounded-pill bg-navy text-white disabled:opacity-50 shrink-0"
-            >
-              {saving ? "…" : "Add"}
-            </button>
-          </form>
-          {error && <p className="text-micro text-danger">{error}</p>}
-        </div>
-      )}
+            </form>
+            {error && <p className="text-micro text-danger">{error}</p>}
+          </div>,
+          document.body
+        )}
     </div>
   );
 }

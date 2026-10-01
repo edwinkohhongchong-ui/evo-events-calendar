@@ -5,6 +5,7 @@ import { SeasonFormValues } from "./types";
 import { AffectedRow } from "./undo/types";
 import { fetchRow } from "./undo/capture";
 import { requireRole } from "./authz";
+import { logActivity } from "./activity";
 
 export async function createSeason(values: SeasonFormValues): Promise<AffectedRow[]> {
   await requireRole("editor");
@@ -13,6 +14,7 @@ export async function createSeason(values: SeasonFormValues): Promise<AffectedRo
     console.error(error);
     throw new Error("Something went wrong saving this season. Please try again.");
   }
+  await logActivity({ action: "added", entity: "season", entityId: data.id, label: values.name, itemDate: values.start_date });
   return [{ table: "seasons", id: data.id, before: null, after: data }];
 }
 
@@ -40,6 +42,7 @@ export async function updateSeason(
         : "Season not found."
     );
   }
+  await logActivity({ action: "edited", entity: "season", entityId: id, label: values.name, itemDate: values.start_date });
   return [{ table: "seasons", id, before, after: data[0] }];
 }
 
@@ -51,5 +54,7 @@ export async function deleteSeason(id: string): Promise<AffectedRow[]> {
     console.error(error);
     throw new Error("Something went wrong deleting this season. Please try again.");
   }
-  return before ? [{ table: "seasons", id, before, after: null }] : [];
+  if (!before) return [];
+  await logActivity({ action: "deleted", entity: "season", entityId: id, label: String(before.name), itemDate: before.start_date });
+  return [{ table: "seasons", id, before, after: null }];
 }

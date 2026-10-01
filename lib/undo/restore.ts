@@ -3,6 +3,7 @@
 import { supabase } from "../supabase";
 import { AffectedRow, SnapshotRow, UndoTable } from "./types";
 import { requireRole } from "../authz";
+import { logActivity } from "../activity";
 
 // Parent rows must exist before their children are written (events before
 // event_overrides/event_exceptions; a top-level note_comments row before its
@@ -57,4 +58,6 @@ export async function restoreSnapshot(affected: AffectedRow[], which: "before" |
   for (const e of deletes) {
     await applyRow(e.table, e.id, null);
   }
+  // "before" image restored = undo; "after" image restored = redo.
+  await logActivity({ action: which === "before" ? "undid" : "redid", entity: "undo", label: "a change" });
 }

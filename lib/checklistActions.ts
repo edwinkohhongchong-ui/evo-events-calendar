@@ -5,6 +5,7 @@ import { ChecklistFormValues, ChecklistStatus } from "./types";
 import { AffectedRow } from "./undo/types";
 import { fetchRow } from "./undo/capture";
 import { requireRole } from "./authz";
+import { logActivity } from "./activity";
 
 export async function createChecklistItem(values: ChecklistFormValues): Promise<AffectedRow[]> {
   await requireRole("editor");
@@ -13,6 +14,7 @@ export async function createChecklistItem(values: ChecklistFormValues): Promise<
     console.error(error);
     throw new Error("Something went wrong saving this checklist item. Please try again.");
   }
+  await logActivity({ action: "added", entity: "checklist", entityId: data.id, label: values.item });
   return [{ table: "checklist", id: data.id, before: null, after: data }];
 }
 
@@ -40,6 +42,7 @@ export async function updateChecklistItem(
         : "Checklist item not found."
     );
   }
+  await logActivity({ action: "edited", entity: "checklist", entityId: id, label: values.item });
   return [{ table: "checklist", id, before, after: data[0] }];
 }
 
@@ -65,6 +68,7 @@ export async function updateChecklistStatus(
         : "Checklist item not found."
     );
   }
+  await logActivity({ action: "edited", entity: "checklist", entityId: id, label: String(data[0].item) });
   return [{ table: "checklist", id, before, after: data[0] }];
 }
 
@@ -76,5 +80,7 @@ export async function deleteChecklistItem(id: string): Promise<AffectedRow[]> {
     console.error(error);
     throw new Error("Something went wrong deleting this checklist item. Please try again.");
   }
-  return before ? [{ table: "checklist", id, before, after: null }] : [];
+  if (!before) return [];
+  await logActivity({ action: "deleted", entity: "checklist", entityId: id, label: String(before.item) });
+  return [{ table: "checklist", id, before, after: null }];
 }

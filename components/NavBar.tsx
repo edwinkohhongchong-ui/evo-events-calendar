@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useUndo } from "@/lib/undo/UndoProvider";
@@ -9,6 +9,7 @@ import { useOnboardingTour } from "@/lib/useOnboardingTour";
 import { TOUR_STEPS } from "@/lib/tourSteps";
 import { useEscapeKey } from "@/lib/useEscapeKey";
 import ErrorBanner from "./ErrorBanner";
+import NotificationBell from "./NotificationBell";
 import {
   CalendarIcon,
   ToolsIcon,
@@ -93,6 +94,7 @@ export default function NavBar() {
   const isEditor = useIsEditor();
   const { start: startTour, isOpen: tourOpen, step: tourStep } = useOnboardingTour();
   const [menuOpen, setMenuOpen] = useState(false);
+  const [bellOpen, setBellOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
   const [openGroups, setOpenGroups] = useState<Record<string, boolean>>(() => {
     const g = groupForPath(pathname);
@@ -143,7 +145,11 @@ export default function NavBar() {
   } = useUndo();
 
   const closeMenu = () => setMenuOpen(false);
-  useEscapeKey(closeMenu);
+  const closeAll = useCallback(() => {
+    setMenuOpen(false);
+    setBellOpen(false);
+  }, []);
+  useEscapeKey(closeAll);
 
   if (pathname === "/login") return null;
 
@@ -240,13 +246,14 @@ export default function NavBar() {
           </button>
         </div>
       )}
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 flex items-center h-12 gap-3">
+      <div className="relative max-w-6xl mx-auto px-4 sm:px-6 flex items-center h-12 gap-3">
         <Link
           href="/"
           aria-label="+EVO Events — back to the calendar"
           className="font-semibold text-sm whitespace-nowrap shrink-0 rounded-md px-1 -mx-1 hover:opacity-80 transition-opacity duration-fast"
         >
-          +EVO Events
+          <span className="sm:hidden">+EVO</span>
+          <span className="hidden sm:inline">+EVO Events</span>
         </Link>
 
         {isEditor && (
@@ -274,14 +281,25 @@ export default function NavBar() {
           </div>
         )}
 
-        <div className="ml-auto relative shrink-0" ref={menuRef}>
+        <div className="ml-auto flex items-center gap-1 shrink-0">
+        <NotificationBell
+          open={bellOpen}
+          onOpenChange={(o) => {
+            setBellOpen(o);
+            if (o) setMenuOpen(false);
+          }}
+        />
+        <div className="relative shrink-0" ref={menuRef}>
           <button
             type="button"
             data-tour="hamburger-menu-button"
-            onClick={() => setMenuOpen((prev) => !prev)}
+            onClick={() => {
+              setMenuOpen((prev) => !prev);
+              setBellOpen(false);
+            }}
             aria-expanded={menuOpen}
             aria-label="Open menu"
-            className="flex flex-col justify-center gap-[3px] w-8 h-8 rounded hover:bg-white/10 items-center"
+            className="flex flex-col justify-center gap-[3px] w-8 h-8 rounded-full hover:bg-white/10 items-center"
           >
             <span className="block w-4 h-[2px] bg-white rounded-full" />
             <span className="block w-4 h-[2px] bg-white rounded-full" />
@@ -346,6 +364,7 @@ export default function NavBar() {
               </div>
             </>
           )}
+        </div>
         </div>
       </div>
     </nav>
