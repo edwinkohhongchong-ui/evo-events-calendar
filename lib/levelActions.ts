@@ -5,9 +5,10 @@ import { LevelFormValues } from "./types";
 import { AffectedRow } from "./undo/types";
 import { fetchRow } from "./undo/capture";
 import { requireRole } from "./authz";
+import { runAction } from "./actionResult";
 import { logActivity } from "./activity";
 
-export async function createLevel(values: LevelFormValues): Promise<AffectedRow[]> {
+async function createLevelImpl(values: LevelFormValues): Promise<AffectedRow[]> {
   await requireRole("editor");
   const { data, error } = await supabase.from("levels").insert(values).select().single();
   if (error) {
@@ -25,7 +26,7 @@ export async function createLevel(values: LevelFormValues): Promise<AffectedRow[
 // See updateHoliday in lib/holidayActions.ts for the full explanation of the
 // optional `expectedUpdatedAt` optimistic-lock parameter and the known
 // limitation that no call site wires it through yet.
-export async function updateLevel(
+async function updateLevelImpl(
   id: string,
   values: LevelFormValues,
   expectedUpdatedAt?: string
@@ -53,15 +54,31 @@ export async function updateLevel(
 // Fails with a DB error (surfaced to the form) if any event still uses this
 // level — events_level_fkey is ON DELETE RESTRICT, deliberately not
 // cascading, so deleting a category never silently orphans events.
-export async function deleteLevel(id: string): Promise<AffectedRow[]> {
+async function deleteLevelImpl(id: string): Promise<AffectedRow[]> {
   await requireRole("editor");
   const before = await fetchRow("levels", id);
   const { error } = await supabase.from("levels").delete().eq("id", id);
   if (error) {
     console.error(error);
+    if (error.code === "23503") {
+      throw new Error("Can't delete this category — it's still used by one or more events. Reassign those events first.");
+    }
     throw new Error("Something went wrong deleting this category. Please try again.");
   }
   if (!before) return [];
   await logActivity({ action: "deleted", entity: "category", entityId: id, label: String(before.name), itemDate: null });
   return [{ table: "levels", id, before, after: null }];
+}
+
+// Public Server Actions: every one returns an ActionResult (see lib/actionResult.ts).
+export async function createLevel(...args: Parameters<typeof createLevelImpl>) {
+  return runAction(() => createLevelImpl(...args));
+}
+
+export async function updateLevel(...args: Parameters<typeof updateLevelImpl>) {
+  return runAction(() => updateLevelImpl(...args));
+}
+
+export async function deleteLevel(...args: Parameters<typeof deleteLevelImpl>) {
+  return runAction(() => deleteLevelImpl(...args));
 }

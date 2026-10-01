@@ -8,6 +8,13 @@ items (features/fixes) that push contains — a push with 1 item goes up by
 `1.05`). If MINOR would pass `.99`, MAJOR increments and MINOR carries the
 remainder (e.g. `1.99` + 2 items → `2.01`).
 
+## v1.72 — 2026-10-01
+
+- Holiday, Season and Category actions (add, edit, delete) and the Seasons
+  "Update Calendar" / "Start a New Year" saves now show their real error
+  message on the live site instead of the generic "Server Components render"
+  block. Deleting a category that events still use now says so plainly.
+
 ## v1.71 — 2026-10-01
 
 - Event save/move/resize/delete errors now reach you in plain words on the live

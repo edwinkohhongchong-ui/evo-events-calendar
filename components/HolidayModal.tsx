@@ -8,6 +8,7 @@ import { useUndo } from "@/lib/undo/UndoProvider";
 import { useIsEditor } from "@/lib/roleContext";
 import { useEscapeKey } from "@/lib/useEscapeKey";
 import ConfirmDialog from "./ConfirmDialog";
+import { unwrap } from "@/lib/actionResult";
 
 interface HolidayModalProps {
   mode: "add" | "edit";
@@ -52,10 +53,10 @@ export default function HolidayModal({
     try {
       const values = { holiday_date: holidayDate, name: name.trim(), type };
       if (mode === "add") {
-        const affected = await createHoliday(values);
+        const affected = unwrap(await createHoliday(values));
         record(`Add holiday "${values.name}"`, affected);
       } else if (holiday) {
-        const affected = await updateHoliday(holiday.id, values);
+        const affected = unwrap(await updateHoliday(holiday.id, values));
         record(`Edit holiday "${values.name}"`, affected);
       }
       onSaved();
@@ -70,7 +71,7 @@ export default function HolidayModal({
     setSaving(true);
     setFormError(null);
     try {
-      const affected = await deleteHoliday(holiday.id);
+      const affected = unwrap(await deleteHoliday(holiday.id));
       record(`Delete holiday "${holiday.name}"`, affected);
       onDeleted();
     } catch (err) {

@@ -9,6 +9,7 @@ import { useUndo } from "@/lib/undo/UndoProvider";
 import { useIsEditor } from "@/lib/roleContext";
 import { useEscapeKey } from "@/lib/useEscapeKey";
 import ConfirmDialog from "./ConfirmDialog";
+import { unwrap } from "@/lib/actionResult";
 
 interface SeasonModalProps {
   mode: "add" | "edit";
@@ -76,10 +77,10 @@ export default function SeasonModal({ mode, season, onClose, onSaved, onDeleted 
         color,
       };
       if (mode === "add") {
-        const affected = await createSeason(values);
+        const affected = unwrap(await createSeason(values));
         record(`Add season "${values.name}"`, affected);
       } else if (season) {
-        const affected = await updateSeason(season.id, values);
+        const affected = unwrap(await updateSeason(season.id, values));
         record(`Edit season "${values.name}"`, affected);
       }
       onSaved();
@@ -94,7 +95,7 @@ export default function SeasonModal({ mode, season, onClose, onSaved, onDeleted 
     setSaving(true);
     setFormError(null);
     try {
-      const affected = await deleteSeason(season.id);
+      const affected = unwrap(await deleteSeason(season.id));
       record(`Delete season "${season.name}"`, affected);
       onDeleted();
     } catch (err) {

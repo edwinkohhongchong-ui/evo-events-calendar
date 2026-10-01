@@ -10,6 +10,7 @@ import { deleteSeason } from "@/lib/seasonActions";
 import { useUndo } from "@/lib/undo/UndoProvider";
 import { SeasonRow } from "@/lib/types";
 import { formatDateDisplay } from "@/lib/dates";
+import { unwrap } from "@/lib/actionResult";
 
 type ModalState = { type: "closed" } | { type: "add" } | { type: "edit"; season: SeasonRow };
 
@@ -37,7 +38,7 @@ export default function SeasonsTable({ seasons }: { seasons: SeasonRow[] }) {
     const season = pendingDelete;
     setRemovingId(season.id);
     try {
-      const affected = await deleteSeason(season.id);
+      const affected = unwrap(await deleteSeason(season.id));
       record(`Delete season "${season.name}"`, affected);
       setPendingDelete(null);
       router.refresh();

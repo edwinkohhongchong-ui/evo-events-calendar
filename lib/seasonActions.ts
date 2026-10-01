@@ -5,9 +5,10 @@ import { SeasonFormValues } from "./types";
 import { AffectedRow } from "./undo/types";
 import { fetchRow } from "./undo/capture";
 import { requireRole } from "./authz";
+import { runAction } from "./actionResult";
 import { logActivity } from "./activity";
 
-export async function createSeason(values: SeasonFormValues): Promise<AffectedRow[]> {
+async function createSeasonImpl(values: SeasonFormValues): Promise<AffectedRow[]> {
   await requireRole("editor");
   const { data, error } = await supabase.from("seasons").insert(values).select().single();
   if (error) {
@@ -21,7 +22,7 @@ export async function createSeason(values: SeasonFormValues): Promise<AffectedRo
 // See updateHoliday in lib/holidayActions.ts for the full explanation of the
 // optional `expectedUpdatedAt` optimistic-lock parameter and the known
 // limitation that no call site wires it through yet.
-export async function updateSeason(
+async function updateSeasonImpl(
   id: string,
   values: SeasonFormValues,
   expectedUpdatedAt?: string
@@ -46,7 +47,7 @@ export async function updateSeason(
   return [{ table: "seasons", id, before, after: data[0] }];
 }
 
-export async function deleteSeason(id: string): Promise<AffectedRow[]> {
+async function deleteSeasonImpl(id: string): Promise<AffectedRow[]> {
   await requireRole("editor");
   const before = await fetchRow("seasons", id);
   const { error } = await supabase.from("seasons").delete().eq("id", id);
@@ -57,4 +58,17 @@ export async function deleteSeason(id: string): Promise<AffectedRow[]> {
   if (!before) return [];
   await logActivity({ action: "deleted", entity: "season", entityId: id, label: String(before.name), itemDate: before.start_date });
   return [{ table: "seasons", id, before, after: null }];
+}
+
+// Public Server Actions: every one returns an ActionResult (see lib/actionResult.ts).
+export async function createSeason(...args: Parameters<typeof createSeasonImpl>) {
+  return runAction(() => createSeasonImpl(...args));
+}
+
+export async function updateSeason(...args: Parameters<typeof updateSeasonImpl>) {
+  return runAction(() => updateSeasonImpl(...args));
+}
+
+export async function deleteSeason(...args: Parameters<typeof deleteSeasonImpl>) {
+  return runAction(() => deleteSeasonImpl(...args));
 }

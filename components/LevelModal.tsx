@@ -8,6 +8,7 @@ import { suggestLevelColor } from "@/lib/levelColor";
 import { useUndo } from "@/lib/undo/UndoProvider";
 import { useEscapeKey } from "@/lib/useEscapeKey";
 import ConfirmDialog from "./ConfirmDialog";
+import { unwrap } from "@/lib/actionResult";
 
 interface LevelModalProps {
   mode: "add" | "edit";
@@ -68,10 +69,10 @@ export default function LevelModal({
         sort_order: Number(sortOrder) || 0,
       };
       if (mode === "add") {
-        const affected = await createLevel(values);
+        const affected = unwrap(await createLevel(values));
         record(`Add category "${values.name}"`, affected);
       } else if (level) {
-        const affected = await updateLevel(level.id, values);
+        const affected = unwrap(await updateLevel(level.id, values));
         record(`Edit category "${values.name}"`, affected);
       }
       onSaved();
@@ -86,20 +87,11 @@ export default function LevelModal({
     setSaving(true);
     setFormError(null);
     try {
-      const affected = await deleteLevel(level.id);
+      const affected = unwrap(await deleteLevel(level.id));
       record(`Delete category "${level.name}"`, affected);
       onDeleted();
     } catch (err) {
-      setFormError(
-        err instanceof Error
-          ? // The FK's ON DELETE RESTRICT surfaces as a generic Postgres error —
-            // reworded here since "violates foreign key constraint" means
-            // nothing to a non-technical user.
-            err.message.includes("foreign key") || err.message.includes("violates")
-            ? "Can't delete this category — it's still used by one or more events. Reassign those events first."
-            : err.message
-          : "Something went wrong deleting this category."
-      );
+      setFormError(err instanceof Error ? err.message : "Something went wrong deleting this category.");
       setSaving(false);
     }
   }

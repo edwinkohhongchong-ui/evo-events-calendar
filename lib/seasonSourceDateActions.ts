@@ -2,6 +2,7 @@
 
 import { supabase } from "./supabase";
 import { requireRole } from "./authz";
+import { runAction } from "./actionResult";
 
 export interface SeasonSourceDateEntry {
   group_name: string;
@@ -16,7 +17,7 @@ export interface SeasonSourceDateEntry {
 // aggregation input, not a user-facing calendar item in their own right (the
 // derived `seasons` row they feed is already undo-tracked via
 // createSeason/updateSeason).
-export async function saveSeasonSourceDates(
+async function saveSeasonSourceDatesImpl(
   year: number,
   entries: SeasonSourceDateEntry[]
 ): Promise<void> {
@@ -39,4 +40,9 @@ export async function saveSeasonSourceDates(
     console.error(error);
     throw new Error("Something went wrong saving these dates. Please try again.");
   }
+}
+
+// Public Server Actions: every one returns an ActionResult (see lib/actionResult.ts).
+export async function saveSeasonSourceDates(...args: Parameters<typeof saveSeasonSourceDatesImpl>) {
+  return runAction(() => saveSeasonSourceDatesImpl(...args));
 }

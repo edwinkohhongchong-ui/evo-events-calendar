@@ -10,6 +10,7 @@ import { deleteLevel } from "@/lib/levelActions";
 import { useUndo } from "@/lib/undo/UndoProvider";
 import { LevelRow } from "@/lib/types";
 import ConfirmDialog from "./ConfirmDialog";
+import { unwrap } from "@/lib/actionResult";
 
 interface LevelChipsProps {
   levels: LevelRow[];
@@ -45,18 +46,12 @@ export default function LevelChips({ levels, onEdit }: LevelChipsProps) {
     setRemovingId(level.id);
     setRemoveError(null);
     try {
-      const affected = await deleteLevel(level.id);
+      const affected = unwrap(await deleteLevel(level.id));
       record(`Delete category "${level.name}"`, affected);
       setPendingDelete(null);
       router.refresh();
     } catch (err) {
-      setRemoveError(
-        err instanceof Error && (err.message.includes("foreign key") || err.message.includes("violates"))
-          ? `Can't delete "${level.name}" — it's still used by one or more events.`
-          : err instanceof Error
-            ? err.message
-            : "Something went wrong deleting this category."
-      );
+      setRemoveError(err instanceof Error ? err.message : "Something went wrong deleting this category.");
     } finally {
       setRemovingId(null);
     }

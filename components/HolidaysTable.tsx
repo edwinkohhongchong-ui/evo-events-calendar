@@ -10,6 +10,7 @@ import { deleteHoliday } from "@/lib/holidayActions";
 import { useUndo } from "@/lib/undo/UndoProvider";
 import { HolidayRow } from "@/lib/types";
 import { formatDateDisplay } from "@/lib/dates";
+import { unwrap } from "@/lib/actionResult";
 
 type ModalState = { type: "closed" } | { type: "add" } | { type: "edit"; holiday: HolidayRow };
 
@@ -37,7 +38,7 @@ export default function HolidaysTable({ holidays }: { holidays: HolidayRow[] }) 
     const holiday = pendingDelete;
     setRemovingId(holiday.id);
     try {
-      const affected = await deleteHoliday(holiday.id);
+      const affected = unwrap(await deleteHoliday(holiday.id));
       record(`Delete holiday "${holiday.name}"`, affected);
       setPendingDelete(null);
       router.refresh();

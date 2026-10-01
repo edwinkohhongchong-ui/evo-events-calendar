@@ -5,9 +5,10 @@ import { HolidayFormValues } from "./types";
 import { AffectedRow } from "./undo/types";
 import { fetchRow } from "./undo/capture";
 import { requireRole } from "./authz";
+import { runAction } from "./actionResult";
 import { logActivity } from "./activity";
 
-export async function createHoliday(values: HolidayFormValues): Promise<AffectedRow[]> {
+async function createHolidayImpl(values: HolidayFormValues): Promise<AffectedRow[]> {
   await requireRole("editor");
   const { data, error } = await supabase.from("holidays").insert(values).select().single();
   if (error) {
@@ -32,7 +33,7 @@ export async function createHoliday(values: HolidayFormValues): Promise<Affected
 // is real, working concurrent-edit detection at the data-access layer, but
 // it is not yet wired up end-to-end; a follow-up in the component layer is
 // needed to actually get the protection in the running app.
-export async function updateHoliday(
+async function updateHolidayImpl(
   id: string,
   values: HolidayFormValues,
   expectedUpdatedAt?: string
@@ -57,7 +58,7 @@ export async function updateHoliday(
   return [{ table: "holidays", id, before, after: data[0] }];
 }
 
-export async function deleteHoliday(id: string): Promise<AffectedRow[]> {
+async function deleteHolidayImpl(id: string): Promise<AffectedRow[]> {
   await requireRole("editor");
   const before = await fetchRow("holidays", id);
   const { error } = await supabase.from("holidays").delete().eq("id", id);
@@ -68,4 +69,17 @@ export async function deleteHoliday(id: string): Promise<AffectedRow[]> {
   if (!before) return [];
   await logActivity({ action: "deleted", entity: "holiday", entityId: id, label: String(before.name), itemDate: before.holiday_date });
   return [{ table: "holidays", id, before, after: null }];
+}
+
+// Public Server Actions: every one returns an ActionResult (see lib/actionResult.ts).
+export async function createHoliday(...args: Parameters<typeof createHolidayImpl>) {
+  return runAction(() => createHolidayImpl(...args));
+}
+
+export async function updateHoliday(...args: Parameters<typeof updateHolidayImpl>) {
+  return runAction(() => updateHolidayImpl(...args));
+}
+
+export async function deleteHoliday(...args: Parameters<typeof deleteHolidayImpl>) {
+  return runAction(() => deleteHolidayImpl(...args));
 }

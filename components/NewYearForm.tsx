@@ -12,6 +12,7 @@ import { useUndo } from "@/lib/undo/UndoProvider";
 import { AffectedRow } from "@/lib/undo/types";
 import ExamSourceGroupEditor, { InstitutionValue } from "./ExamSourceGroupEditor";
 import { addYears } from "date-fns";
+import { unwrap } from "@/lib/actionResult";
 
 const TRACKED_CATEGORIES = new Set(["School Schedule", "Exam Period"]);
 
@@ -217,7 +218,7 @@ export default function NewYearForm({
           }));
           const filled = entries.filter((e) => e.start_date || e.end_date);
           if (filled.length > 0) {
-            await saveSeasonSourceDates(nextYear, filled);
+            unwrap(await saveSeasonSourceDates(nextYear, filled));
           }
 
           const aggregate = computeGroupAggregate(entries);
@@ -251,14 +252,14 @@ export default function NewYearForm({
             continue;
           }
 
-          const created = await createSeason({
+          const created = unwrap(await createSeason({
             name: item.editedName,
             category: item.group.category,
             start_date: aggregate.startDate,
             end_date: aggregate.endDate,
             notes: null,
             color: null,
-          });
+          }));
           affected.push(...created);
           lines.push({ name: item.editedName, outcome: "created", flag: flagText });
         } else {
@@ -282,14 +283,14 @@ export default function NewYearForm({
             continue;
           }
 
-          const created = await createSeason({
+          const created = unwrap(await createSeason({
             name: item.editedName,
             category: item.category,
             start_date: item.editedStart,
             end_date: item.editedEnd,
             notes: item.originalNotes,
             color: null,
-          });
+          }));
           affected.push(...created);
           lines.push({ name: item.editedName, outcome: "created" });
         }

@@ -8,6 +8,7 @@ import { HOLIDAY_TYPES } from "@/lib/constants";
 import { createHoliday } from "@/lib/holidayActions";
 import { useUndo } from "@/lib/undo/UndoProvider";
 import { AffectedRow } from "@/lib/undo/types";
+import { unwrap } from "@/lib/actionResult";
 
 interface ReviewRow extends HolidayDiffRow {
   id: string;
@@ -104,11 +105,11 @@ function NewYearPageInner() {
     for (const row of approved) {
       try {
         affected.push(
-          ...(await createHoliday({
+          ...(unwrap(await createHoliday({
             holiday_date: row.editedDate,
             name: row.editedName.trim(),
             type: row.editedType,
-          }))
+          })))
         );
         insertedCount++;
       } catch (err) {

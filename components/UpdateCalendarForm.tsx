@@ -10,6 +10,7 @@ import { saveSeasonSourceDates, SeasonSourceDateEntry } from "@/lib/seasonSource
 import { useUndo } from "@/lib/undo/UndoProvider";
 import { AffectedRow } from "@/lib/undo/types";
 import ExamSourceGroupEditor, { InstitutionValue } from "./ExamSourceGroupEditor";
+import { unwrap } from "@/lib/actionResult";
 
 type ValuesByGroup = Record<string, Record<string, InstitutionValue>>;
 
@@ -92,7 +93,7 @@ export default function UpdateCalendarForm({
 
       try {
         if (filled.length > 0) {
-          await saveSeasonSourceDates(year, filled);
+          unwrap(await saveSeasonSourceDates(year, filled));
         }
 
         const seasonName = `${group.groupName} ${year}`;
@@ -120,7 +121,7 @@ export default function UpdateCalendarForm({
         };
 
         if (existingSeason) {
-          affected.push(...(await updateSeason(existingSeason.id, seasonValues)));
+          affected.push(...(unwrap(await updateSeason(existingSeason.id, seasonValues))));
           lines.push({
             groupName: group.groupName,
             institutionsFilled: aggregate.filledCount,
@@ -128,7 +129,7 @@ export default function UpdateCalendarForm({
             season: "updated",
           });
         } else {
-          affected.push(...(await createSeason(seasonValues)));
+          affected.push(...(unwrap(await createSeason(seasonValues))));
           lines.push({
             groupName: group.groupName,
             institutionsFilled: aggregate.filledCount,
