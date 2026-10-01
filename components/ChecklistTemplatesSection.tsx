@@ -9,6 +9,10 @@ import { useEscapeKey } from "@/lib/useEscapeKey";
 import ChecklistTemplateModal from "./ChecklistTemplateModal";
 import ConfirmModal from "./ConfirmModal";
 import { unwrap } from "@/lib/actionResult";
+import Button from "./ui/Button";
+import IconButton from "./ui/IconButton";
+import { ROW_ACTION } from "./ui/tableStyles";
+import { ChevronIcon, PlusIcon, TrashIcon } from "./icons";
 
 type ModalState =
   | { type: "closed" }
@@ -60,18 +64,21 @@ export default function ChecklistTemplatesSection({
   }
 
   return (
-    <div className="border border-gray-200 rounded-md mb-4">
+    <div className="mb-4 overflow-hidden rounded-card bg-surface">
       <button
         type="button"
         onClick={() => setOpen((prev) => !prev)}
-        className="w-full flex items-center justify-between px-3 py-2 bg-gray-50 hover:bg-gray-100 text-sm font-medium text-navy"
+        aria-expanded={open}
+        className="flex w-full items-center justify-between gap-2 px-4 py-3 text-ui font-medium text-ink hover:bg-canvas"
       >
         <span>Message Checklist Snippets ({templates.length})</span>
-        <span className="text-gray-400">{open ? "▾" : "▸"}</span>
+        <span className="text-ink-3">
+          <ChevronIcon open={open} />
+        </span>
       </button>
       {open && (
-        <div className="p-3 flex flex-col gap-2">
-          <p className="text-xs text-gray-500 -mt-1">
+        <div className="flex flex-col gap-2 border-t border-line p-4">
+          <p className="text-body text-ink-2">
             Pre-written checklist text you can drop into a drafted Telegram message. This does NOT
             update the real Checklist tab — selecting one here only adds text to the message,
             nothing is tracked.
@@ -80,38 +87,34 @@ export default function ChecklistTemplatesSection({
             <div
               key={t.id}
               onClick={() => setModal({ type: "edit", template: t })}
-              className="border border-gray-200 rounded px-3 py-2 flex items-center justify-between gap-2 cursor-pointer hover:bg-gray-50"
+              className="group flex cursor-pointer items-center justify-between gap-2 rounded-ctl border border-line px-4 py-2.5 transition-colors duration-fast hover:bg-canvas"
             >
-              <div>
-                <div className="text-sm font-medium text-navy">{t.name}</div>
-                <div className="text-xs text-gray-500">
+              <div className="min-w-0">
+                <div className="text-ui font-medium text-ink">{t.name}</div>
+                <div className="truncate text-body text-ink-2">
                   {t.items.map((i) => i.item).join(", ") || "No items"}
                 </div>
               </div>
-              <button
-                type="button"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  handleRemove(t);
-                }}
-                disabled={removingId === t.id}
-                title={`Remove "${t.name}"`}
-                className="text-gray-300 hover:text-red-600 disabled:opacity-30 leading-none shrink-0"
-              >
-                ×
-              </button>
+              <span className={ROW_ACTION}>
+                <IconButton
+                  label={`Remove "${t.name}"`}
+                  icon={<TrashIcon className="!h-4 !w-4" />}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleRemove(t);
+                  }}
+                  disabled={removingId === t.id}
+                  className="hover:!text-danger"
+                />
+              </span>
             </div>
           ))}
           {templates.length === 0 && (
-            <p className="text-sm text-gray-400 text-center py-2">No message snippets yet.</p>
+            <p className="py-2 text-center text-body text-ink-2">No message snippets yet.</p>
           )}
-          <button
-            type="button"
-            onClick={() => setModal({ type: "add" })}
-            className="self-start px-3 py-1.5 text-sm rounded bg-navy text-white"
-          >
-            + Add Snippet
-          </button>
+          <Button size="sm" icon={<PlusIcon className="!h-4 !w-4" />} className="self-start" onClick={() => setModal({ type: "add" })}>
+            Add Snippet
+          </Button>
         </div>
       )}
 

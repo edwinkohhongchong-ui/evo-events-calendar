@@ -8,6 +8,20 @@ items (features/fixes) that push contains — a push with 1 item goes up by
 `1.05`). If MINOR would pass `.99`, MAJOR increments and MINOR carries the
 remainder (e.g. `1.99` + 2 items → `2.01`).
 
+## v1.82 — 2026-10-01
+
+- Export page redesigned: choose PDF or Word on two selectable cards, pick a
+  date range with quick buttons (This month, Next month, Next 3 months,
+  Custom), tap category chips (with Select all / Clear all), then one
+  Download button. The export itself is unchanged.
+- Reminders page restyled: rounded cards, labelled fields, a calmer message
+  box, a cleaner saved-templates table with a trash icon, and the snippet
+  list matches. The "How to use this page" panel on every page now has a help
+  icon and the same soft card look.
+- Login page redesigned: centred card with the +EVO Events wordmark, a
+  Edit access / View access switch, a taller passcode field and an inline
+  error. Sign-in behaviour is unchanged.
+
 ## v1.79 — 2026-10-01
 
 - Restyled the Holidays, Seasons, Checklist and Categories tables: white

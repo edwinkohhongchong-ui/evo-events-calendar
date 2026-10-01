@@ -10,6 +10,12 @@ import { toDateStr, formatDateDisplay, formatEventTimeRange } from "@/lib/dates"
 import ReminderTemplateModal from "./ReminderTemplateModal";
 import ConfirmModal from "./ConfirmModal";
 import { unwrap } from "@/lib/actionResult";
+import Card from "./ui/Card";
+import Button from "./ui/Button";
+import IconButton from "./ui/IconButton";
+import { INPUT, LABEL } from "./ui/fieldStyles";
+import { TABLE_CARD, TABLE, TH, TD, TR, EMPTY_CELL, ROW_ACTION } from "./ui/tableStyles";
+import { PlusIcon, TrashIcon } from "./icons";
 
 interface RemindersFormProps {
   templates: ReminderTemplateRow[];
@@ -220,21 +226,21 @@ export default function RemindersForm({ templates, checklistTemplates }: Reminde
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="border border-gray-200 rounded-md p-4 flex flex-col gap-3">
-        <h2 className="text-base font-semibold text-navy">Draft a reminder</h2>
-        <p className="text-xs text-gray-500 -mt-2">
+      <Card padding="p-5" className="flex flex-col gap-4">
+        <h2 className="text-title text-ink">Draft a reminder</h2>
+        <p className="-mt-2 text-body text-ink-2">
           This never sends anything by itself — it opens Telegram with the message pre-filled so
           you can review and hit send yourself. The target must be a public channel/group/bot
           username.
         </p>
 
         <div className="grid grid-cols-2 gap-3">
-          <label className="flex flex-col gap-1 text-sm">
-            Reminder template
+          <label className="flex flex-col gap-1">
+            <span className={LABEL}>Reminder template</span>
             <select
               value={selectedId}
               onChange={(e) => applyTemplate(e.target.value)}
-              className="border rounded px-2 py-1"
+              className={INPUT}
             >
               <option value="">— Freeform (no template) —</option>
               {templates.map((t) => (
@@ -244,49 +250,49 @@ export default function RemindersForm({ templates, checklistTemplates }: Reminde
               ))}
             </select>
           </label>
-          <label className="flex flex-col gap-1 text-sm">
-            Show events in the next (days)
+          <label className="flex flex-col gap-1">
+            <span className={LABEL}>Show events in the next (days)</span>
             <input
               type="number"
               min={1}
               value={lookaheadDays}
               onChange={(e) => handleLookaheadChange(Number(e.target.value) || 1)}
-              className="border rounded px-2 py-1"
+              className={INPUT}
             />
           </label>
         </div>
 
-        <label className="flex flex-col gap-1 text-sm">
-          Telegram handle
+        <label className="flex flex-col gap-1">
+          <span className={LABEL}>Telegram handle</span>
           <input
             value={handle}
             onChange={(e) => setHandle(e.target.value)}
             placeholder="@tevo_leaders"
-            className="border rounded px-2 py-1"
+            className={INPUT}
           />
         </label>
 
-        <label className="flex flex-col gap-1 text-sm">
-          Intro text (optional)
+        <label className="flex flex-col gap-1">
+          <span className={LABEL}>Intro text (optional)</span>
           <input
             value={introText}
             onChange={(e) => setIntroText(e.target.value)}
             placeholder="Please prepare e-invites and confirm pastoral goals for next month."
-            className="border rounded px-2 py-1"
+            className={INPUT}
           />
         </label>
 
         <div className="flex flex-col gap-1">
           <div className="flex items-center justify-between">
-            <span className="text-sm">
+            <span className={LABEL}>
               Events to include
-              <span className="text-gray-400 font-normal"> — ⭐ pre-checked as important</span>
+              <span className="font-normal text-ink-3"> — ⭐ pre-checked as important</span>
             </span>
-            {loadingEvents && <span className="text-xs text-gray-400">Loading…</span>}
+            {loadingEvents && <span className="text-micro text-ink-3">Loading…</span>}
           </div>
-          <div className="border border-gray-200 rounded-md divide-y divide-gray-100 max-h-72 overflow-y-auto">
+          <div className="rounded-card border border-line divide-y divide-line max-h-72 overflow-y-auto">
             {pickerEvents.length === 0 && !loadingEvents && (
-              <p className="px-3 py-4 text-sm text-gray-400 text-center">
+              <p className="px-4 py-6 text-body text-ink-2 text-center">
                 No events in the next {lookaheadDays} days — try widening the range above if you
                 expected to see something (e.g. a Christmas/Easter event planned further out).
               </p>
@@ -295,8 +301,8 @@ export default function RemindersForm({ templates, checklistTemplates }: Reminde
               const timeRange = formatEventTimeRange(ev.startTime, ev.endTime);
               const chosenTemplateId = eventTemplates[ev.occurrenceKey] ?? "";
               return (
-                <div key={ev.occurrenceKey} className="px-3 py-2 flex flex-col gap-1">
-                  <label className="flex items-start gap-2 text-sm cursor-pointer">
+                <div key={ev.occurrenceKey} className="px-4 py-2.5 flex flex-col gap-1 hover:bg-canvas">
+                  <label className="flex items-start gap-2.5 text-ui cursor-pointer">
                     <input
                       type="checkbox"
                       checked={selectedKeys.has(ev.occurrenceKey)}
@@ -306,7 +312,7 @@ export default function RemindersForm({ templates, checklistTemplates }: Reminde
                     <span className="flex-1">
                       {ev.flagged && <span title="Flagged as important">⭐ </span>}
                       {ev.name}
-                      <span className="text-gray-400">
+                      <span className="text-ink-2">
                         {" "}
                         — {formatDateDisplay(ev.date)}
                         {timeRange ? ` · ${timeRange}` : ""}
@@ -320,7 +326,7 @@ export default function RemindersForm({ templates, checklistTemplates }: Reminde
                         <select
                           value={chosenTemplateId}
                           onChange={(e) => setEventTemplate(ev.occurrenceKey, e.target.value)}
-                          className="border rounded px-1.5 py-0.5 text-xs"
+                          className="min-h-[28px] rounded-pill border border-line-strong bg-white px-2.5 text-body"
                         >
                           <option value="">No message snippet</option>
                           {checklistTemplates.map((t) => (
@@ -334,7 +340,7 @@ export default function RemindersForm({ templates, checklistTemplates }: Reminde
                             type="button"
                             onClick={() => setEventTemplate(ev.occurrenceKey, "")}
                             title="Remove this message snippet from the message"
-                            className="text-gray-300 hover:text-red-600 leading-none"
+                            className="text-ink-3 hover:text-danger leading-none"
                           >
                             ×
                           </button>
@@ -345,7 +351,7 @@ export default function RemindersForm({ templates, checklistTemplates }: Reminde
                           const template = checklistTemplates.find((t) => t.id === chosenTemplateId);
                           if (!template) return null;
                           return expandChecklistTemplate(template).map((line, i) => (
-                            <div key={i} className="text-xs text-gray-600">
+                            <div key={i} className="text-body text-ink-2">
                               ☐ {line}
                             </div>
                           ));
@@ -358,11 +364,11 @@ export default function RemindersForm({ templates, checklistTemplates }: Reminde
           </div>
         </div>
 
-        <label className="flex flex-col gap-1 text-sm">
-          <div className="flex items-center justify-between">
+        <label className="flex flex-col gap-1">
+          <div className={`${LABEL} flex items-center justify-between`}>
             Message
             {messageTouched && (
-              <button type="button" onClick={resetMessage} className="text-xs text-navy hover:underline">
+              <button type="button" onClick={resetMessage} className="text-body font-medium text-navy hover:underline">
                 Reset to auto-generated
               </button>
             )}
@@ -374,40 +380,36 @@ export default function RemindersForm({ templates, checklistTemplates }: Reminde
               setMessageTouched(true);
             }}
             rows={10}
-            className="border rounded px-2 py-1 font-mono text-xs"
+            className="w-full rounded-card border border-line-strong bg-canvas px-4 py-3 font-mono text-body text-ink"
           />
         </label>
 
-        {error && <p className="text-sm text-red-600">{error}</p>}
+        {error && (
+          <p role="alert" className="rounded-ctl bg-danger/10 px-3 py-2 text-body text-danger">
+            {error}
+          </p>
+        )}
 
-        <button
-          type="button"
-          onClick={openInTelegram}
-          className="self-start px-3 py-1.5 text-sm rounded bg-navy text-white"
-        >
+        <Button onClick={openInTelegram} className="self-start">
           Open in Telegram
-        </button>
-      </div>
+        </Button>
+      </Card>
 
       <div className="flex flex-col gap-2">
         <div className="flex items-center justify-between">
-          <h2 className="text-base font-semibold text-navy">Saved reminder templates</h2>
-          <button
-            type="button"
-            onClick={() => setTemplateModal({ type: "add" })}
-            className="px-3 py-1.5 text-sm rounded bg-navy text-white"
-          >
+          <h2 className="text-title text-ink">Saved reminder templates</h2>
+          <Button size="sm" icon={<PlusIcon className="!h-4 !w-4" />} onClick={() => setTemplateModal({ type: "add" })}>
             Add Template
-          </button>
+          </Button>
         </div>
-        <div className="border border-gray-200 rounded-md overflow-hidden overflow-x-auto">
-          <table className="w-full text-sm whitespace-nowrap">
-            <thead className="bg-navy text-white text-left">
+        <div className={TABLE_CARD}>
+          <table className={TABLE}>
+            <thead>
               <tr>
-                <th className="px-3 py-2">Name</th>
-                <th className="px-3 py-2">Default handle</th>
-                <th className="px-3 py-2">Default lookahead</th>
-                <th className="px-3 py-2 w-8"></th>
+                <th className={TH}>Name</th>
+                <th className={TH}>Default handle</th>
+                <th className={TH}>Default lookahead</th>
+                <th className={`${TH} w-12`}></th>
               </tr>
             </thead>
             <tbody>
@@ -415,30 +417,30 @@ export default function RemindersForm({ templates, checklistTemplates }: Reminde
                 <tr
                   key={t.id}
                   onClick={() => setTemplateModal({ type: "edit", template: t })}
-                  className="border-t border-gray-200 hover:bg-gray-50 cursor-pointer"
+                  className={TR}
                 >
-                  <td className="px-3 py-2">{t.name}</td>
-                  <td className="px-3 py-2 text-gray-600">{t.default_telegram_handle ?? "—"}</td>
-                  <td className="px-3 py-2 text-gray-600">{t.lookahead_days} days</td>
-                  <td className="px-3 py-2">
-                    <button
-                      type="button"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleRemoveTemplate(t);
-                      }}
-                      disabled={removingId === t.id}
-                      title={`Remove "${t.name}"`}
-                      className="text-gray-300 hover:text-red-600 disabled:opacity-30 leading-none"
-                    >
-                      ×
-                    </button>
+                  <td className={`${TD} font-medium`}>{t.name}</td>
+                  <td className={`${TD} text-ink-2`}>{t.default_telegram_handle ?? "—"}</td>
+                  <td className={`${TD} text-ink-2`}>{t.lookahead_days} days</td>
+                  <td className={`${TD} text-right`}>
+                    <span className={ROW_ACTION}>
+                      <IconButton
+                        label={`Remove "${t.name}"`}
+                        icon={<TrashIcon className="!h-4 !w-4" />}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleRemoveTemplate(t);
+                        }}
+                        disabled={removingId === t.id}
+                        className="hover:!text-danger"
+                      />
+                    </span>
                   </td>
                 </tr>
               ))}
               {templates.length === 0 && (
                 <tr>
-                  <td colSpan={4} className="px-3 py-6 text-center text-gray-400">
+                  <td colSpan={4} className={EMPTY_CELL}>
                     No saved templates yet.
                   </td>
                 </tr>

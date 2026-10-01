@@ -5,9 +5,10 @@ import InstructionsPanel from "@/components/InstructionsPanel";
 export const dynamic = "force-dynamic";
 
 const INSTRUCTIONS = [
-  "Pick a start and end date for the event list (defaults to the current month).",
-  "Tick which categories to include (all are ticked by default).",
-  "Click \"Export as PDF\" or \"Export as Word\" to download the event lineup in that format.",
+  "Choose PDF or Word.",
+  "Pick a date range with the quick buttons (This month is the default), or choose Custom to set exact dates.",
+  "Tap categories to include or leave out (all are included by default).",
+  "Click \"Download\" to save the event lineup.",
 ];
 
 export default async function ExportPage() {

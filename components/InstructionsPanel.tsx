@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { ChevronIcon, HelpCircleIcon } from "./icons";
 
 interface InstructionsPanelProps {
   /** Each entry is rendered as its own bullet line, not merged into a paragraph. */
@@ -20,26 +21,28 @@ export default function InstructionsPanel({
   const [open, setOpen] = useState(false);
 
   return (
-    <div className="border border-gray-200 rounded-md mb-4">
+    <div className="mb-4 overflow-hidden rounded-card bg-surface">
       <button
         type="button"
         onClick={() => setOpen((prev) => !prev)}
         aria-expanded={open}
-        className="w-full flex items-center justify-between px-3 py-2 bg-gray-50 hover:bg-gray-100 text-sm font-medium text-navy rounded-md"
+        className="flex w-full items-center justify-between gap-2 px-4 py-3 text-ui font-medium text-ink hover:bg-canvas"
       >
-        <span>{label}</span>
-        <span
-          className={`text-gray-400 transition-transform duration-150 ${open ? "rotate-180" : ""}`}
-          aria-hidden="true"
-        >
-          ▾
+        <span className="flex items-center gap-2">
+          <span className="text-ink-2">
+            <HelpCircleIcon className="!h-[18px] !w-[18px]" />
+          </span>
+          {label}
+        </span>
+        <span className="text-ink-3">
+          <ChevronIcon open={open} />
         </span>
       </button>
       {open && (
-        <div className="px-3 py-2 border-t border-gray-200">
-          <ul className="list-disc list-inside flex flex-col gap-1">
+        <div className="border-t border-line px-4 py-3">
+          <ul className="flex list-disc flex-col gap-1.5 pl-5">
             {lines.map((line, i) => (
-              <li key={i} className="text-xs text-gray-600">
+              <li key={i} className="text-body text-ink-2">
                 {line}
               </li>
             ))}
