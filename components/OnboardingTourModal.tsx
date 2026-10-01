@@ -1,10 +1,11 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { useOnboardingTour } from "@/lib/useOnboardingTour";
 import { TOUR_STEPS } from "@/lib/tourSteps";
 import { useEscapeKey } from "@/lib/useEscapeKey";
+import { useFocusTrap } from "@/lib/useFocusTrap";
 
 type Rect = { top: number; left: number; width: number; height: number };
 
@@ -21,9 +22,16 @@ export default function OnboardingTourModal() {
   // Escape behaves exactly like "Skip" — session-only dismiss, not a
   // permanent "seen" mark — consistent with every other modal's Escape
   // handling in this app (see lib/useEscapeKey.ts).
-  useEscapeKey(() => {
-    if (isOpen) skip();
-  });
+  useEscapeKey(skip, isOpen);
+
+  // The card is only mounted while open, so trap/restore focus around that.
+  const cardRef = useRef<HTMLDivElement>(null);
+  useFocusTrap(cardRef, isOpen);
+  // Next -> Done swaps the focused button out; keep focus inside the card.
+  useEffect(() => {
+    const card = cardRef.current;
+    if (isOpen && card && !card.contains(document.activeElement)) card.focus({ preventScroll: true });
+  }, [isOpen, step]);
 
   const total = TOUR_STEPS.length;
   const current = TOUR_STEPS[step];
@@ -146,14 +154,20 @@ export default function OnboardingTourModal() {
         } z-[52] flex justify-center p-4 pointer-events-none`}
       >
         <div
-          className="bg-white rounded-2xl shadow-xl w-full max-w-md p-8 flex flex-col gap-6 pointer-events-auto"
+          ref={cardRef}
+          tabIndex={-1}
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="evo-tour-title"
+          aria-describedby="evo-tour-body"
+          className="bg-white rounded-2xl shadow-xl w-full max-w-md p-8 flex flex-col gap-6 pointer-events-auto outline-none"
         >
           <div className="flex flex-col gap-2">
             <p className="text-xs font-medium text-gray-400 tracking-wide">
               Step {step + 1} of {total}
             </p>
-            <h2 className="text-lg font-semibold text-navy">{current.title}</h2>
-            <p className="text-sm text-gray-600 leading-relaxed">{current.body}</p>
+            <h2 id="evo-tour-title" className="text-lg font-semibold text-navy">{current.title}</h2>
+            <p id="evo-tour-body" className="text-sm text-gray-600 leading-relaxed">{current.body}</p>
           </div>
 
           <div className="flex items-center justify-center gap-1.5">
@@ -171,7 +185,7 @@ export default function OnboardingTourModal() {
             <button
               type="button"
               onClick={skip}
-              className="text-sm text-gray-400 hover:text-gray-600"
+              className="text-sm text-gray-400 hover:text-gray-600 coarse:min-h-[44px] coarse:px-3"
             >
               Skip
             </button>
@@ -180,7 +194,7 @@ export default function OnboardingTourModal() {
                 <button
                   type="button"
                   onClick={handleBack}
-                  className="px-4 py-1.5 text-sm rounded-full border border-gray-300 text-gray-700 hover:bg-gray-50"
+                  className="px-4 py-1.5 coarse:min-h-[44px] text-sm rounded-full border border-gray-300 text-gray-700 hover:bg-gray-50"
                 >
                   Back
                 </button>
@@ -189,7 +203,7 @@ export default function OnboardingTourModal() {
                 <button
                   type="button"
                   onClick={finish}
-                  className="px-4 py-1.5 text-sm rounded-full bg-navy text-white hover:opacity-90"
+                  className="px-4 py-1.5 coarse:min-h-[44px] text-sm rounded-full bg-navy text-white hover:opacity-90"
                 >
                   Done
                 </button>
@@ -197,7 +211,7 @@ export default function OnboardingTourModal() {
                 <button
                   type="button"
                   onClick={handleNext}
-                  className="px-4 py-1.5 text-sm rounded-full bg-navy text-white hover:opacity-90"
+                  className="px-4 py-1.5 coarse:min-h-[44px] text-sm rounded-full bg-navy text-white hover:opacity-90"
                 >
                   Next
                 </button>

@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { ChevronLeftIcon } from "@/components/icons";
 import { todayDate } from "@/lib/dates";
 import { getAllSeasons, getLatestSeasonSourceDatesBefore } from "@/lib/data";
 import NewYearForm from "@/components/NewYearForm";
@@ -25,8 +26,9 @@ export default async function SeasonsNewYearPage() {
 
   return (
     <main className="max-w-4xl mx-auto p-4 sm:p-6">
-      <Link href="/seasons" className="text-sm text-navy hover:underline">
-        ← Seasons
+      <Link href="/seasons" className="inline-flex items-center gap-1 text-body font-medium text-navy hover:underline">
+        <ChevronLeftIcon className="!h-4 !w-4" />
+        Seasons
       </Link>
       <h1 className="text-xl font-semibold text-navy mt-2 mb-4">
         Start a New Year — {nextYear}

@@ -20,8 +20,8 @@ const VARIANT: Record<ButtonVariant, string> = {
 };
 
 const SIZE: Record<ButtonSize, string> = {
-  sm: "min-h-[32px] px-3.5 text-body",
-  md: "min-h-[40px] px-5 text-ui",
+  sm: "min-h-[32px] coarse:min-h-[44px] px-3.5 text-body",
+  md: "min-h-[40px] coarse:min-h-[44px] px-5 text-ui",
 };
 
 /** Class string for non-<button> elements (e.g. next/link) that should look like a Button. */

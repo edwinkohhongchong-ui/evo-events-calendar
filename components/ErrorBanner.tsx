@@ -1,5 +1,7 @@
 "use client";
 
+import { XIcon } from "./icons";
+
 interface ErrorBannerProps {
   message: string;
   onDismiss: () => void;
@@ -7,10 +9,18 @@ interface ErrorBannerProps {
 
 export default function ErrorBanner({ message, onDismiss }: ErrorBannerProps) {
   return (
-    <div className="fixed top-3 left-1/2 -translate-x-1/2 z-[60] bg-red-600 text-white text-sm px-4 py-2 rounded shadow-lg flex items-center gap-3">
+    <div
+      role="alert"
+      className="fixed left-1/2 top-3 z-[60] flex max-w-[calc(100vw-32px)] -translate-x-1/2 items-center gap-2 rounded-pill bg-danger py-2 pl-5 pr-2 text-body text-white shadow-pop"
+    >
       <span>{message}</span>
-      <button onClick={onDismiss} className="font-bold leading-none" aria-label="Dismiss">
-        ×
+      <button
+        type="button"
+        onClick={onDismiss}
+        aria-label="Dismiss"
+        className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-white/80 transition-colors duration-fast ease-apple hover:bg-white/15 hover:text-white focus-visible:outline-white"
+      >
+        <XIcon />
       </button>
     </div>
   );

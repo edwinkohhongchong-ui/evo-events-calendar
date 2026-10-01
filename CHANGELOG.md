@@ -8,6 +8,14 @@ items (features/fixes) that push contains — a push with 1 item goes up by
 `1.05`). If MINOR would pass `.99`, MAJOR increments and MINOR carries the
 remainder (e.g. `1.99` + 2 items → `2.01`).
 
+## v2.31 — 2026-10-01
+
+- Keyboard access: event chips open with Enter/Space; bar rows carry the event name for screen readers; windows and the tour trap Tab focus and return focus on close.
+- Safer closing: a text drag-select that ends over the backdrop no longer closes a window; Escape closes only the top-most layer (Confirm windows no longer close the window under them).
+- Larger touch targets (44px) for buttons, fields and window close buttons on touch screens only; desktop density unchanged.
+- Added loading, error ("Try again") and not-found pages.
+- Restyled the Day page and day grid, Undo/Redo and the menu, the error banner, Backup, and the Holidays/Seasons "Start a New Year" and "Update Calendar" screens to match the new design.
+
 ## v2.26 — 2026-10-01
 
 - Refreshed the onboarding tour: 19 steps now cover Duplicate, search, hover preview, phone use, event checklists, the overdue pill and Seasons; the four role-limit steps are merged into one. `ONBOARDING.md` brought up to date.

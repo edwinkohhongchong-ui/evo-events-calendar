@@ -52,7 +52,7 @@ export default function IconButton({
         type={type}
         aria-label={label}
         aria-describedby={show ? tipId : undefined}
-        className={`inline-flex h-8 w-8 items-center justify-center rounded-full text-ink-2 transition-colors duration-fast ease-apple hover:bg-fill hover:text-navy disabled:opacity-40 disabled:pointer-events-none ${className}`}
+        className={`inline-flex h-8 w-8 coarse:h-11 coarse:w-11 items-center justify-center rounded-full text-ink-2 transition-colors duration-fast ease-apple hover:bg-fill hover:text-navy disabled:opacity-40 disabled:pointer-events-none ${className}`}
         onMouseEnter={(e) => { open(); onMouseEnter?.(e); }}
         onMouseLeave={(e) => { close(); onMouseLeave?.(e); }}
         onFocus={(e) => { open(); onFocus?.(e); }}

@@ -6,6 +6,8 @@ import { expandEvents } from "@/lib/recurrence";
 import { applyOverrides } from "@/lib/overrides";
 import { isValidDateStr, parseDateStr, toDateStr, formatDateDisplay } from "@/lib/dates";
 import DayView from "@/components/DayView";
+import { buttonClass } from "@/components/ui/Button";
+import { ChevronLeftIcon, ChevronRightIcon } from "@/components/icons";
 
 // Same live-data reasoning as the month view — see app/page.tsx.
 export const dynamic = "force-dynamic";
@@ -38,25 +40,25 @@ export default async function DayPage({ params }: DayPageProps) {
   return (
     <main className="max-w-3xl mx-auto p-4 sm:p-6">
       <div className="flex items-center justify-between mb-4">
-        <Link href={`/?year=${year}&month=${month}`} className="text-sm text-navy hover:underline">
-          ← {format(date, "MMMM yyyy")}
+        <Link
+          href={`/?year=${year}&month=${month}`}
+          className="inline-flex items-center gap-1 rounded-pill py-1 pr-2 text-body font-medium text-navy hover:underline"
+        >
+          <ChevronLeftIcon className="!h-4 !w-4" />
+          {format(date, "MMMM yyyy")}
         </Link>
         <div className="flex items-center gap-2">
-          <Link
-            href={`/day/${prevDateStr}`}
-            className="px-2.5 py-1 rounded border border-gray-300 text-sm text-navy"
-          >
-            ← Prev
+          <Link href={`/day/${prevDateStr}`} className={buttonClass("secondary", "sm", "pl-2.5")}>
+            <ChevronLeftIcon className="!h-4 !w-4" />
+            Prev
           </Link>
-          <Link
-            href={`/day/${nextDateStr}`}
-            className="px-2.5 py-1 rounded border border-gray-300 text-sm text-navy"
-          >
-            Next →
+          <Link href={`/day/${nextDateStr}`} className={buttonClass("secondary", "sm", "pr-2.5")}>
+            Next
+            <ChevronRightIcon className="!h-4 !w-4" />
           </Link>
         </div>
       </div>
-      <h1 className="text-xl font-semibold text-navy mb-4">
+      <h1 className="text-title sm:text-display text-navy mb-4">
         {format(date, "EEEE")}, {formatDateDisplay(dateStr)}
       </h1>
       <DayView occurrences={occurrences} levels={levels} />

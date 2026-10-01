@@ -3,6 +3,9 @@
 import { SourceGroup } from "@/lib/examScheduleSources";
 import { computeGroupAggregate } from "@/lib/seasonSourceDateAggregate";
 import { formatDateDisplay } from "@/lib/dates";
+import { INPUT } from "./ui/fieldStyles";
+
+const DATE_INPUT = `${INPUT} !min-h-[32px] !w-auto !px-2 !text-body`;
 
 export interface InstitutionValue {
   start_date: string | null;
@@ -32,8 +35,8 @@ export default function ExamSourceGroupEditor({
   const aggregate = computeGroupAggregate(entries);
 
   return (
-    <div className="bg-white border border-gray-200 rounded-md p-4">
-      <h2 className="text-sm font-semibold text-navy mb-3">{group.groupName}</h2>
+    <div className="rounded-card bg-surface p-5">
+      <h2 className="mb-3 text-ui font-semibold text-navy">{group.groupName}</h2>
       <div className="flex flex-col gap-3">
         {group.institutions.map((inst) => {
           const value = values[inst.name] ?? { start_date: null, end_date: null };
@@ -41,36 +44,36 @@ export default function ExamSourceGroupEditor({
           return (
             <div
               key={inst.name}
-              className="flex flex-col sm:flex-row sm:items-center gap-2 border-t border-gray-100 pt-3 first:border-t-0 first:pt-0"
+              className="flex flex-col sm:flex-row sm:items-center gap-2 border-t border-line pt-3 first:border-t-0 first:pt-0"
             >
               <div className="sm:w-56 shrink-0">
                 <a
                   href={inst.url}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="text-sm text-navy hover:underline"
+                  className="text-body text-navy hover:underline"
                 >
                   {inst.name}
                 </a>
-                {flag && <div className="text-[11px] text-amber-700 mt-0.5">{flag}</div>}
+                {flag && <div className="mt-0.5 text-micro text-amber-700">{flag}</div>}
               </div>
               <div className="flex items-center gap-2">
-                <label className="flex items-center gap-1 text-xs text-gray-600">
+                <label className="flex items-center gap-1.5 text-micro font-medium text-ink-2">
                   Start
                   <input
                     type="date"
                     value={value.start_date ?? ""}
                     onChange={(e) => onChange(inst.name, "start_date", e.target.value)}
-                    className="border rounded px-1.5 py-0.5 text-sm"
+                    className={DATE_INPUT}
                   />
                 </label>
-                <label className="flex items-center gap-1 text-xs text-gray-600">
+                <label className="flex items-center gap-1.5 text-micro font-medium text-ink-2">
                   End
                   <input
                     type="date"
                     value={value.end_date ?? ""}
                     onChange={(e) => onChange(inst.name, "end_date", e.target.value)}
-                    className="border rounded px-1.5 py-0.5 text-sm"
+                    className={DATE_INPUT}
                   />
                 </label>
               </div>
@@ -78,7 +81,7 @@ export default function ExamSourceGroupEditor({
           );
         })}
       </div>
-      <div className="mt-3 pt-3 border-t border-gray-200 text-sm text-gray-600 flex flex-wrap items-center justify-between gap-2">
+      <div className="mt-3 pt-3 border-t border-line text-body text-ink-2 flex flex-wrap items-center justify-between gap-2">
         <span>
           {aggregate.filledCount} of {aggregate.total} filled in
         </span>

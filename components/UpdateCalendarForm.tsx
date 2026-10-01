@@ -11,6 +11,7 @@ import { useUndo } from "@/lib/undo/UndoProvider";
 import { AffectedRow } from "@/lib/undo/types";
 import ExamSourceGroupEditor, { InstitutionValue } from "./ExamSourceGroupEditor";
 import { unwrap } from "@/lib/actionResult";
+import Button from "./ui/Button";
 
 type ValuesByGroup = Record<string, Record<string, InstitutionValue>>;
 
@@ -165,8 +166,8 @@ export default function UpdateCalendarForm({
 
   if (phase.kind === "saved") {
     return (
-      <div className="bg-white border border-gray-200 rounded-md p-4 text-sm">
-        <p className="font-medium mb-2">Calendar updated for {year}.</p>
+      <div className="max-w-xl rounded-card bg-surface p-5 text-body">
+        <p className="mb-2 text-ui font-medium">Calendar updated for {year}.</p>
         <ul className="list-disc list-inside flex flex-col gap-1">
           {phase.lines.map((line) => (
             <li key={line.groupName}>
@@ -180,17 +181,14 @@ export default function UpdateCalendarForm({
                 </span>
               )}
               {line.season === "error" && (
-                <span className="text-red-600">failed to save — {line.error}</span>
+                <span className="text-danger">failed to save — {line.error}</span>
               )}
             </li>
           ))}
         </ul>
-        <button
-          onClick={() => router.push("/seasons")}
-          className="mt-3 px-3 py-1.5 text-sm rounded bg-navy text-white"
-        >
+        <Button size="sm" className="mt-4" onClick={() => router.push("/seasons")}>
           Back to Seasons
-        </button>
+        </Button>
       </div>
     );
   }
@@ -207,13 +205,9 @@ export default function UpdateCalendarForm({
       ))}
 
       <div className="flex justify-end">
-        <button
-          onClick={handleSave}
-          disabled={phase.kind === "saving" || !anyFilled}
-          className="px-4 py-2 text-sm rounded bg-navy text-white disabled:opacity-50"
-        >
+        <Button onClick={handleSave} disabled={phase.kind === "saving" || !anyFilled}>
           {phase.kind === "saving" ? "Saving…" : "Save"}
-        </button>
+        </Button>
       </div>
     </div>
   );

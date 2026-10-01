@@ -1,4 +1,6 @@
 import InstructionsPanel from "@/components/InstructionsPanel";
+import { buttonClass } from "@/components/ui/Button";
+import { DownloadIcon } from "@/components/icons";
 
 export const dynamic = "force-dynamic";
 
@@ -12,12 +14,15 @@ export default function BackupPage() {
     <main className="max-w-4xl mx-auto p-4 sm:p-6">
       <h1 className="text-xl font-semibold text-navy mb-4">Backup</h1>
       <InstructionsPanel lines={INSTRUCTIONS} />
-      <a
-        href="/api/admin/backup"
-        className="inline-block px-4 py-2 text-sm rounded bg-navy text-white hover:bg-navy/90"
-      >
-        Download full backup (JSON)
-      </a>
+      <div className="rounded-card bg-surface p-5">
+        <p className="mb-4 text-body text-ink-2">
+          One file with every row from every table. Keep it somewhere safe.
+        </p>
+        <a href="/api/admin/backup" className={buttonClass("primary", "md")}>
+          <DownloadIcon className="!h-[18px] !w-[18px]" />
+          Download full backup (JSON)
+        </a>
+      </div>
     </main>
   );
 }

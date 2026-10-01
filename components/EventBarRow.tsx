@@ -60,7 +60,12 @@ function SegmentBlock({
       }}
     >
       {card}
-      <button type="button" onClick={onClick} className="absolute inset-0 w-full h-full px-1.5 truncate text-left">
+      <button
+        type="button"
+        onClick={onClick}
+        aria-label={segment.occurrence.event.name}
+        className="absolute inset-0 w-full h-full px-1.5 truncate text-left rounded-[inherit]"
+      >
         {/* Repeats the name at the start of every week this bar crosses
             (startCol 0 = Monday), not just at the event's true start —
             otherwise a long event scrolled out of view from its start date

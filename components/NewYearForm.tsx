@@ -13,6 +13,10 @@ import { AffectedRow } from "@/lib/undo/types";
 import ExamSourceGroupEditor, { InstitutionValue } from "./ExamSourceGroupEditor";
 import { addYears } from "date-fns";
 import { unwrap } from "@/lib/actionResult";
+import Button from "./ui/Button";
+import { INPUT, LABEL } from "./ui/fieldStyles";
+
+const FIELD_INPUT = `${INPUT} !w-auto`;
 
 const TRACKED_CATEGORIES = new Set(["School Schedule", "Exam Period"]);
 
@@ -309,22 +313,19 @@ export default function NewYearForm({
 
   if (phase.kind === "saved") {
     return (
-      <div className="bg-white border border-gray-200 rounded-md p-4 text-sm">
-        <p className="font-medium mb-2">Created seasons for {nextYear}.</p>
+      <div className="max-w-xl rounded-card bg-surface p-5 text-body">
+        <p className="mb-2 text-ui font-medium">Created seasons for {nextYear}.</p>
         <ul className="list-disc list-inside flex flex-col gap-1">
           {phase.lines.map((line, i) => (
             <li key={i}>
               {line.name}: {line.outcome}
-              {line.flag && <div className="text-[11px] text-amber-700 mt-0.5">{line.flag}</div>}
+              {line.flag && <div className="mt-0.5 text-micro text-amber-700">{line.flag}</div>}
             </li>
           ))}
         </ul>
-        <button
-          onClick={() => router.push("/seasons")}
-          className="mt-3 px-3 py-1.5 text-sm rounded bg-navy text-white"
-        >
+        <Button size="sm" className="mt-4" onClick={() => router.push("/seasons")}>
           Back to Seasons
-        </button>
+        </Button>
       </div>
     );
   }
@@ -336,7 +337,7 @@ export default function NewYearForm({
         {items?.map((item) =>
           item.kind === "tracked" ? (
             <div key={item.seasonId} className="flex flex-col gap-2">
-              <label className="flex items-center gap-2 text-sm font-medium text-navy">
+              <label className="flex flex-wrap items-center gap-2 text-ui font-medium text-navy">
                 Proposed name
                 <input
                   value={item.editedName}
@@ -351,7 +352,7 @@ export default function NewYearForm({
                       ),
                     });
                   }}
-                  className="border rounded px-2 py-1 text-sm w-64"
+                  className={`${FIELD_INPUT} !w-64`}
                 />
               </label>
               <ExamSourceGroupEditor
@@ -364,37 +365,37 @@ export default function NewYearForm({
               />
             </div>
           ) : (
-            <div key={item.seasonId} className="bg-white border border-gray-200 rounded-md p-4">
+            <div key={item.seasonId} className="rounded-card bg-surface p-5">
               <div className="flex flex-col sm:flex-row sm:items-center gap-3">
-                <label className="flex flex-col gap-1 text-sm">
+                <label className={`flex flex-col gap-1 ${LABEL}`}>
                   Name
                   <input
                     value={item.editedName}
                     onChange={(e) => updateShiftedField(item.seasonId, { editedName: e.target.value })}
-                    className="border rounded px-2 py-1 text-sm w-56"
+                    className={`${FIELD_INPUT} !w-56`}
                   />
                 </label>
-                <label className="flex flex-col gap-1 text-sm">
+                <label className={`flex flex-col gap-1 ${LABEL}`}>
                   Start
                   <input
                     type="date"
                     value={item.editedStart}
                     onChange={(e) => updateShiftedField(item.seasonId, { editedStart: e.target.value })}
-                    className="border rounded px-2 py-1 text-sm"
+                    className={FIELD_INPUT}
                   />
                 </label>
-                <label className="flex flex-col gap-1 text-sm">
+                <label className={`flex flex-col gap-1 ${LABEL}`}>
                   End
                   <input
                     type="date"
                     value={item.editedEnd}
                     onChange={(e) => updateShiftedField(item.seasonId, { editedEnd: e.target.value })}
-                    className="border rounded px-2 py-1 text-sm"
+                    className={FIELD_INPUT}
                   />
                 </label>
-                <div className="text-[11px] text-gray-500 sm:ml-auto">
+                <div className="text-micro text-ink-2 sm:ml-auto">
                   Carried forward: same dates, one year later
-                  <div className="text-gray-400">(was {item.originalName})</div>
+                  <div className="text-ink-3">(was {item.originalName})</div>
                 </div>
               </div>
             </div>
@@ -402,13 +403,9 @@ export default function NewYearForm({
         )}
 
         <div className="flex justify-end">
-          <button
-            onClick={handleSave}
-            disabled={phase.kind === "saving"}
-            className="px-4 py-2 text-sm rounded bg-navy text-white disabled:opacity-50"
-          >
+          <Button onClick={handleSave} disabled={phase.kind === "saving"}>
             {phase.kind === "saving" ? "Saving…" : `Save (${items?.length ?? 0})`}
-          </button>
+          </Button>
         </div>
       </div>
     );
@@ -417,26 +414,27 @@ export default function NewYearForm({
   // Form phase: multi-select, grouped by category, all unchecked by default.
   return (
     <div className="flex flex-col gap-4">
-      <p className="text-sm text-gray-600">
+      <p className="text-body text-ink-2">
         Pick which {currentYear} seasons to carry forward into {nextYear}. Nothing is created
         until you review and save.
       </p>
       {currentYearSeasons.length === 0 && (
-        <p className="text-sm text-gray-400">No seasons found starting in {currentYear}.</p>
+        <p className="text-body text-ink-2">No seasons found starting in {currentYear}.</p>
       )}
       {Array.from(grouped.entries()).map(([category, seasonsInCategory]) => (
-        <div key={category} className="bg-white border border-gray-200 rounded-md p-4">
-          <h2 className="text-sm font-semibold text-navy mb-2">{category}</h2>
+        <div key={category} className="rounded-card bg-surface p-5">
+          <h2 className="mb-2 text-ui font-semibold text-navy">{category}</h2>
           <div className="flex flex-col gap-1">
             {seasonsInCategory.map((season) => (
-              <label key={season.id} className="flex items-center gap-2 text-sm">
+              <label key={season.id} className="flex min-h-[32px] items-center gap-2 text-body">
                 <input
                   type="checkbox"
+                  className="h-4 w-4 accent-navy"
                   checked={selected.has(season.id)}
                   onChange={() => toggle(season.id)}
                 />
                 {season.name}
-                <span className="text-gray-400">
+                <span className="text-ink-2">
                   ({formatDateDisplay(season.start_date)} – {formatDateDisplay(season.end_date)})
                 </span>
               </label>
@@ -445,13 +443,9 @@ export default function NewYearForm({
         </div>
       ))}
       <div className="flex justify-end">
-        <button
-          onClick={handlePropose}
-          disabled={selected.size === 0}
-          className="px-4 py-2 text-sm rounded bg-navy text-white disabled:opacity-50"
-        >
+        <Button onClick={handlePropose} disabled={selected.size === 0}>
           Propose for Next Year ({selected.size})
-        </button>
+        </Button>
       </div>
     </div>
   );

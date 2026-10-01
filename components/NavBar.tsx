@@ -27,6 +27,8 @@ import {
   FileTextIcon,
   PlayCircleIcon,
   ChevronIcon,
+  UndoIcon,
+  RedoIcon,
 } from "./icons";
 
 type Item = {
@@ -89,7 +91,10 @@ function groupForPath(pathname: string | null): string | null {
   return null;
 }
 
-const ROW = "flex items-center gap-3 w-full text-left px-3 py-2.5 text-sm rounded-lg relative";
+const ROW = "flex items-center gap-3 w-full text-left px-3 py-2.5 text-body rounded-ctl relative transition-colors duration-fast";
+// Undo / Redo: quiet ghost pills on the navy bar; label collapses to icon-only on phones.
+const HISTORY_BTN =
+  "inline-flex h-8 items-center gap-1.5 rounded-pill px-2.5 text-body text-white/90 whitespace-nowrap transition-colors duration-fast hover:bg-white/10 hover:text-white disabled:opacity-40 disabled:hover:bg-transparent disabled:hover:text-white/90 sm:px-3";
 
 export default function NavBar({ generalComments = [] }: { generalComments?: NoteCommentRow[] }) {
   const pathname = usePathname();
@@ -174,15 +179,15 @@ export default function NavBar({ generalComments = [] }: { generalComments?: Not
     const cls = [
       ROW,
       nested ? "pl-9" : "",
-      active ? "text-navy font-medium bg-gray-50" : "text-gray-700 hover:bg-gray-100",
+      active ? "text-navy font-medium bg-navy-50" : "text-ink hover:bg-canvas",
     ].join(" ");
     const inner = (
       <>
         {active && <span className="absolute left-0 top-2 bottom-2 w-[3px] rounded-full bg-gold" aria-hidden="true" />}
-        <span className={active ? "text-navy" : "text-gray-500"}>{item.icon}</span>
+        <span className={active ? "text-navy" : "text-ink-2"}>{item.icon}</span>
         <span className="min-w-0">
           <span className="block">{item.label}</span>
-          {item.caption && <span className="block text-xs text-gray-500 font-normal">{item.caption}</span>}
+          {item.caption && <span className="block text-micro text-ink-2 font-normal">{item.caption}</span>}
         </span>
       </>
     );
@@ -218,14 +223,14 @@ export default function NavBar({ generalComments = [] }: { generalComments?: Not
           className={[
             ROW,
             "justify-between",
-            hasActive ? "text-navy font-medium" : "text-gray-700 hover:bg-gray-100",
+            hasActive ? "text-navy font-medium" : "text-ink hover:bg-canvas",
           ].join(" ")}
         >
           <span className="flex items-center gap-3">
-            <span className={hasActive ? "text-navy" : "text-gray-500"}>{group.icon}</span>
+            <span className={hasActive ? "text-navy" : "text-ink-2"}>{group.icon}</span>
             {group.label}
           </span>
-          <span className="text-gray-400">
+          <span className="text-ink-3">
             <ChevronIcon open={open} />
           </span>
         </button>
@@ -238,7 +243,7 @@ export default function NavBar({ generalComments = [] }: { generalComments?: Not
     );
   };
 
-  const divider = <div className="border-t border-gray-100 my-1.5 mx-2" role="separator" />;
+  const divider = <div className="border-t border-line my-1.5 mx-2" role="separator" />;
 
   return (
     <nav className="bg-navy text-white">
@@ -261,9 +266,11 @@ export default function NavBar({ generalComments = [] }: { generalComments?: Not
               onClick={undo}
               disabled={!canUndo || isBusy}
               title={undoLabel ? `Undo: ${undoLabel} (Cmd/Ctrl+Z)` : "Nothing to undo"}
-              className="px-2.5 py-1 text-sm rounded border border-white/30 hover:bg-white/10 whitespace-nowrap disabled:opacity-30 disabled:hover:bg-transparent"
+              aria-label="Undo"
+              className={HISTORY_BTN}
             >
-              ↶ Undo
+              <UndoIcon className="!h-4 !w-4" />
+              <span className="hidden sm:inline">Undo</span>
             </button>
             <button
               type="button"
@@ -271,9 +278,11 @@ export default function NavBar({ generalComments = [] }: { generalComments?: Not
               onClick={redo}
               disabled={!canRedo || isBusy}
               title={redoLabel ? `Redo: ${redoLabel} (Cmd/Ctrl+Shift+Z)` : "Nothing to redo"}
-              className="px-2.5 py-1 text-sm rounded border border-white/30 hover:bg-white/10 whitespace-nowrap disabled:opacity-30 disabled:hover:bg-transparent"
+              aria-label="Redo"
+              className={HISTORY_BTN}
             >
-              Redo ↷
+              <RedoIcon className="!h-4 !w-4" />
+              <span className="hidden sm:inline">Redo</span>
             </button>
           </div>
         )}
@@ -331,7 +340,7 @@ export default function NavBar({ generalComments = [] }: { generalComments?: Not
               <div
                 data-tour="hamburger-menu-panel"
                 className={[
-                  "absolute right-0 top-full mt-1 w-[min(18rem,calc(100vw-1.5rem))] max-h-[calc(100vh-4rem)] overflow-y-auto bg-white text-gray-800 rounded-xl shadow-lg border border-gray-200 z-50 p-1.5 transition duration-150 ease-out",
+                  "absolute right-0 top-full mt-1 w-[min(18rem,calc(100vw-1.5rem))] max-h-[calc(100vh-4rem)] overflow-y-auto bg-surface text-ink rounded-card shadow-pop z-50 p-1.5 transition duration-150 ease-out",
                   entered ? "opacity-100 translate-y-0" : "opacity-0 -translate-y-1",
                 ].join(" ")}
               >
@@ -342,7 +351,7 @@ export default function NavBar({ generalComments = [] }: { generalComments?: Not
                   className={[
                     ROW,
                     "py-3 font-semibold relative",
-                    pathname === "/" ? "bg-navy text-white" : "bg-navy/5 text-navy hover:bg-navy/10",
+                    pathname === "/" ? "bg-navy text-white" : "bg-navy-50 text-navy hover:bg-navy/10",
                   ].join(" ")}
                 >
                   <span className="absolute left-0 top-2 bottom-2 w-[3px] rounded-full bg-gold" aria-hidden="true" />
@@ -368,9 +377,9 @@ export default function NavBar({ generalComments = [] }: { generalComments?: Not
                     closeMenu();
                     startTour();
                   }}
-                  className={[ROW, "text-gray-700 hover:bg-gray-100"].join(" ")}
+                  className={[ROW, "text-ink hover:bg-canvas"].join(" ")}
                 >
-                  <span className="text-gray-500">
+                  <span className="text-ink-2">
                     <PlayCircleIcon />
                   </span>
                   Replay tour

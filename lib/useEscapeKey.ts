@@ -1,16 +1,25 @@
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
+import { dispatchEscape, pushEscapeHandler } from "./escapeStack";
 
-// Shared "Escape closes this modal" behavior — every modal in the app binds
-// this the same way: pressing Escape anywhere inside (or outside) it calls
-// the modal's onClose, regardless of which internal step/form state it's in.
-export function useEscapeKey(onClose: () => void) {
+let listening = false;
+function ensureListener() {
+  if (listening || typeof window === "undefined") return;
+  listening = true;
+  window.addEventListener("keydown", (e) => {
+    if (e.key === "Escape") dispatchEscape();
+  });
+}
+
+// Shared "Escape closes this layer" behavior. Layers stack in the order they
+// start listening, and only the top-most one reacts — so a nested confirm
+// dialog closes alone, not together with the modal underneath it. Pass
+// `enabled=false` for always-mounted UI so it only joins the stack while open.
+export function useEscapeKey(onClose: () => void, enabled = true) {
+  const handler = useRef(onClose);
+  handler.current = onClose;
   useEffect(() => {
-    function handleKeyDown(e: KeyboardEvent) {
-      if (e.key === "Escape") {
-        onClose();
-      }
-    }
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [onClose]);
+    if (!enabled) return;
+    ensureListener();
+    return pushEscapeHandler(handler);
+  }, [enabled]);
 }

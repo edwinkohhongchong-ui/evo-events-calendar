@@ -60,6 +60,14 @@ export default function EventCard({ occurrence, onClick }: EventCardProps) {
         e.stopPropagation();
         onClick();
       }}
+      onKeyDown={(e) => {
+        // Enter/Space open the event (drag is pointer-only; no keyboard sensor).
+        if (e.target === e.currentTarget && (e.key === "Enter" || e.key === " ")) {
+          e.preventDefault();
+          e.stopPropagation();
+          onClick();
+        }
+      }}
       className={[
         "relative group cursor-grab active:cursor-grabbing rounded-chip hover:brightness-95 transition-[filter] duration-fast",
         isDragging ? "opacity-30" : "",

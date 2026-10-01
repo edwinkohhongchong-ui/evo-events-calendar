@@ -1,5 +1,5 @@
 import { EventOccurrence } from "@/lib/types";
-import { LEVEL_COLOR_CLASSES } from "@/lib/constants";
+import { LEVEL_CHIP_CLASSES } from "@/lib/constants";
 import { useLevelColor } from "@/lib/levelColorContext";
 import { formatEventTimeRange } from "@/lib/dates";
 import { endsNextDay } from "@/lib/timeMath";
@@ -18,18 +18,18 @@ export default function DayViewEventContent({ occurrence }: { occurrence: EventO
   return (
     <div
       className={[
-        "h-full rounded border px-2 py-0.5 text-xs overflow-hidden",
-        LEVEL_COLOR_CLASSES[colorKey],
+        "h-full overflow-hidden rounded-chip py-0.5 pl-2 pr-1.5 text-chip",
+        LEVEL_CHIP_CLASSES[colorKey],
       ].join(" ")}
       title={[event.name, subtitle].filter(Boolean).join(" — ")}
     >
       <div className="font-medium truncate">{event.name}</div>
-      {subtitle && <div className="truncate opacity-80">{subtitle}</div>}
+      {subtitle && <div className="truncate text-ink-2">{subtitle}</div>}
       {time && (
-        <div className="truncate opacity-80">
+        <div className="truncate text-ink-2">
           {time}
-          {nextDay && <span className="ml-1 opacity-70">(next day)</span>}
-          {occurrence.isOverridden && <span className="ml-1 opacity-70">(moved)</span>}
+          {nextDay && <span className="ml-1">(next day)</span>}
+          {occurrence.isOverridden && <span className="ml-1">(moved)</span>}
         </div>
       )}
     </div>

@@ -1,4 +1,5 @@
 import type { Config } from "tailwindcss";
+import plugin from "tailwindcss/plugin";
 
 const config: Config = {
   content: [
@@ -51,6 +52,10 @@ const config: Config = {
       },
     },
   },
-  plugins: [],
+  plugins: [
+    // `coarse:` applies on touch-first devices only, so desktop stays dense
+    // while touch targets reach 44px.
+    plugin(({ addVariant }) => addVariant("coarse", "@media (pointer: coarse)")),
+  ],
 };
 export default config;

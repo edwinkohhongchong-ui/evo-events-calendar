@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { ChevronLeftIcon } from "@/components/icons";
 import { todayDate } from "@/lib/dates";
 import { getAllSeasons, getSeasonSourceDates } from "@/lib/data";
 import UpdateCalendarForm from "@/components/UpdateCalendarForm";
@@ -17,11 +18,12 @@ export default async function UpdateCalendarPage() {
 
   return (
     <main className="max-w-4xl mx-auto p-4 sm:p-6">
-      <Link href="/seasons" className="text-sm text-navy hover:underline">
-        ← Seasons
+      <Link href="/seasons" className="inline-flex items-center gap-1 text-body font-medium text-navy hover:underline">
+        <ChevronLeftIcon className="!h-4 !w-4" />
+        Seasons
       </Link>
       <h1 className="text-xl font-semibold text-navy mt-2 mb-4">Update Calendar — {year}</h1>
-      <p className="text-sm text-gray-600 mb-4">
+      <p className="mb-4 text-body text-ink-2">
         For each institution, open its calendar in a new tab and enter the current exam/term
         dates. The proposed School Schedule / Exam Period season below each group updates live as
         you fill things in.

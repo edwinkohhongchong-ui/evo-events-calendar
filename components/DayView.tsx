@@ -126,12 +126,12 @@ export default function DayView({ occurrences, levels }: DayViewProps) {
         <LevelChips levels={levels} />
       </div>
       <DndContext id="day-dnd" sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
-        <div className="flex border border-gray-200 rounded-md overflow-hidden">
-          <div className="w-14 shrink-0 border-r border-gray-200 bg-gray-50">
+        <div className="flex overflow-hidden rounded-card bg-surface">
+          <div className="w-14 shrink-0 border-r border-line bg-canvas">
             {HOURS.map((hour) => (
               <div
                 key={hour}
-                className="text-[11px] text-gray-400 text-right pr-2 border-t border-gray-100 first:border-t-0"
+                className="border-t border-line pr-2 pt-0.5 text-right text-micro text-ink-2 first:border-t-0"
                 style={{ height: 60 }}
               >
                 {formatHourLabel(hour)}
@@ -142,7 +142,7 @@ export default function DayView({ occurrences, levels }: DayViewProps) {
             {HOURS.map((hour) => (
               <div
                 key={hour}
-                className="absolute left-0 right-0 border-t border-gray-100 first:border-t-0"
+                className="absolute left-0 right-0 border-t border-line first:border-t-0"
                 style={{ top: hour * 60 }}
               />
             ))}
