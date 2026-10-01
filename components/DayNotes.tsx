@@ -9,6 +9,7 @@ import { useUndo } from "@/lib/undo/UndoProvider";
 import { useIsEditor } from "@/lib/roleContext";
 import { DayNoteRow } from "@/lib/types";
 import AutoGrowTextarea from "./ui/AutoGrowTextarea";
+import { unwrap } from "@/lib/actionResult";
 
 interface DayNotesProps {
   dateStr: string;
@@ -74,7 +75,7 @@ export default function DayNotes({ dateStr, notes }: DayNotesProps) {
     setSaving(true);
     setError(null);
     try {
-      const affected = await createDayNote(dateStr, draft.trim());
+      const affected = unwrap(await createDayNote(dateStr, draft.trim()));
       record(`Add note "${draft.trim()}"`, affected);
       setDraft("");
       router.refresh();
@@ -90,7 +91,7 @@ export default function DayNotes({ dateStr, notes }: DayNotesProps) {
     setRemovingId(id);
     setError(null);
     try {
-      const affected = await deleteDayNote(id);
+      const affected = unwrap(await deleteDayNote(id));
       record(note ? `Delete note "${note.content}"` : "Delete note", affected);
       router.refresh();
     } catch (err) {

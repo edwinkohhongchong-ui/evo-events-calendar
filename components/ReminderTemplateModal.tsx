@@ -10,6 +10,7 @@ import {
 import { useUndo } from "@/lib/undo/UndoProvider";
 import { useEscapeKey } from "@/lib/useEscapeKey";
 import ConfirmDialog from "./ConfirmDialog";
+import { unwrap } from "@/lib/actionResult";
 
 interface ReminderTemplateModalProps {
   mode: "add" | "edit";
@@ -61,10 +62,10 @@ export default function ReminderTemplateModal({
         lookahead_days: days,
       };
       if (mode === "add") {
-        const affected = await createReminderTemplate(values);
+        const affected = unwrap(await createReminderTemplate(values));
         record(`Add reminder template "${values.name}"`, affected);
       } else if (template) {
-        const affected = await updateReminderTemplate(template.id, values);
+        const affected = unwrap(await updateReminderTemplate(template.id, values));
         record(`Edit reminder template "${values.name}"`, affected);
       }
       onSaved();
@@ -79,7 +80,7 @@ export default function ReminderTemplateModal({
     setSaving(true);
     setFormError(null);
     try {
-      const affected = await deleteReminderTemplate(template.id);
+      const affected = unwrap(await deleteReminderTemplate(template.id));
       record(`Delete reminder template "${template.name}"`, affected);
       onDeleted();
     } catch (err) {

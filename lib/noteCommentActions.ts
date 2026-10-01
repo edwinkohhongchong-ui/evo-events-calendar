@@ -5,6 +5,7 @@ import { NoteScope } from "./types";
 import { AffectedRow } from "./undo/types";
 import { fetchRow } from "./undo/capture";
 import { requireRole } from "./authz";
+import { runAction } from "./actionResult";
 import { logActivity } from "./activity";
 
 export interface NoteCommentValues {
@@ -25,7 +26,7 @@ function noteLogTarget(scope: string, year: number | null, month: number | null)
   };
 }
 
-export async function createNoteComment(values: NoteCommentValues): Promise<AffectedRow[]> {
+async function createNoteCommentImpl(values: NoteCommentValues): Promise<AffectedRow[]> {
   await requireRole("viewer");
   const { data, error } = await supabase.from("note_comments").insert(values).select().single();
   if (error) {
@@ -44,7 +45,7 @@ export async function createNoteComment(values: NoteCommentValues): Promise<Affe
 // Removing a top-level comment also removes its replies (ON DELETE CASCADE,
 // migration 012) — captured explicitly here so undo can bring them all back,
 // not just the parent.
-export async function deleteNoteComment(id: string): Promise<AffectedRow[]> {
+async function deleteNoteCommentImpl(id: string): Promise<AffectedRow[]> {
   await requireRole("editor");
   const before = await fetchRow("note_comments", id);
   if (!before) return [];
@@ -74,4 +75,13 @@ export async function deleteNoteComment(id: string): Promise<AffectedRow[]> {
     ...noteLogTarget(before.scope, before.year, before.month),
   });
   return affected;
+}
+
+// Public Server Actions: every one returns an ActionResult (see lib/actionResult.ts).
+export async function createNoteComment(...args: Parameters<typeof createNoteCommentImpl>) {
+  return runAction(() => createNoteCommentImpl(...args));
+}
+
+export async function deleteNoteComment(...args: Parameters<typeof deleteNoteCommentImpl>) {
+  return runAction(() => deleteNoteCommentImpl(...args));
 }

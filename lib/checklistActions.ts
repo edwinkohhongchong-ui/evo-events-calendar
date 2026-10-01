@@ -5,9 +5,10 @@ import { ChecklistFormValues, ChecklistStatus } from "./types";
 import { AffectedRow } from "./undo/types";
 import { fetchRow } from "./undo/capture";
 import { requireRole } from "./authz";
+import { runAction } from "./actionResult";
 import { logActivity } from "./activity";
 
-export async function createChecklistItem(values: ChecklistFormValues): Promise<AffectedRow[]> {
+async function createChecklistItemImpl(values: ChecklistFormValues): Promise<AffectedRow[]> {
   await requireRole("editor");
   const { data, error } = await supabase.from("checklist").insert(values).select().single();
   if (error) {
@@ -21,7 +22,7 @@ export async function createChecklistItem(values: ChecklistFormValues): Promise<
 // See updateHoliday in lib/holidayActions.ts for the full explanation of the
 // optional `expectedUpdatedAt` optimistic-lock parameter and the known
 // limitation that no call site wires it through yet.
-export async function updateChecklistItem(
+async function updateChecklistItemImpl(
   id: string,
   values: ChecklistFormValues,
   expectedUpdatedAt?: string
@@ -47,7 +48,7 @@ export async function updateChecklistItem(
 }
 
 // Slim update for the inline status dropdown — avoids sending the whole form.
-export async function updateChecklistStatus(
+async function updateChecklistStatusImpl(
   id: string,
   status: ChecklistStatus,
   expectedUpdatedAt?: string
@@ -72,7 +73,7 @@ export async function updateChecklistStatus(
   return [{ table: "checklist", id, before, after: data[0] }];
 }
 
-export async function deleteChecklistItem(id: string): Promise<AffectedRow[]> {
+async function deleteChecklistItemImpl(id: string): Promise<AffectedRow[]> {
   await requireRole("editor");
   const before = await fetchRow("checklist", id);
   const { error } = await supabase.from("checklist").delete().eq("id", id);
@@ -83,4 +84,21 @@ export async function deleteChecklistItem(id: string): Promise<AffectedRow[]> {
   if (!before) return [];
   await logActivity({ action: "deleted", entity: "checklist", entityId: id, label: String(before.item) });
   return [{ table: "checklist", id, before, after: null }];
+}
+
+// Public Server Actions: every one returns an ActionResult (see lib/actionResult.ts).
+export async function createChecklistItem(...args: Parameters<typeof createChecklistItemImpl>) {
+  return runAction(() => createChecklistItemImpl(...args));
+}
+
+export async function updateChecklistItem(...args: Parameters<typeof updateChecklistItemImpl>) {
+  return runAction(() => updateChecklistItemImpl(...args));
+}
+
+export async function updateChecklistStatus(...args: Parameters<typeof updateChecklistStatusImpl>) {
+  return runAction(() => updateChecklistStatusImpl(...args));
+}
+
+export async function deleteChecklistItem(...args: Parameters<typeof deleteChecklistItemImpl>) {
+  return runAction(() => deleteChecklistItemImpl(...args));
 }

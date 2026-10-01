@@ -13,6 +13,7 @@ import Card from "./ui/Card";
 import Button from "./ui/Button";
 import AutoGrowTextarea from "./ui/AutoGrowTextarea";
 import { XIcon } from "./icons";
+import { unwrap } from "@/lib/actionResult";
 
 const AUTHOR_NAME_KEY = "evo-author-name";
 
@@ -102,13 +103,13 @@ export default function NotesPanel({
     setSaving(true);
     setError(null);
     try {
-      const affected = await createNoteComment({
+      const affected = unwrap(await createNoteComment({
         scope,
         year: year ?? null,
         month: month ?? null,
         author_name: authorName,
         content: content.trim(),
-      });
+      }));
       record("Add note", affected);
       setContent("");
       router.refresh();
@@ -124,14 +125,14 @@ export default function NotesPanel({
     setSaving(true);
     setError(null);
     try {
-      const affected = await createNoteComment({
+      const affected = unwrap(await createNoteComment({
         scope,
         year: year ?? null,
         month: month ?? null,
         author_name: authorName,
         content: replyDraft.trim(),
         parent_id: parentId,
-      });
+      }));
       record("Add reply", affected);
       setReplyDraft("");
       setReplyingTo(null);
@@ -153,7 +154,7 @@ export default function NotesPanel({
     const id = pendingDeleteId;
     setRemovingId(id);
     try {
-      const affected = await deleteNoteComment(id);
+      const affected = unwrap(await deleteNoteComment(id));
       record("Delete note", affected);
       setPendingDeleteId(null);
       router.refresh();

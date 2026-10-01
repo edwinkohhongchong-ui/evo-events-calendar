@@ -4,6 +4,7 @@ import { supabase } from "./supabase";
 import { AffectedRow } from "./undo/types";
 import { fetchRow } from "./undo/capture";
 import { requireRole } from "./authz";
+import { runAction } from "./actionResult";
 
 export interface ChecklistTemplateItemInput {
   item: string;
@@ -21,7 +22,7 @@ export interface ChecklistTemplateItemInput {
 // updateHoliday in lib/holidayActions.ts for the full explanation and the
 // known limitation that no call site wires it through yet. It's ignored when
 // templateId is null (there's nothing existing to conflict with on create).
-export async function saveChecklistTemplate(
+async function saveChecklistTemplateImpl(
   templateId: string | null,
   name: string,
   items: ChecklistTemplateItemInput[],
@@ -103,7 +104,7 @@ export async function saveChecklistTemplate(
   return affected;
 }
 
-export async function deleteChecklistTemplate(id: string): Promise<AffectedRow[]> {
+async function deleteChecklistTemplateImpl(id: string): Promise<AffectedRow[]> {
   await requireRole("editor");
   const before = await fetchRow("checklist_templates", id);
   const { data: items } = await supabase.from("checklist_template_items").select("*").eq("template_id", id);
@@ -121,4 +122,13 @@ export async function deleteChecklistTemplate(id: string): Promise<AffectedRow[]
   }
   if (before) affected.push({ table: "checklist_templates", id, before, after: null });
   return affected;
+}
+
+// Public Server Actions: every one returns an ActionResult (see lib/actionResult.ts).
+export async function saveChecklistTemplate(...args: Parameters<typeof saveChecklistTemplateImpl>) {
+  return runAction(() => saveChecklistTemplateImpl(...args));
+}
+
+export async function deleteChecklistTemplate(...args: Parameters<typeof deleteChecklistTemplateImpl>) {
+  return runAction(() => deleteChecklistTemplateImpl(...args));
 }

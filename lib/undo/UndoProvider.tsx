@@ -3,6 +3,7 @@
 import { createContext, useCallback, useContext, useEffect, useReducer, useRef, ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import { restoreSnapshot } from "./restore";
+import { unwrap } from "../actionResult";
 import { AffectedRow, UndoableAction } from "./types";
 
 interface LastAction {
@@ -81,7 +82,8 @@ export function UndoProvider({ children }: { children: ReactNode }) {
     errorRef.current = null;
     forceRender();
     restoreSnapshot(entry.affected, "before")
-      .then(() => {
+      .then((result) => {
+        unwrap(result);
         futureRef.current = [...futureRef.current, entry];
         showLastAction("undo", entry.label);
         router.refresh();
@@ -105,7 +107,8 @@ export function UndoProvider({ children }: { children: ReactNode }) {
     errorRef.current = null;
     forceRender();
     restoreSnapshot(entry.affected, "after")
-      .then(() => {
+      .then((result) => {
+        unwrap(result);
         pastRef.current = [...pastRef.current, entry];
         showLastAction("redo", entry.label);
         router.refresh();

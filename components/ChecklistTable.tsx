@@ -10,6 +10,7 @@ import { updateChecklistStatus, updateChecklistItem } from "@/lib/checklistActio
 import { AUTO_CHECKS } from "@/lib/checklistAutoChecks";
 import { useUndo } from "@/lib/undo/UndoProvider";
 import { AffectedRow } from "@/lib/undo/types";
+import { unwrap } from "@/lib/actionResult";
 
 type ModalState = { type: "closed" } | { type: "add" } | { type: "edit"; item: ChecklistRow };
 
@@ -55,12 +56,14 @@ export default function ChecklistTable({
   async function handleStatusChange(row: ChecklistRow, status: ChecklistStatus) {
     setStatusOverride({ id: row.id, status });
     try {
-      const affected = await updateChecklistStatus(row.id, status);
+      const affected = unwrap(await updateChecklistStatus(row.id, status));
       record(`Set "${row.item}" to ${status}`, affected);
       startTransition(() => router.refresh());
-    } catch {
+    } catch (err) {
       setStatusOverride(null);
-      setError("Couldn't update that status — it's back to what it was. Please try again.");
+      setError(
+        err instanceof Error ? err.message : "Couldn't update that status — it's back to what it was. Please try again."
+      );
     }
   }
 
@@ -80,7 +83,7 @@ export default function ChecklistTable({
       const affected: AffectedRow[] = [];
       for (const row of toUpdate) {
         const expected: ChecklistStatus = row.linked_event_id ? "Done" : "Not Started";
-        affected.push(...(await updateChecklistStatus(row.id, expected)));
+        affected.push(...(unwrap(await updateChecklistStatus(row.id, expected))));
       }
       if (affected.length > 0) record("Check Calendar", affected);
 
@@ -109,13 +112,13 @@ export default function ChecklistTable({
           linked_event_id: row.linked_event_id,
           auto_check_type: row.auto_check_type,
         };
-        autoCheckAffected.push(...(await updateChecklistItem(row.id, values)));
+        autoCheckAffected.push(...(unwrap(await updateChecklistItem(row.id, values))));
       }
       if (autoCheckAffected.length > 0) record("Check Calendar (automated checks)", autoCheckAffected);
 
       router.refresh();
-    } catch {
-      setError("Couldn't finish checking the calendar. Please try again.");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Couldn't finish checking the calendar. Please try again.");
     } finally {
       setChecking(false);
     }

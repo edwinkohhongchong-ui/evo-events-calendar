@@ -6,6 +6,7 @@ import { saveChecklistTemplate, deleteChecklistTemplate } from "@/lib/checklistT
 import { useUndo } from "@/lib/undo/UndoProvider";
 import { useEscapeKey } from "@/lib/useEscapeKey";
 import ConfirmDialog from "./ConfirmDialog";
+import { unwrap } from "@/lib/actionResult";
 
 interface ChecklistTemplateModalProps {
   mode: "add" | "edit";
@@ -72,7 +73,7 @@ export default function ChecklistTemplateModal({
 
     setSaving(true);
     try {
-      const affected = await saveChecklistTemplate(template?.id ?? null, name.trim(), cleanItems);
+      const affected = unwrap(await saveChecklistTemplate(template?.id ?? null, name.trim(), cleanItems));
       record(`${mode === "add" ? "Add" : "Edit"} message snippet "${name.trim()}"`, affected);
       onSaved();
     } catch (err) {
@@ -86,7 +87,7 @@ export default function ChecklistTemplateModal({
     setSaving(true);
     setFormError(null);
     try {
-      const affected = await deleteChecklistTemplate(template.id);
+      const affected = unwrap(await deleteChecklistTemplate(template.id));
       record(`Delete message snippet "${template.name}"`, affected);
       onDeleted();
     } catch (err) {

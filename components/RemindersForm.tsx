@@ -9,6 +9,7 @@ import { ReminderPickerEvent } from "@/lib/data";
 import { toDateStr, formatDateDisplay, formatEventTimeRange } from "@/lib/dates";
 import ReminderTemplateModal from "./ReminderTemplateModal";
 import ConfirmDialog from "./ConfirmDialog";
+import { unwrap } from "@/lib/actionResult";
 
 interface RemindersFormProps {
   templates: ReminderTemplateRow[];
@@ -199,7 +200,7 @@ export default function RemindersForm({ templates, checklistTemplates }: Reminde
     const template = pendingDelete;
     setRemovingId(template.id);
     try {
-      const affected = await deleteReminderTemplate(template.id);
+      const affected = unwrap(await deleteReminderTemplate(template.id));
       record(`Delete reminder template "${template.name}"`, affected);
       if (selectedId === template.id) {
         setSelectedId("");

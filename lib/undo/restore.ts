@@ -3,6 +3,7 @@
 import { supabase } from "../supabase";
 import { AffectedRow, SnapshotRow, UndoTable } from "./types";
 import { requireRole } from "../authz";
+import { runAction } from "../actionResult";
 import { logActivity } from "../activity";
 
 // Parent rows must exist before their children are written (events before
@@ -39,7 +40,7 @@ async function applyRow(table: UndoTable, id: string, row: SnapshotRow | null): 
 // child-tables-first — each in the order the entries were recorded within
 // their own rank, since a bulk-migrated set of override rows (see
 // splitSeriesFromOccurrence) has no ordering dependency on each other.
-export async function restoreSnapshot(affected: AffectedRow[], which: "before" | "after"): Promise<void> {
+async function restoreSnapshotImpl(affected: AffectedRow[], which: "before" | "after"): Promise<void> {
   await requireRole("editor");
   const entries = affected.map((a) => ({ ...a, row: which === "before" ? a.before : a.after }));
   const writes = entries.filter((e) => e.row !== null).sort((a, b) => rank(a.table, a.row!) - rank(b.table, b.row!));
@@ -60,4 +61,9 @@ export async function restoreSnapshot(affected: AffectedRow[], which: "before" |
   }
   // "before" image restored = undo; "after" image restored = redo.
   await logActivity({ action: which === "before" ? "undid" : "redid", entity: "undo", label: "a change" });
+}
+
+// Public Server Action: returns an ActionResult (see lib/actionResult.ts).
+export async function restoreSnapshot(...args: Parameters<typeof restoreSnapshotImpl>) {
+  return runAction(() => restoreSnapshotImpl(...args));
 }

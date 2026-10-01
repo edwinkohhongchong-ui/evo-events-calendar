@@ -5,8 +5,9 @@ import { ReminderTemplateFormValues } from "./types";
 import { AffectedRow } from "./undo/types";
 import { fetchRow } from "./undo/capture";
 import { requireRole } from "./authz";
+import { runAction } from "./actionResult";
 
-export async function createReminderTemplate(values: ReminderTemplateFormValues): Promise<AffectedRow[]> {
+async function createReminderTemplateImpl(values: ReminderTemplateFormValues): Promise<AffectedRow[]> {
   await requireRole("editor");
   const { data, error } = await supabase.from("reminder_templates").insert(values).select().single();
   if (error) {
@@ -19,7 +20,7 @@ export async function createReminderTemplate(values: ReminderTemplateFormValues)
 // See updateHoliday in lib/holidayActions.ts for the full explanation of the
 // optional `expectedUpdatedAt` optimistic-lock parameter and the known
 // limitation that no call site wires it through yet.
-export async function updateReminderTemplate(
+async function updateReminderTemplateImpl(
   id: string,
   values: ReminderTemplateFormValues,
   expectedUpdatedAt?: string
@@ -43,7 +44,7 @@ export async function updateReminderTemplate(
   return [{ table: "reminder_templates", id, before, after: data[0] }];
 }
 
-export async function deleteReminderTemplate(id: string): Promise<AffectedRow[]> {
+async function deleteReminderTemplateImpl(id: string): Promise<AffectedRow[]> {
   await requireRole("editor");
   const before = await fetchRow("reminder_templates", id);
   const { error } = await supabase.from("reminder_templates").delete().eq("id", id);
@@ -52,4 +53,17 @@ export async function deleteReminderTemplate(id: string): Promise<AffectedRow[]>
     throw new Error("Something went wrong deleting this reminder template. Please try again.");
   }
   return before ? [{ table: "reminder_templates", id, before, after: null }] : [];
+}
+
+// Public Server Actions: every one returns an ActionResult (see lib/actionResult.ts).
+export async function createReminderTemplate(...args: Parameters<typeof createReminderTemplateImpl>) {
+  return runAction(() => createReminderTemplateImpl(...args));
+}
+
+export async function updateReminderTemplate(...args: Parameters<typeof updateReminderTemplateImpl>) {
+  return runAction(() => updateReminderTemplateImpl(...args));
+}
+
+export async function deleteReminderTemplate(...args: Parameters<typeof deleteReminderTemplateImpl>) {
+  return runAction(() => deleteReminderTemplateImpl(...args));
 }

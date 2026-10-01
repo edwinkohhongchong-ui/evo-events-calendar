@@ -8,6 +8,14 @@ items (features/fixes) that push contains — a push with 1 item goes up by
 `1.05`). If MINOR would pass `.99`, MAJOR increments and MINOR carries the
 remainder (e.g. `1.99` + 2 items → `2.01`).
 
+## v1.73 — 2026-10-01
+
+- Checklist, message-snippet (Reminders), notes and day-note actions, plus
+  Undo/Redo, now show their real error message on the live site instead of the
+  generic "Server Components render" block. This completes the conversion: every
+  save/delete/undo action in the app now reports readable errors. The Checklist
+  "Check Calendar" run and status changes show the actual reason when they fail.
+
 ## v1.72 — 2026-10-01
 
 - Holiday, Season and Category actions (add, edit, delete) and the Seasons

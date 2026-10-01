@@ -8,6 +8,7 @@ import { useUndo } from "@/lib/undo/UndoProvider";
 import { useEscapeKey } from "@/lib/useEscapeKey";
 import ChecklistTemplateModal from "./ChecklistTemplateModal";
 import ConfirmDialog from "./ConfirmDialog";
+import { unwrap } from "@/lib/actionResult";
 
 type ModalState =
   | { type: "closed" }
@@ -45,7 +46,7 @@ export default function ChecklistTemplatesSection({
     const template = pendingDelete;
     setRemovingId(template.id);
     try {
-      const affected = await deleteChecklistTemplate(template.id);
+      const affected = unwrap(await deleteChecklistTemplate(template.id));
       record(`Delete message snippet "${template.name}"`, affected);
       setPendingDelete(null);
       router.refresh();

@@ -12,6 +12,7 @@ import {
 import { useUndo } from "@/lib/undo/UndoProvider";
 import { useEscapeKey } from "@/lib/useEscapeKey";
 import ConfirmDialog from "./ConfirmDialog";
+import { unwrap } from "@/lib/actionResult";
 
 interface ChecklistModalProps {
   mode: "add" | "edit";
@@ -80,10 +81,10 @@ export default function ChecklistModal({
         auto_check_type: (autoCheckType || null) as ChecklistAutoCheckType | null,
       };
       if (mode === "add") {
-        const affected = await createChecklistItem(values);
+        const affected = unwrap(await createChecklistItem(values));
         record(`Add checklist item "${values.item}"`, affected);
       } else if (item) {
-        const affected = await updateChecklistItem(item.id, values);
+        const affected = unwrap(await updateChecklistItem(item.id, values));
         record(`Edit checklist item "${values.item}"`, affected);
       }
       onSaved();
@@ -100,7 +101,7 @@ export default function ChecklistModal({
     setSaving(true);
     setFormError(null);
     try {
-      const affected = await deleteChecklistItem(item.id);
+      const affected = unwrap(await deleteChecklistItem(item.id));
       record(`Delete checklist item "${item.item}"`, affected);
       onDeleted();
     } catch (err) {
