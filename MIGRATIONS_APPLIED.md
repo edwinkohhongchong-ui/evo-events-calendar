@@ -45,7 +45,7 @@ Note: numbering starts at 002 — there is no `supabase_migration_001_*.sql` fil
 in this repo (the initial schema lives in `supabase_schema.sql`).
 
 
-Next available migration number: **024**.
+Next available migration number: **025**.
 
 ## Process for new migrations
 Whenever a new migration file is added, add a row here as **"Not yet
