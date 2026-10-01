@@ -1,12 +1,14 @@
 "use client";
 
 import { useEffect, useState, FormEvent } from "react";
+import { useRouter } from "next/navigation";
 import { ChecklistTemplateWithItems, EventOccurrence, EventRow, EventType, GatheringType, Level, LevelRow, Recurring } from "@/lib/types";
 import { applyChecklistTemplate, getChecklistTemplateOptions } from "@/lib/eventChecklistActions";
 import { SUGGESTED_TEMPLATE_BY_GATHERING_TYPE } from "@/lib/eventChecklist";
 import {
   createEvent,
   updateEvent,
+  getEventById,
   deleteEvent,
   detachOccurrence,
   splitSeriesFromOccurrence,
@@ -14,6 +16,7 @@ import {
   EventFormValues,
 } from "@/lib/actions";
 import { unwrap } from "@/lib/actionResult";
+import { isEventConflict } from "@/lib/eventConflict";
 import { computeDuration, computeEndTime, endsNextDay } from "@/lib/timeMath";
 import { formatDateDisplay, formatEventTimeRange } from "@/lib/dates";
 import { PastoralFocus, applyTitlePrefix, stripTitlePrefix } from "@/lib/pastoralFocus";
@@ -94,13 +97,30 @@ type EventModalInnerProps = EventModalProps & {
   onDuplicate?: (source: EventRow) => void;
   /** Add form pre-filled from an existing event: no checklist template pre-selected. */
   isDuplicate?: boolean;
+  /** Edit conflict: fetch the latest event and remount with it. */
+  onReload?: (eventId: string) => Promise<void>;
 };
 
 // "Duplicate" swaps the edit modal for an Add form pre-filled from the
 // event (no id, so Save goes through the normal createEvent path). Overrides
 // and exceptions are deliberately not copied: only the event row's own fields.
 export default function EventModal(props: EventModalProps) {
+  const router = useRouter();
   const [duplicateOf, setDuplicateOf] = useState<EventRow | null>(null);
+  // After an edit conflict, "Reload" swaps in the latest row (and drops the
+  // clicked occurrence, whose times may be stale) by remounting the modal.
+  const [reloaded, setReloaded] = useState<{ event: EventRow; n: number } | null>(null);
+
+  async function reload(eventId: string) {
+    const fresh = unwrap(await getEventById(eventId));
+    router.refresh();
+    if (!fresh) {
+      props.onDeleted();
+      return;
+    }
+    setReloaded((r) => ({ event: fresh, n: (r?.n ?? 0) + 1 }));
+  }
+
   if (duplicateOf) {
     return (
       <EventModalInner
@@ -114,7 +134,16 @@ export default function EventModal(props: EventModalProps) {
       />
     );
   }
-  return <EventModalInner {...props} onDuplicate={setDuplicateOf} />;
+  return (
+    <EventModalInner
+      key={reloaded?.n ?? 0}
+      {...props}
+      event={reloaded?.event ?? props.event}
+      occurrence={reloaded ? undefined : props.occurrence}
+      onDuplicate={setDuplicateOf}
+      onReload={reload}
+    />
+  );
 }
 
 function EventModalInner({
@@ -128,6 +157,7 @@ function EventModalInner({
   onDeleted,
   onDuplicate,
   isDuplicate = false,
+  onReload,
 }: EventModalInnerProps) {
   const { record } = useUndo();
   const isEditor = useIsEditor();
@@ -218,6 +248,11 @@ function EventModalInner({
   const [createdEventId, setCreatedEventId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
+  const [conflict, setConflict] = useState(false);
+  const [reloading, setReloading] = useState(false);
+  // Lock token for updateEvent; advanced after each successful save so a
+  // user's own consecutive saves never conflict with themselves.
+  const [lockToken, setLockToken] = useState(event?.updated_at);
   const [confirmDelete, setConfirmDelete] = useState(false);
   // Clicking an occurrence opens straight into a read-only "confirmed
   // values" view — editing is a deliberate extra step (the Edit button),
@@ -452,13 +487,28 @@ function EventModalInner({
           }
         }
       } else if (event) {
-        const affected = unwrap(await updateEvent(event.id, values));
+        const affected = unwrap(await updateEvent(event.id, values, lockToken));
         record(`Edit "${values.name}"`, affected);
+        const next = affected.find((a) => a.table === "events")?.after?.updated_at;
+        if (typeof next === "string") setLockToken(next);
       }
       onSaved();
     } catch (err) {
-      setFormError(err instanceof Error ? err.message : "Something went wrong saving this event.");
+      const message = err instanceof Error ? err.message : "Something went wrong saving this event.";
+      setConflict(isEventConflict(message));
+      setFormError(message);
       setSaving(false);
+    }
+  }
+
+  async function handleReload() {
+    if (!event || !onReload) return;
+    setReloading(true);
+    try {
+      await onReload(event.id);
+    } catch (err) {
+      setFormError(err instanceof Error ? err.message : "Couldn't reload this event. Please try again.");
+      setReloading(false);
     }
   }
 
@@ -730,9 +780,17 @@ function EventModalInner({
       ) : (
         <form id="event-form" onSubmit={handleSubmit} className="flex flex-col gap-4">
           {formError && (
-            <p role="alert" className="rounded-ctl bg-danger/10 px-3 py-2 text-body text-danger">
-              {formError}
-            </p>
+            <div role="alert" className="flex flex-col gap-2 rounded-ctl bg-danger/10 px-3 py-2 text-body text-danger">
+              <p>{formError}</p>
+              {conflict && onReload && (
+                <div className="flex flex-col items-start gap-1">
+                  <p>Your edits are still below if you want to copy them first.</p>
+                  <Button type="button" size="sm" variant="ghost" loading={reloading} onClick={handleReload}>
+                    Reload
+                  </Button>
+                </div>
+              )}
+            </div>
           )}
           <div className="flex gap-2" role="group" aria-label="Type">
             {(["Event", "Gathering"] as EventType[]).map((t) => (

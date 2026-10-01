@@ -27,6 +27,9 @@ export interface EventRow {
   repeat_until: string | null; // yyyy-MM-dd
   notes: string | null;
   created_at: string;
+  // Optimistic-lock token (migration 020). Optional: synthetic rows (duplicate
+  // drafts, test fixtures) don't have one.
+  updated_at?: string;
   event_type: EventType;
   // Pastoral Focus — independent booleans (not single-select), drive the
   // Y/P/U/A title prefix on Type 1 "Event" entries. Deliberately separate

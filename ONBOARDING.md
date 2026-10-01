@@ -109,8 +109,11 @@ In rough chronological order:
     flow, still amber. The color palette (`SeasonColorKey`, shared between
     Levels and Seasons) grew from 10 to 14 keys to fit this.
 
-As of this handover, the app is at **CHANGELOG.md v1.08** — check that file's
-top entry for the exact current version and what's in it.
+Since then: per-event checklists with an "overdue" pill, event search, hover
+preview cards, Duplicate event, a phone agenda layout, Seasons "Update Calendar"
+/ "Start a New Year", and the first-run tour (`lib/tourSteps.ts`). The
+changelog is the full record. The app is currently at **CHANGELOG.md v2.23** —
+check that file's top entry for the exact current version and what's in it.
 
 ## Key design decisions worth knowing before changing things
 - **Time wraps within a day; multi-day is a separate feature.** An event
@@ -143,7 +146,8 @@ top entry for the exact current version and what's in it.
   truth for which migrations exist, which have been confirmed run against the
   live Supabase project, and what the next free number is — check it before
   adding one, and add your row there as "Not yet confirmed". (Numbering starts
-  at 002; the original schema is `supabase_schema.sql`.)
+  at 002; the original schema is `supabase_schema.sql`. Migrations 002-024 are
+  applied; the next free number is 025.)
 
 ## Working with Claude Code on this project
 This project was built almost entirely through conversational, phase-by-phase

@@ -1,13 +1,10 @@
 // Content for the first-run onboarding tour (see useOnboardingTour.tsx /
 // OnboardingTourModal.tsx). Drafted by the Pastoral Leader agent (30 Sep
-// 2026), grounded in the actual code at the time of writing — see git
-// history for the review that confirmed each access-control claim below.
+// 2026), refreshed 2 Oct 2026 for checklists, search, Duplicate, the phone
+// layout and Seasons. Access-control claims were confirmed against the code.
 //
-// Groups:
-//   1. Calendar basics       (steps 0-3)
-//   2. Notes and updates     (steps 4-6)
-//   3. Editor vs Viewer      (steps 7-10)
-//   4. Do's and don'ts       (steps 11-14)
+// Groups (see the "--- Part" comments below): calendar basics, event
+// checklists, Seasons, notes and updates, Editor vs Viewer, do's and don'ts.
 export interface TourStep {
   title: string;
   body: string;
@@ -34,7 +31,7 @@ export interface TourStep {
 }
 
 export const TOUR_STEPS: TourStep[] = [
-  // --- Part 1 of 4: Using the calendar ---
+  // --- Part 1 of 6: Using the calendar ---
   {
     title: "Add an event",
     body: "Click any day on the calendar to add an event there. Fill in its name, time, category, and whether it repeats. Shortcuts: N adds an event, T jumps to today, and the ← → arrow keys change month.",
@@ -54,6 +51,28 @@ export const TOUR_STEPS: TourStep[] = [
     targetSelector: '[data-tour="calendar-grid"]',
   },
   {
+    title: "Duplicate an event",
+    body: "Need a similar event? Open it and click Duplicate. You get a new form already filled in from the original, so just change what's different and save. The original isn't touched.",
+    route: "/",
+    targetSelector: '[data-tour="calendar-grid"]',
+  },
+  {
+    title: "Find an event",
+    body: "Click the magnifier at the top of the calendar, or press the / key, and start typing. Matching events stay bright and the rest fade back. Press Escape to clear the search.",
+    route: "/",
+  },
+  {
+    title: "Peek at an event",
+    body: "Hover over an event (or tab to it) to see a quick preview card with its time, category and notes — no click needed. On a phone, just tap the event to open it.",
+    route: "/",
+    targetSelector: '[data-tour="calendar-grid"]',
+  },
+  {
+    title: "Using a phone",
+    body: "On a phone the month shows as a simple list of days with their events. Swipe left or right to change month, or use the arrows. Tap an event to open it.",
+    route: "/",
+  },
+  {
     title: "Export the event list",
     body: 'Open the ☰ menu at the top right, open the Export group, then click "Export Document" to download the event list as a PDF or Word file for any date range and category you pick.',
     route: "/",
@@ -61,7 +80,32 @@ export const TOUR_STEPS: TourStep[] = [
     requiresMenuOpen: true,
   },
 
-  // --- Part 2 of 4: Notes and updates ---
+  // --- Part 2 of 6: Event checklists ---
+  {
+    title: "Checklist for an event",
+    body: "Open a one-off event to give it its own to-do list, like booking the venue or sending the poster. Editors can start one from a template. Everyone can tick items off. A small badge on the event card shows how many are done.",
+    route: "/",
+    targetSelector: '[data-tour="calendar-grid"]',
+  },
+  {
+    title: "The \"overdue\" pill",
+    body: 'When a checklist item is past its due date and not ticked, a red "overdue" pill appears in the month bar. Click it to see which events need attention, then click one to open it. The pill disappears once everything is caught up.',
+    route: "/",
+  },
+
+  // --- Part 3 of 6: Seasons ---
+  {
+    title: "Seasons",
+    body: "Seasons are the coloured bars for things like school terms, holidays and exam periods. Open ☰ → Tools → Seasons to add, edit or delete them.",
+    route: "/seasons",
+  },
+  {
+    title: "Update Calendar and Start a New Year",
+    body: "\"Update Calendar\" has links to each school's official calendar, with boxes to type in its dates. \"Start a New Year\" carries this year's seasons forward. You review everything first, and nothing is saved until you approve it.",
+    route: "/seasons",
+  },
+
+  // --- Part 4 of 6: Notes and updates ---
   {
     title: "General Notes (left panel)",
     body: "Use this for notes that should show up every month, no matter which month you're viewing. Anyone can add a note or reply here. On every other tab, tap the notes icon beside the bell to open the same notes.",
@@ -81,33 +125,16 @@ export const TOUR_STEPS: TourStep[] = [
     targetSelector: '[data-tour="notification-bell"]',
   },
 
-  // --- Part 3 of 4: Editor vs. Viewer access ---
+  // --- Part 5 of 6: Editor vs. Viewer access ---
   {
-    title: "What a Viewer can do",
-    body: "View the calendar and its notes, open and edit any existing event's details, add notes or replies, and check the bell for recent changes.",
-    route: "/",
-  },
-  {
-    title: "What a Viewer can't do",
-    body: "Add a brand-new event, delete anything, drag an event to a new day, or use Undo/Redo.",
-    route: "/",
-  },
-  {
-    title: "Other tabs need Editor access",
-    body: "In the ☰ menu, Tools (Holidays, Seasons, Categories), Checklist, Admin (Reminders, Backup) and Export don't even appear for a Viewer — only the Calendar does.",
-    route: "/",
-    targetSelector: '[data-tour="hamburger-menu-panel"]',
-    requiresMenuOpen: true,
-  },
-  {
-    title: "Editors have full access",
-    body: "Editors can do everything above, plus add, delete, and reorganize across every tab.",
+    title: "Viewer or Editor?",
+    body: "Viewers can look around, edit existing events, tick checklist items and add notes. Only Editors can add or delete events, drag them to a new day, use Undo, or open the other tabs in the ☰ menu. If a button is missing for you, that's expected.",
     route: "/",
     targetSelector: '[data-tour="hamburger-menu-panel"]',
     requiresMenuOpen: true,
   },
 
-  // --- Part 4 of 4: What you should and shouldn't do ---
+  // --- Part 6 of 6: What you should and shouldn't do ---
   {
     title: "Keep the Editor passcode within the team",
     body: "It's the only thing stopping anyone with the link from editing or deleting — don't share it outside the team.",
@@ -123,10 +150,5 @@ export const TOUR_STEPS: TourStep[] = [
     body: "Editors have Undo and Redo buttons in the top bar for reversing or reapplying the last change.",
     route: "/",
     targetSelector: '[data-tour="undo-button"]',
-  },
-  {
-    title: "Missing buttons are expected for Viewers",
-    body: "If you're a Viewer and don't see an Add, Delete, or Undo button, that's correct, not a bug.",
-    route: "/",
   },
 ];

@@ -11,6 +11,7 @@ import { fetchRow } from "./undo/capture";
 import { requireRole } from "./authz";
 import { logActivity } from "./activity";
 import { runAction } from "./actionResult";
+import { EVENT_CONFLICT_MESSAGE } from "./eventConflict";
 
 // Moves a single occurrence to newDate. Never touches new_time/new_end_date —
 // the upsert below only ever sends event_id/original_date/new_date, so
@@ -232,10 +233,10 @@ async function createEventImpl(values: EventFormValues): Promise<AffectedRow[]> 
   return [{ table: "events", id: data.id, before: null, after: data }];
 }
 
-// `expectedUpdatedAt` is optional/backward-compatible — see the note on
-// updateHoliday in lib/holidayActions.ts for the full explanation of this
-// optimistic-lock parameter and its current limitation (no call site wires
-// it through yet).
+// `expectedUpdatedAt` is an optional optimistic lock: EventModal passes the
+// updated_at the event had when it opened, and a mismatch (someone else saved
+// first) fails with EVENT_CONFLICT_MESSAGE, which reaches the client as a
+// normal ActionResult error. Omitted, the update is unconditional.
 async function updateEventImpl(
   id: string,
   values: EventFormValues,
@@ -254,11 +255,8 @@ async function updateEventImpl(
     throw new Error("Something went wrong saving this event. Please try again.");
   }
   if (!data || data.length === 0) {
-    throw new Error(
-      expectedUpdatedAt
-        ? "Someone else changed this since you loaded it — please refresh and try again."
-        : "Event not found."
-    );
+    // The row still exists, so the zero-row match was the updated_at guard.
+    throw new Error(expectedUpdatedAt && before ? EVENT_CONFLICT_MESSAGE : "Event not found.");
   }
   await logActivity({ action: "edited", entity: "event", entityId: id, label: values.name, itemDate: values.event_date });
   return [{ table: "events", id, before, after: data[0] }];
@@ -782,6 +780,16 @@ export async function createEvent(...args: Parameters<typeof createEventImpl>) {
 
 export async function updateEvent(...args: Parameters<typeof updateEventImpl>) {
   return runAction(() => updateEventImpl(...args));
+}
+
+// Fresh copy of one event, for the modal's "Reload" after an edit conflict.
+async function getEventByIdImpl(id: string): Promise<EventRow | null> {
+  await requireRole("viewer");
+  return (await fetchRow("events", id)) as EventRow | null;
+}
+
+export async function getEventById(...args: Parameters<typeof getEventByIdImpl>) {
+  return runAction(() => getEventByIdImpl(...args));
 }
 
 export async function deleteEvent(...args: Parameters<typeof deleteEventImpl>) {

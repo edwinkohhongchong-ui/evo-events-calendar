@@ -8,6 +8,11 @@ items (features/fixes) that push contains — a push with 1 item goes up by
 `1.05`). If MINOR would pass `.99`, MAJOR increments and MINOR carries the
 remainder (e.g. `1.99` + 2 items → `2.01`).
 
+## v2.26 — 2026-10-01
+
+- Refreshed the onboarding tour: 19 steps now cover Duplicate, search, hover preview, phone use, event checklists, the overdue pill and Seasons; the four role-limit steps are merged into one. `ONBOARDING.md` brought up to date.
+- Added edit-conflict protection: if someone else saves an event while you have it open, you see a plain message and a Reload button instead of overwriting their change; your typed text stays until you reload.
+
 ## v2.24 — 2026-10-01
 
 - Fixed the Vercel build failing instantly on v2.21 and v2.23: removed the Node `engines` pin from `package.json` (Vercel's Node version is set in project settings instead; CI still uses Node 20).
