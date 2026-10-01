@@ -8,6 +8,16 @@ items (features/fixes) that push contains — a push with 1 item goes up by
 `1.05`). If MINOR would pass `.99`, MAJOR increments and MINOR carries the
 remainder (e.g. `1.99` + 2 items → `2.01`).
 
+## v1.68 — 2026-10-01
+
+- Fixed a dead end in the Add/Edit Event form: if a category the form offers
+  (Churchwide, Zone or TG) has been deleted from Categories, picking it let you
+  fill everything in and then failed on Save with a generic "An error occurred
+  in the Server Components render" block. In production the app can't show
+  its own error text from the server, so the form now checks first: an
+  Event Type with no matching category is greyed out with an explanation,
+  and Save explains exactly which category is missing and how to add it.
+
 ## v1.67 — 2026-10-01
 
 - Removed code nothing uses anymore (about 50 lines): an old auto-grow text

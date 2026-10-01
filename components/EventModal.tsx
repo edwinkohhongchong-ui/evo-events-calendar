@@ -268,6 +268,11 @@ export default function EventModal({
       }
       return;
     }
+    if (!levels.some((l) => l.name === level)) {
+      // Caught here because the server's own message is hidden in production.
+      setFormError(`There's no “${level}” category. Add it with + Category (exact name), then try again.`);
+      return;
+    }
     if (recurring !== "None" && !repeatUntil && !acknowledgeNoEndDate) {
       setFormError("Set a Repeat Until date, or confirm this repeats with no end date.");
       return;
@@ -684,22 +689,43 @@ export default function EventModal({
               <div className="flex flex-col gap-1 text-sm">
                 Event Type
                 <div className="flex gap-2">
-                  {(["Churchwide", "Zone", "TG"] as const).map((cat) => (
-                    <button
-                      key={cat}
-                      type="button"
-                      onClick={() => handleEventTypeCategoryChange(cat)}
-                      className={[
-                        "flex-1 px-3 py-1.5 rounded border text-sm",
-                        displayCategoryFor(level) === cat
-                          ? "bg-navy text-white border-navy"
-                          : "border-gray-300 text-gray-600 hover:bg-gray-50",
-                      ].join(" ")}
-                    >
-                      {cat}
-                    </button>
-                  ))}
+                  {(["Churchwide", "Zone", "TG"] as const).map((cat) => {
+                    // A type whose category row is missing from Categories can
+                    // never save (the database rejects it), so don't offer it.
+                    const missing =
+                      cat === "Zone"
+                        ? !levels.some((l) => ZONE_LEVEL_NAMES.includes(l.name))
+                        : !levels.some((l) => l.name === (cat === "TG" ? TG_LEVEL_NAME : CHURCHWIDE_LEVEL_NAME));
+                    return (
+                      <button
+                        key={cat}
+                        type="button"
+                        disabled={missing}
+                        title={missing ? `There's no “${cat}” category yet — add it with + Category first.` : undefined}
+                        onClick={() => handleEventTypeCategoryChange(cat)}
+                        className={[
+                          "flex-1 px-3 py-1.5 rounded border text-sm disabled:opacity-40 disabled:cursor-not-allowed",
+                          displayCategoryFor(level) === cat
+                            ? "bg-navy text-white border-navy"
+                            : "border-gray-300 text-gray-600 hover:bg-gray-50",
+                        ].join(" ")}
+                      >
+                        {cat}
+                      </button>
+                    );
+                  })}
                 </div>
+                {(!levels.some((l) => l.name === TG_LEVEL_NAME) ||
+                  !levels.some((l) => l.name === CHURCHWIDE_LEVEL_NAME)) && (
+                  <p className="text-xs text-ink-2">
+                    A greyed-out type has no matching category yet. Add one with + Category (use the exact name{" "}
+                    {[TG_LEVEL_NAME, CHURCHWIDE_LEVEL_NAME]
+                      .filter((n) => !levels.some((l) => l.name === n))
+                      .map((n) => `“${n}”`)
+                      .join(" or ")}
+                    ).
+                  </p>
+                )}
                 {displayCategoryFor(level) === "Zone" && (
                   <select
                     value={level}
