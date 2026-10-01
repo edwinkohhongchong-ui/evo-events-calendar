@@ -5,7 +5,9 @@ import { useRouter } from "next/navigation";
 import { format } from "date-fns";
 import { EventRow, EventChecklistItemRow, ChecklistTemplateWithItems } from "@/lib/types";
 import {
+  addChecklistItem,
   applyChecklistTemplate,
+  removeChecklistItem,
   getChecklistTemplateOptions,
   getEventChecklist,
   removeEventChecklist,
@@ -17,7 +19,7 @@ import { parseDateStr, toDateStr } from "@/lib/dates";
 import { useIsEditor } from "@/lib/roleContext";
 import ConfirmModal from "./ConfirmModal";
 import Button from "./ui/Button";
-import { ChevronIcon, CheckSquareIcon } from "./icons";
+import { ChevronIcon, CheckSquareIcon, XIcon } from "./icons";
 import { INPUT } from "./ui/fieldStyles";
 
 const AUTHOR_NAME_KEY = "evo-author-name";
@@ -44,6 +46,7 @@ export default function EventChecklist({ event }: { event: EventRow }) {
   const [confirmRemove, setConfirmRemove] = useState(false);
   const [showPicker, setShowPicker] = useState(false);
   const autoOpened = useRef(false);
+  const [newItem, setNewItem] = useState("");
 
   const repeating = event.recurring !== "None";
   const today = toDateStr(new Date());
@@ -149,6 +152,59 @@ export default function EventChecklist({ event }: { event: EventRow }) {
     }
   }
 
+  async function addItem() {
+    const text = newItem.trim();
+    if (!text) return;
+    setBusy(true);
+    setError(null);
+    try {
+      unwrap(await addChecklistItem(event.id, text));
+      setNewItem("");
+      await load();
+      setOpen(true);
+      router.refresh();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Couldn't add that item.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function removeItem(item: EventChecklistItemRow) {
+    // Optimistic: drop it now, put it back if the delete fails.
+    setItems((prev) => prev && prev.filter((i) => i.id !== item.id));
+    try {
+      unwrap(await removeChecklistItem(item.id));
+      setError(null);
+      router.refresh();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Couldn't remove that item.");
+      await load();
+    }
+  }
+
+  const addForm = (
+  <form
+    onSubmit={(e) => {
+      e.preventDefault();
+      void addItem();
+    }}
+    className="flex items-center gap-2"
+  >
+    <input
+      value={newItem}
+      onChange={(e) => setNewItem(e.target.value)}
+      placeholder="Add an item…"
+      aria-label="Add an item to this checklist"
+      maxLength={200}
+      className={`${INPUT} !min-h-[36px] flex-1 ${coarse}`}
+    />
+    <Button type="submit" size="sm" variant="secondary" className={coarse} disabled={!newItem.trim()} loading={busy}>
+      Add
+    </Button>
+  </form>
+  );
+
   const picker = (
     <div className="flex flex-wrap items-center gap-2">
       <select
@@ -212,8 +268,8 @@ export default function EventChecklist({ event }: { event: EventRow }) {
             const due = dueDate(event.event_date, it.weeks_before);
             const overdue = isOverdue(event.event_date, it.weeks_before, it.done, today);
             return (
-              <li key={it.id} className="border-b border-line last:border-b-0">
-                <label className="flex min-h-[44px] cursor-pointer items-start gap-3 px-4 py-2.5 hover:bg-canvas">
+              <li key={it.id} className="group/item flex items-stretch border-b border-line last:border-b-0">
+                <label className="flex min-h-[44px] min-w-0 flex-1 cursor-pointer items-start gap-3 px-4 py-2.5 hover:bg-canvas">
                   <input
                     type="checkbox"
                     checked={it.done}
@@ -236,9 +292,21 @@ export default function EventChecklist({ event }: { event: EventRow }) {
                     </span>
                   </span>
                 </label>
+                {isEditor && (
+                  <button
+                    type="button"
+                    onClick={() => removeItem(it)}
+                    aria-label={`Remove item: ${it.item}`}
+                    title="Remove this item"
+                    className="flex w-11 shrink-0 items-center justify-center text-ink-3 hover:bg-canvas hover:text-danger md:opacity-0 md:group-hover/item:opacity-100 focus-visible:opacity-100"
+                  >
+                    <XIcon className="!h-4 !w-4" />
+                  </button>
+                )}
               </li>
             );
           })}
+          {isEditor && <li className="border-t border-line px-4 py-2.5">{addForm}</li>}
           {items[0]?.source_template && (
             <li className="px-4 py-2 text-micro text-ink-2">
               Copied from &ldquo;{items[0].source_template}&rdquo;. Changing the template later does not change this list.
@@ -255,6 +323,8 @@ export default function EventChecklist({ event }: { event: EventRow }) {
               {suggestedName && templateId && (
                 <p className="text-micro text-ink-2">Suggested for this type of event: {suggestedName}.</p>
               )}
+              <p className="text-micro text-ink-2">Or start with your own item:</p>
+              {addForm}
             </>
           ) : (
             <div className="flex flex-wrap items-center justify-between gap-2">

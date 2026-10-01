@@ -16,7 +16,9 @@ export interface ExpandedChecklistItem {
 // Expands a template into per-event items. A repeated item (repeat_count > 1)
 // becomes numbered rows ("— Week 1 of 4"); when it has a due offset, the first
 // row is due that many weeks before the event and each later row one week
-// later (never after the event day itself).
+// later (a "before" series stops at the event day itself). A negative offset
+// means AFTER the event (e.g. -1 = one week after, for post-event follow-up);
+// repeated rows then step one further week later each.
 export function expandTemplateItems(template: ChecklistTemplateWithItems): ExpandedChecklistItem[] {
   const out: ExpandedChecklistItem[] = [];
   for (const it of template.items) {
@@ -24,11 +26,23 @@ export function expandTemplateItems(template: ChecklistTemplateWithItems): Expan
     for (let i = 1; i <= count; i++) {
       out.push({
         item: count > 1 ? `${it.item} — Week ${i} of ${count}` : it.item,
-        weeks_before: it.weeks_before == null ? null : Math.max(0, it.weeks_before - (i - 1)),
+        weeks_before:
+          it.weeks_before == null
+            ? null
+            : it.weeks_before >= 0
+              ? Math.max(0, it.weeks_before - (i - 1))
+              : it.weeks_before - (i - 1),
       });
     }
   }
   return out;
+}
+
+// "Due 4 weeks before" / "Due 1 week after" wording for a signed offset.
+export function describeOffset(weeksBefore: number): string {
+  if (weeksBefore === 0) return "on the event day";
+  const n = Math.abs(weeksBefore);
+  return `${n} ${n === 1 ? "week" : "weeks"} ${weeksBefore > 0 ? "before" : "after"} the event`;
 }
 
 // Due date is always derived from the event's current date, so it follows an

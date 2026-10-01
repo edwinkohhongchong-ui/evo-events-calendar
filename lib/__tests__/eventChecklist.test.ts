@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { computeAttention, dueDate, expandTemplateItems, isOverdue, progressOf, progressOverdue, totalOverdueItems } from "../eventChecklist";
+import { computeAttention, describeOffset, dueDate, expandTemplateItems, isOverdue, progressOf, progressOverdue, totalOverdueItems } from "../eventChecklist";
 import type { EventRow, OpenChecklistRow } from "../types";
 
 const template = {
@@ -29,6 +29,20 @@ describe("eventChecklist", () => {
       items: [{ id: "x", item: "Check-in", repeat_count: 4, weeks_before: 1 }],
     });
     expect(rows.map((r) => r.weeks_before)).toEqual([1, 0, 0, 0]);
+  });
+
+  it("supports negative offsets for after-the-event follow-ups", () => {
+    const rows = expandTemplateItems({
+      ...template,
+      items: [{ id: "f", item: "Follow up", repeat_count: 2, weeks_before: -1 }],
+    });
+    expect(rows.map((r) => r.weeks_before)).toEqual([-1, -2]);
+    expect(dueDate("2026-12-20", -1)).toBe("2026-12-27");
+    expect(isOverdue("2026-12-20", -1, false, "2026-12-26")).toBe(false);
+    expect(isOverdue("2026-12-20", -1, false, "2026-12-28")).toBe(true);
+    expect(describeOffset(-1)).toBe("1 week after the event");
+    expect(describeOffset(4)).toBe("4 weeks before the event");
+    expect(describeOffset(0)).toBe("on the event day");
   });
 
   it("derives due dates from the event date", () => {

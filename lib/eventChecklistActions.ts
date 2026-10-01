@@ -140,6 +140,48 @@ async function removeEventChecklistImpl(eventId: string): Promise<void> {
   }
 }
 
+// Add one custom item to an event's checklist (no template needed). Editors only.
+async function addChecklistItemImpl(eventId: string, text: string, weeksBefore?: number | null): Promise<void> {
+  await requireRole("editor");
+  const item = (text ?? "").trim().slice(0, 200);
+  if (!item) throw new Error("Type what needs doing.");
+  const { data: event, error: eventErr } = await supabase
+    .from("events")
+    .select("id, name, recurring, event_date")
+    .eq("id", eventId)
+    .single();
+  if (eventErr || !event) throw new Error("That event couldn't be found.");
+  if (event.recurring !== "None") throw new Error("Checklists aren't available on repeating events yet.");
+  const { data: last } = await supabase
+    .from("event_checklist_items")
+    .select("sort_order")
+    .eq("event_id", eventId)
+    .order("sort_order", { ascending: false })
+    .limit(1);
+  const next = (last?.[0]?.sort_order ?? -1) + 1;
+  const { error } = await supabase.from("event_checklist_items").insert({
+    event_id: eventId,
+    item,
+    weeks_before: weeksBefore ?? null,
+    sort_order: next,
+  });
+  if (error) throw friendly(error, "Couldn't add that item. Please try again.");
+  await logActivity({
+    action: "edited",
+    entity: "event",
+    entityId: eventId,
+    label: `${event.name} (checklist)`,
+    itemDate: event.event_date,
+  });
+}
+
+// Remove a single item from an event's checklist. Editors only.
+async function removeChecklistItemImpl(itemId: string): Promise<void> {
+  await requireRole("editor");
+  const { error } = await supabase.from("event_checklist_items").delete().eq("id", itemId);
+  if (error) throw friendly(error, "Couldn't remove that item. Please try again.");
+}
+
 // Public Server Actions: every one returns an ActionResult (see lib/actionResult.ts).
 export async function getEventChecklist(...args: Parameters<typeof getEventChecklistImpl>) {
   return runAction(() => getEventChecklistImpl(...args));
@@ -155,4 +197,10 @@ export async function setChecklistItemDone(...args: Parameters<typeof setCheckli
 }
 export async function removeEventChecklist(...args: Parameters<typeof removeEventChecklistImpl>) {
   return runAction(() => removeEventChecklistImpl(...args));
+}
+export async function addChecklistItem(...args: Parameters<typeof addChecklistItemImpl>) {
+  return runAction(() => addChecklistItemImpl(...args));
+}
+export async function removeChecklistItem(...args: Parameters<typeof removeChecklistItemImpl>) {
+  return runAction(() => removeChecklistItemImpl(...args));
 }

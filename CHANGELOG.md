@@ -8,6 +8,16 @@ items (features/fixes) that push contains — a push with 1 item goes up by
 `1.05`). If MINOR would pass `.99`, MAJOR increments and MINOR carries the
 remainder (e.g. `1.99` + 2 items → `2.01`).
 
+## v2.09 — 2026-10-02
+
+- Checklists are now flexible per event: Editors can add their own item to any
+  event's checklist (including starting a checklist with no template) and remove
+  any single item (an × on each row). Existing template-based lists keep working.
+- Checklist template items can be due AFTER the event as well as before it:
+  choose "after" next to the number of weeks (e.g. "Post-event follow-up" due 1
+  week after). The overdue flag, chip badge and "N overdue" pill all follow the
+  same date. The "Re-add missing items" and template wording is unchanged.
+
 ## v2.07 — 2026-10-02
 
 - New "N overdue" pill in the month bar: unticked checklist items past their

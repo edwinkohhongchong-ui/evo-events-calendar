@@ -24,10 +24,11 @@ interface ChecklistTemplateModalProps {
 interface DraftItem {
   item: string;
   repeat_count: string;
-  weeks_before: string; // blank = no due date
+  weeks_before: string; // blank = no due date (a positive number of weeks)
+  after: boolean; // true = due AFTER the event (saved as a negative offset)
 }
 
-const EMPTY_ITEM: DraftItem = { item: "", repeat_count: "1", weeks_before: "" };
+const EMPTY_ITEM: DraftItem = { item: "", repeat_count: "1", weeks_before: "", after: false };
 
 export default function ChecklistTemplateModal({
   mode,
@@ -43,7 +44,8 @@ export default function ChecklistTemplateModal({
       ? template.items.map((i) => ({
           item: i.item,
           repeat_count: String(i.repeat_count),
-          weeks_before: i.weeks_before == null ? "" : String(i.weeks_before),
+          weeks_before: i.weeks_before == null ? "" : String(Math.abs(i.weeks_before)),
+          after: i.weeks_before != null && i.weeks_before < 0,
         }))
       : [EMPTY_ITEM]
   );
@@ -77,7 +79,10 @@ export default function ChecklistTemplateModal({
       .map((it) => ({
         item: it.item.trim(),
         repeat_count: Number(it.repeat_count) || 1,
-        weeks_before: it.weeks_before.trim() === "" ? null : Math.max(0, Math.floor(Number(it.weeks_before) || 0)),
+        weeks_before:
+          it.weeks_before.trim() === ""
+            ? null
+            : (it.after ? -1 : 1) * Math.max(0, Math.floor(Number(it.weeks_before) || 0)),
       }))
       .filter((it) => it.item.length > 0);
     if (cleanItems.length === 0) {
@@ -159,7 +164,7 @@ export default function ChecklistTemplateModal({
                 const first = it.weeks_before.trim() === "" ? null : Math.max(0, Math.floor(Number(it.weeks_before) || 0));
                 const steps =
                   first !== null && count > 1
-                    ? Array.from({ length: count }, (_, i) => Math.max(0, first - i))
+                    ? Array.from({ length: count }, (_, i) => (it.after ? first + i : Math.max(0, first - i)))
                     : null;
                 return (
                   <div key={index} className="flex flex-col gap-2 rounded-ctl border border-line p-3">
@@ -190,21 +195,33 @@ export default function ChecklistTemplateModal({
                           className={INPUT}
                         />
                       </label>
-                      <label className="flex flex-col gap-1">
-                        <span className="text-micro text-ink-2">Due (weeks before event)</span>
-                        <input
-                          type="number"
-                          min={0}
-                          value={it.weeks_before}
-                          onChange={(e) => updateItem(index, { weeks_before: e.target.value })}
-                          placeholder="No due date"
-                          className={INPUT}
-                        />
-                      </label>
+                      <div className="flex flex-col gap-1">
+                        <span className="text-micro text-ink-2">Due (weeks, vs. event)</span>
+                        <div className="flex gap-2">
+                          <input
+                            type="number"
+                            min={0}
+                            value={it.weeks_before}
+                            onChange={(e) => updateItem(index, { weeks_before: e.target.value })}
+                            placeholder="None"
+                            aria-label="Due, in weeks"
+                            className={`${INPUT} !w-20 px-2`}
+                          />
+                          <select
+                            value={it.after ? "after" : "before"}
+                            onChange={(e) => updateItem(index, { after: e.target.value === "after" })}
+                            aria-label="Before or after the event"
+                            className={`${INPUT} flex-1`}
+                          >
+                            <option value="before">before</option>
+                            <option value="after">after</option>
+                          </select>
+                        </div>
+                      </div>
                     </div>
                     {steps && (
                       <p className="text-micro text-ink-2">
-                        Due {steps.join(", ")} weeks before the event, one row each.
+                        Due {steps.join(", ")} weeks {it.after ? "after" : "before"} the event, one row each.
                       </p>
                     )}
                   </div>
