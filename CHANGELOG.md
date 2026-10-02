@@ -8,6 +8,10 @@ items (features/fixes) that push contains — a push with 1 item goes up by
 `1.05`). If MINOR would pass `.99`, MAJOR increments and MINOR carries the
 remainder (e.g. `1.99` + 2 items → `2.01`).
 
+## v2.102 — 2026-10-02
+
+- Viewers can now tick and untick the items on an event's checklist when they open the event. Everything else about checklists stays Editor-only: applying, changing or removing a template, adding or removing items, and owners. The tick is validated on the server (id, true/false, name up to 60 characters) and updates only that one item. `CLAUDE.md`, `ONBOARDING.md` and the "Viewer or Editor?" tour step now say Viewers can look, comment, tick checklist items and use Export.
+
 ## v2.101 — 2026-10-02
 
 - Print preview no longer cuts off the bottom of a month: it fits to about 92% of the page height, re-checks after layout, and only clips (with a warning) in the extreme case where even the smallest size won't fit. Cause: the height was measured from the on-screen layout, which came out slightly shorter than the real print layout.

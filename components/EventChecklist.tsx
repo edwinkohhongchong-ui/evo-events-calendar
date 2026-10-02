@@ -15,7 +15,7 @@ import {
   setChecklistItemOwner,
 } from "@/lib/eventChecklistActions";
 import { unwrap } from "@/lib/actionResult";
-import { dueDate, isOverdue, progressOf, SUGGESTED_TEMPLATE_BY_GATHERING_TYPE } from "@/lib/eventChecklist";
+import { DONE_BY_MAX, dueDate, isOverdue, progressOf, SUGGESTED_TEMPLATE_BY_GATHERING_TYPE } from "@/lib/eventChecklist";
 import { parseDateStr, todayStr } from "@/lib/dates";
 import { useIsEditor } from "@/lib/roleContext";
 import { OWNER_MAX, normalizeOwner } from "@/lib/owner";
@@ -28,14 +28,14 @@ const AUTHOR_NAME_KEY = "evo-author-name";
 
 function authorName(): string | null {
   try {
-    return localStorage.getItem(AUTHOR_NAME_KEY);
+    return localStorage.getItem(AUTHOR_NAME_KEY)?.trim().slice(0, DONE_BY_MAX) || null;
   } catch {
     return null;
   }
 }
 
 // Per-event checklist inside the event details view. Editors add (from a
-// template) or remove it; Editors and Viewers tick items. One-off events only.
+// template) or remove it and edit items; Editors and Viewers tick items. One-off events only.
 export default function EventChecklist({ event, ownerOptions = [] }: { event: EventRow; ownerOptions?: string[] }) {
   const router = useRouter();
   const isEditor = useIsEditor();
@@ -126,7 +126,6 @@ export default function EventChecklist({ event, ownerOptions = [] }: { event: Ev
   }
 
   async function toggle(item: EventChecklistItemRow) {
-    if (!isEditor) return;
     const next = !item.done;
     const stamp = next ? new Date().toISOString() : null;
     const by = next ? authorName() : null;
@@ -309,15 +308,13 @@ export default function EventChecklist({ event, ownerOptions = [] }: { event: Ev
             return (
               <li key={it.id} className="group/item flex items-stretch border-b border-line last:border-b-0">
                 <label
-                  className={`flex min-h-[44px] min-w-0 flex-1 items-start gap-3 px-4 py-2.5 ${isEditor ? "cursor-pointer hover:bg-canvas" : "cursor-default"}`}
+                  className="flex min-h-[44px] min-w-0 flex-1 cursor-pointer items-start gap-3 px-4 py-2.5 hover:bg-canvas"
                 >
                   <input
                     type="checkbox"
                     checked={it.done}
                     onChange={() => toggle(it)}
-                    disabled={!isEditor}
-                    title={isEditor ? undefined : "View only"}
-                    className="mt-0.5 h-5 w-5 shrink-0 accent-[#1F2A44] disabled:cursor-not-allowed disabled:opacity-60"
+                    className="mt-0.5 h-5 w-5 shrink-0 accent-[#1F2A44]"
                   />
                   <span className="min-w-0 flex-1">
                     <span className={`block text-ui ${it.done ? "text-ink-2 line-through" : "text-ink"}`}>{it.item}</span>

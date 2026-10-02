@@ -23,7 +23,8 @@ import {
 type Role = "viewer" | "editor";
 
 // file -> exported action -> required role. Only the three entries marked
-// "viewer" may be reached by a Viewer (two reads and the sidebar comment post).
+// "viewer" may be reached by a Viewer (two reads, the sidebar comment post and
+// ticking an event checklist item).
 const POLICY: Record<string, Record<string, Role>> = {
   "lib/actions.ts": {
     moveOccurrence: "editor", retimeOccurrence: "editor", createEvent: "editor", updateEvent: "editor",
@@ -39,7 +40,7 @@ const POLICY: Record<string, Record<string, Role>> = {
   "lib/dayNoteActions.ts": { createDayNote: "editor", deleteDayNote: "editor" },
   "lib/eventChecklistActions.ts": {
     getEventChecklist: "viewer", getChecklistTemplateOptions: "editor", applyChecklistTemplate: "editor",
-    setChecklistItemDone: "editor", removeEventChecklist: "editor", addChecklistItem: "editor",
+    setChecklistItemDone: "viewer", removeEventChecklist: "editor", addChecklistItem: "editor",
     removeChecklistItem: "editor", setChecklistItemOwner: "editor", getOwnerOptions: "editor",
   },
   "lib/holidayActions.ts": { createHoliday: "editor", updateHoliday: "editor", deleteHoliday: "editor" },
@@ -57,7 +58,7 @@ const POLICY: Record<string, Record<string, Role>> = {
 // guard: its only export is requireRole, which mutates nothing.
 const GUARD_FILES: Record<string, string[]> = { "lib/authz.ts": ["requireRole"] };
 
-const READ_ONLY_FOR_VIEWER = ["getEventById", "getEventChecklist", "createNoteComment"];
+const VIEWER_LEVEL = ["getEventById", "getEventChecklist", "setChecklistItemDone", "createNoteComment"];
 
 describe("server action files are fully covered", () => {
   it("finds the \"use server\" files on disk (guards the glob itself)", () => {
@@ -107,13 +108,20 @@ describe("server action files are fully covered", () => {
     });
   }
 
-  it("only reads and the sidebar comment post are open to Viewers", () => {
+  it("every checklist action except reading and ticking stays Editor-only", () => {
+    const open = new Set(["getEventChecklist", "setChecklistItemDone"]);
+    for (const [name, role] of Object.entries(POLICY["lib/eventChecklistActions.ts"])) {
+      expect(role, name).toBe(open.has(name) ? "viewer" : "editor");
+    }
+  });
+
+  it("only reads, ticking a checklist item and the sidebar comment post are open to Viewers", () => {
     const viewerLevel = Object.values(POLICY)
       .flatMap((a) => Object.entries(a))
       .filter(([, r]) => r === "viewer")
       .map(([n]) => n)
       .sort();
-    expect(viewerLevel).toEqual([...READ_ONLY_FOR_VIEWER].sort());
+    expect(viewerLevel).toEqual([...VIEWER_LEVEL].sort());
   });
 });
 

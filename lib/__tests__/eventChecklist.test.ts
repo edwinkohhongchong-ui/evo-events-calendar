@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { computeAttention, describeOffset, dueDate, expandTemplateItems, isOverdue, progressOf, progressOverdue, totalOverdueItems } from "../eventChecklist";
+import { buildTickUpdate, computeAttention, describeOffset, dueDate, expandTemplateItems, isOverdue, progressOf, progressOverdue, totalOverdueItems } from "../eventChecklist";
 import type { EventRow, OpenChecklistRow } from "../types";
 
 const template = {
@@ -111,5 +111,31 @@ describe("eventChecklist", () => {
       const rows = [row("1", "x", 4, a), row("2", "y", 1, a), row("3", "z", 0, a)];
       expect(totalOverdueItems(rows, "2026-12-14")).toBe(2);
     });
+  });
+});
+
+describe("buildTickUpdate", () => {
+  const id = "123e4567-e89b-12d3-a456-426614174000";
+  const now = new Date("2026-10-02T00:00:00Z");
+
+  it("ticks with timestamp and trimmed name, touching only done fields", () => {
+    const r = buildTickUpdate(id, true, "  Sam ", now);
+    expect(r.id).toBe(id);
+    expect(r.patch).toEqual({ done: true, done_at: now.toISOString(), done_by: "Sam" });
+  });
+  it("unticking clears timestamp and name", () => {
+    expect(buildTickUpdate(id, false, "Sam", now).patch).toEqual({ done: false, done_at: null, done_by: null });
+  });
+  it("blank or null name becomes null", () => {
+    expect(buildTickUpdate(id, true, "  ", now).patch.done_by).toBeNull();
+    expect(buildTickUpdate(id, true, null, now).patch.done_by).toBeNull();
+  });
+  it("rejects a bad id, non-boolean done, and bad names", () => {
+    expect(() => buildTickUpdate("nope", true, null)).toThrow();
+    expect(() => buildTickUpdate(undefined, true, null)).toThrow();
+    expect(() => buildTickUpdate(id, "true", null)).toThrow();
+    expect(() => buildTickUpdate(id, true, 5)).toThrow();
+    expect(() => buildTickUpdate(id, true, "x".repeat(61))).toThrow();
+    expect(buildTickUpdate(id, true, "x".repeat(60), now).patch.done_by).toHaveLength(60);
   });
 });

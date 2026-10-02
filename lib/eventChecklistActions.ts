@@ -4,7 +4,7 @@ import { supabase } from "./supabase";
 import { requireRole } from "./authz";
 import { runAction } from "./actionResult";
 import { logActivity } from "./activity";
-import { expandTemplateItems } from "./eventChecklist";
+import { buildTickUpdate, expandTemplateItems } from "./eventChecklist";
 import { OWNER_MIGRATION_HINT, buildOwnerOptions, isMissingOwnerColumn, parseOwner } from "./owner";
 import { ChecklistTemplateWithItems, EventChecklistItemRow } from "./types";
 
@@ -112,19 +112,14 @@ async function applyChecklistTemplateImpl(eventId: string, templateId: string): 
   return rows.length;
 }
 
-// Tick or untick one item. Editors only (Viewers are read-only plus
-// sidebar comments). Not individually logged to the bell: a tick
-// is high-volume and reversible by unticking.
+// Tick or untick one item. Open to Viewers (the only checklist write they
+// have); it can change nothing but done/done_at/done_by of that one row.
+// Not individually logged to the bell: a tick is high-volume and reversible
+// by unticking.
 async function setChecklistItemDoneImpl(itemId: string, done: boolean, doneBy: string | null): Promise<void> {
-  await requireRole("editor");
-  const { error } = await supabase
-    .from("event_checklist_items")
-    .update({
-      done,
-      done_at: done ? new Date().toISOString() : null,
-      done_by: done ? (doneBy ?? "").trim().slice(0, 60) || null : null,
-    })
-    .eq("id", itemId);
+  await requireRole("viewer");
+  const { id, patch } = buildTickUpdate(itemId, done, doneBy);
+  const { error } = await supabase.from("event_checklist_items").update(patch).eq("id", id);
   if (error) throw friendly(error, "Couldn't update that item. Please try again.");
 }
 

@@ -105,3 +105,26 @@ export function computeAttention(rows: OpenChecklistRow[], todayStr: string): At
 export function totalOverdueItems(rows: OpenChecklistRow[], todayStr: string): number {
   return rows.filter((r) => isOverdue(r.event.event_date, r.weeks_before, false, todayStr)).length;
 }
+
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+export const DONE_BY_MAX = 60;
+
+// Validates a tick/untick request (the one checklist write Viewers may make)
+// and returns only the columns it is allowed to change. Throws on bad input.
+export function buildTickUpdate(
+  itemId: unknown,
+  done: unknown,
+  doneBy: unknown,
+  now: Date = new Date()
+): { id: string; patch: { done: boolean; done_at: string | null; done_by: string | null } } {
+  if (typeof itemId !== "string" || !UUID_RE.test(itemId)) throw new Error("That checklist item couldn't be found.");
+  if (typeof done !== "boolean") throw new Error("Couldn't update that item.");
+  if (doneBy != null && (typeof doneBy !== "string" || doneBy.length > DONE_BY_MAX)) {
+    throw new Error("That name is too long.");
+  }
+  const by = ((doneBy as string | null) ?? "").trim();
+  return {
+    id: itemId,
+    patch: { done, done_at: done ? now.toISOString() : null, done_by: done ? by || null : null },
+  };
+}
