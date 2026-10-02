@@ -165,7 +165,7 @@ export default function NotificationBell({ open, onOpenChange }: Props) {
         aria-haspopup="dialog"
         aria-expanded={open}
         title="Notifications"
-        className="relative flex h-8 w-8 items-center justify-center rounded-full text-white hover:bg-white/10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-gold"
+        className="relative flex h-8 w-8 coarse:h-11 coarse:w-11 items-center justify-center rounded-full text-white hover:bg-white/10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-gold"
       >
         <BellIcon className="!h-[18px] !w-[18px]" />
         {showBadge && (

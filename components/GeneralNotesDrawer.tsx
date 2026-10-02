@@ -21,6 +21,7 @@ export default function GeneralNotesDrawer({ open, onOpenChange, comments }: Pro
         type="button"
         onClick={() => onOpenChange(!open)}
         aria-expanded={open}
+        aria-haspopup="dialog"
         aria-label="General Notes"
         title="General Notes"
         className="relative flex h-8 w-8 items-center justify-center rounded-full text-white hover:bg-white/10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-gold"

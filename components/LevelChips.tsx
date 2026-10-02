@@ -66,7 +66,7 @@ export default function LevelChips({ levels, onEdit }: LevelChipsProps) {
           return (
             <span
               key={level.id}
-              className="group inline-flex items-center rounded-pill bg-surface pl-2.5 pr-2.5 h-7 text-chip transition-colors duration-fast ease-apple hover:bg-fill focus-within:bg-fill"
+              className="group inline-flex items-center rounded-pill bg-surface pl-2.5 pr-2.5 h-7 coarse:h-11 text-chip transition-colors duration-fast ease-apple hover:bg-fill focus-within:bg-fill"
             >
               <button
                 type="button"
@@ -74,7 +74,7 @@ export default function LevelChips({ levels, onEdit }: LevelChipsProps) {
                 title={visible ? `Hide "${level.name}"` : `Show "${level.name}"`}
                 aria-pressed={visible}
                 className={[
-                  "inline-flex items-center gap-1.5 rounded-pill font-medium",
+                  "inline-flex items-center gap-1.5 rounded-pill font-medium coarse:min-h-[44px]",
                   visible ? "text-ink" : "text-ink-3 line-through",
                 ].join(" ")}
               >
@@ -93,7 +93,7 @@ export default function LevelChips({ levels, onEdit }: LevelChipsProps) {
                   className={[
                     "inline-flex items-center overflow-hidden transition-all duration-fast ease-apple",
                     // Narrow/touch: always visible. Desktop: revealed on hover/focus.
-                    "max-w-[48px] opacity-100 ml-1",
+                    "max-w-[48px] coarse:max-w-[96px] opacity-100 ml-1",
                     "md:[@media(hover:hover)]:max-w-0 md:[@media(hover:hover)]:opacity-0 md:[@media(hover:hover)]:ml-0",
                     "md:[@media(hover:hover)]:group-hover:max-w-[48px] md:[@media(hover:hover)]:group-hover:opacity-100 md:[@media(hover:hover)]:group-hover:ml-1",
                     "md:[@media(hover:hover)]:group-focus-within:max-w-[48px] md:[@media(hover:hover)]:group-focus-within:opacity-100 md:[@media(hover:hover)]:group-focus-within:ml-1",
@@ -104,7 +104,7 @@ export default function LevelChips({ levels, onEdit }: LevelChipsProps) {
                     onClick={() => onEdit(level)}
                     title="Edit category"
                     aria-label={`Edit category "${level.name}"`}
-                    className="inline-flex h-5 w-5 items-center justify-center rounded-full text-ink-2 hover:bg-line hover:text-navy"
+                    className="inline-flex h-5 w-5 coarse:h-11 coarse:w-11 items-center justify-center rounded-full text-ink-2 hover:bg-line hover:text-navy"
                   >
                     <PencilIcon className="!h-3.5 !w-3.5" />
                   </button>
@@ -114,7 +114,7 @@ export default function LevelChips({ levels, onEdit }: LevelChipsProps) {
                     disabled={removingId === level.id}
                     title={`Remove "${level.name}"`}
                     aria-label={`Delete category "${level.name}"`}
-                    className="inline-flex h-5 w-5 items-center justify-center rounded-full text-ink-2 hover:bg-line hover:text-danger disabled:opacity-30"
+                    className="inline-flex h-5 w-5 coarse:h-11 coarse:w-11 items-center justify-center rounded-full text-ink-2 hover:bg-line hover:text-danger disabled:opacity-30"
                   >
                     <XIcon className="!h-3.5 !w-3.5" />
                   </button>
@@ -127,7 +127,7 @@ export default function LevelChips({ levels, onEdit }: LevelChipsProps) {
           <button
             type="button"
             onClick={showAll}
-            className="px-2 text-chip font-medium text-navy hover:underline"
+            className="px-2 text-chip font-medium text-navy hover:underline coarse:min-h-[44px]"
           >
             Show all
           </button>

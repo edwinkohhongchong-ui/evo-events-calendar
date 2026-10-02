@@ -358,7 +358,7 @@ export default function RemindersForm({ templates, checklistTemplates, openCheck
                             type="button"
                             onClick={() => setEventTemplate(ev.occurrenceKey, "")}
                             title="Remove this checklist template from the message"
-                            className="text-ink-3 hover:text-danger leading-none"
+                            className="text-ink-3 hover:text-danger leading-none coarse:min-h-[44px] coarse:min-w-[44px]"
                           >
                             ×
                           </button>

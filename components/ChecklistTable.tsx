@@ -199,7 +199,7 @@ export default function ChecklistTable({
                     value={row.status}
                     onChange={(e) => handleStatusChange(row, e.target.value as ChecklistStatus)}
                     className={[
-                      "cursor-pointer rounded-pill border px-3 py-1 text-body font-medium",
+                      "cursor-pointer rounded-pill border px-3 py-1 text-body font-medium coarse:min-h-[44px]",
                       STATUS_COLORS[row.status],
                     ].join(" ")}
                   >

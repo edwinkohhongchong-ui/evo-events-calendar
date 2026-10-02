@@ -29,6 +29,7 @@ import {
   ChevronIcon,
   UndoIcon,
   RedoIcon,
+  LogOutIcon,
 } from "./icons";
 
 type Item = {
@@ -91,10 +92,10 @@ function groupForPath(pathname: string | null): string | null {
   return null;
 }
 
-const ROW = "flex items-center gap-3 w-full text-left px-3 py-2.5 text-body rounded-ctl relative transition-colors duration-fast";
+const ROW = "flex items-center gap-3 w-full text-left px-3 py-2.5 text-body rounded-ctl relative transition-colors duration-fast coarse:min-h-[44px]";
 // Undo / Redo: quiet ghost pills on the navy bar; label collapses to icon-only on phones.
 const HISTORY_BTN =
-  "inline-flex h-8 items-center gap-1.5 rounded-pill px-2.5 text-body text-white/90 whitespace-nowrap transition-colors duration-fast hover:bg-white/10 hover:text-white disabled:opacity-40 disabled:hover:bg-transparent disabled:hover:text-white/90 sm:px-3";
+  "inline-flex h-8 items-center gap-1.5 rounded-pill px-2.5 text-body text-white/90 whitespace-nowrap transition-colors duration-fast hover:bg-white/10 hover:text-white disabled:opacity-40 disabled:hover:bg-transparent disabled:hover:text-white/90 sm:px-3 coarse:min-h-[44px] coarse:min-w-[44px] coarse:justify-center";
 
 export default function NavBar({ generalComments = [] }: { generalComments?: NoteCommentRow[] }) {
   const pathname = usePathname();
@@ -165,7 +166,20 @@ export default function NavBar({ generalComments = [] }: { generalComments?: Not
     setBellOpen(false);
     setNotesOpen(false);
   }, []);
-  useEscapeKey(closeAll);
+  // Only join the Escape stack while something is actually open, so a bare
+  // Escape doesn't swallow the key for layers beneath the always-mounted bar.
+  useEscapeKey(closeAll, menuOpen || bellOpen || notesOpen);
+
+  // Clear the session cookie, then do a full navigation so no cached
+  // role-specific page survives. Navigate even if the request fails.
+  const logout = async () => {
+    closeMenu();
+    try {
+      await fetch("/api/logout", { method: "POST" });
+    } finally {
+      window.location.assign("/login");
+    }
+  };
 
   if (pathname === "/login") return null;
 
@@ -321,8 +335,9 @@ export default function NavBar({ generalComments = [] }: { generalComments?: Not
               setNotesOpen(false);
             }}
             aria-expanded={menuOpen}
+            aria-haspopup="menu"
             aria-label="Open menu"
-            className="flex flex-col justify-center gap-[3px] w-8 h-8 rounded-full hover:bg-white/10 items-center"
+            className="flex flex-col justify-center gap-[3px] w-8 h-8 coarse:w-11 coarse:h-11 rounded-full hover:bg-white/10 items-center"
           >
             <span className="block w-4 h-[2px] bg-white rounded-full" />
             <span className="block w-4 h-[2px] bg-white rounded-full" />
@@ -383,6 +398,12 @@ export default function NavBar({ generalComments = [] }: { generalComments?: Not
                     <PlayCircleIcon />
                   </span>
                   Replay tour
+                </button>
+                <button type="button" onClick={logout} className={[ROW, "text-ink hover:bg-canvas"].join(" ")}>
+                  <span className="text-ink-2">
+                    <LogOutIcon />
+                  </span>
+                  Log out
                 </button>
               </div>
             </>

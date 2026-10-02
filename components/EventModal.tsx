@@ -274,7 +274,8 @@ function EventModalInner({
   const [step, setStep] = useState<Step>(mode === "edit" ? "view" : "form");
   const [pendingValues, setPendingValues] = useState<EventFormValues | null>(null);
 
-  useEscapeKey(onClose);
+  // Escape backs out of the inline delete confirm first; only then closes the modal.
+  useEscapeKey(() => (confirmDelete ? setConfirmDelete(false) : onClose()));
 
   useEffect(() => {
     if (mode !== "add" || !isEditor) return;

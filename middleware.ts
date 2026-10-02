@@ -7,7 +7,7 @@ import { SESSION_COOKIE_NAME, verifySessionToken } from "@/lib/session";
 // of anything in this app. See PROJECT decision: acceptable for v1. The
 // Viewer role's Add/Delete restriction is enforced the same way (hidden in
 // the UI, not via RLS) — see lib/roleContext.tsx call sites.
-const PUBLIC_PREFIXES = ["/login", "/api/login", "/api/calendar-feed"];
+const PUBLIC_PREFIXES = ["/login", "/api/login", "/api/logout", "/api/calendar-feed"];
 
 export async function middleware(request: NextRequest) {
   // Public routes skip auth, but still never trust a client-supplied role

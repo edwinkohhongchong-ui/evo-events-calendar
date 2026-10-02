@@ -163,7 +163,7 @@ export default function OnboardingTourModal() {
           className="bg-white rounded-2xl shadow-xl w-full max-w-md p-8 flex flex-col gap-6 pointer-events-auto outline-none"
         >
           <div className="flex flex-col gap-2">
-            <p className="text-xs font-medium text-gray-400 tracking-wide">
+            <p className="text-xs font-medium text-ink-2 tracking-wide">
               Step {step + 1} of {total}
             </p>
             <h2 id="evo-tour-title" className="text-lg font-semibold text-navy">{current.title}</h2>
@@ -185,7 +185,7 @@ export default function OnboardingTourModal() {
             <button
               type="button"
               onClick={skip}
-              className="text-sm text-gray-400 hover:text-gray-600 coarse:min-h-[44px] coarse:px-3"
+              className="text-sm text-ink-2 hover:text-gray-600 coarse:min-h-[44px] coarse:px-3"
             >
               Skip
             </button>

@@ -101,6 +101,11 @@ export const PlayCircleIcon = (p: P) => (
     <path d="m10 8 6 4-6 4V8z" />
   </Icon>
 );
+export const LogOutIcon = (p: P) => (
+  <Icon {...p}>
+    <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9" />
+  </Icon>
+);
 export const ChevronIcon = ({ open }: { open: boolean }) => (
   <Icon className={`transition-transform duration-150 ${open ? "rotate-180" : ""}`}>
     <path d="m6 9 6 6 6-6" />

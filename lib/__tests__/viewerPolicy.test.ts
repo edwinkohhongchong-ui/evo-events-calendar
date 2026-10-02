@@ -123,7 +123,8 @@ type RouteKind =
   | { kind: "editor"; methods: string[] } // requireRoleRoute("editor") first, before any db/network access
   | { kind: "session"; methods: string[] } // verifySessionToken gate before any data access (any role)
   | { kind: "token"; methods: string[] } // secret-URL token compared before any data access
-  | { kind: "public-login"; methods: string[] }; // issues sessions; public in middleware
+  | { kind: "public-login"; methods: string[] } // issues sessions; public in middleware
+  | { kind: "public-logout"; methods: string[] }; // clears the session cookie only; public in middleware so it works for any role/expired session
 
 const ROUTES: Record<string, RouteKind> = {
   "app/api/holidays/fetch-year/route.ts": { kind: "editor", methods: ["POST"] },
@@ -134,6 +135,7 @@ const ROUTES: Record<string, RouteKind> = {
   "app/api/activity/route.ts": { kind: "session", methods: ["GET"] },
   "app/api/calendar-feed/[token]/route.ts": { kind: "token", methods: ["GET"] },
   "app/api/login/route.ts": { kind: "public-login", methods: ["POST"] },
+  "app/api/logout/route.ts": { kind: "public-logout", methods: ["POST"] },
 };
 
 const DATA_ACCESS = /\bsupabase\b|\bfetch\s*\(|\.from\s*\(/;
@@ -195,6 +197,15 @@ describe("api routes are fully covered", () => {
             expect(b).toContain("createSessionToken(");
             expect(b).toContain("safeEqual(");
             expect(b.indexOf("safeEqual(")).toBeLessThan(b.indexOf("createSessionToken("));
+          });
+        }
+
+        if (spec.kind === "public-logout") {
+          it(`${method}: only clears the cookie (maxAge 0) and touches no data`, () => {
+            const b = body()!;
+            expect(b).toContain("maxAge: 0");
+            expect(b).not.toMatch(DATA_ACCESS);
+            expect(b).not.toContain("createSessionToken(");
           });
         }
       }

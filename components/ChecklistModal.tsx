@@ -57,7 +57,8 @@ export default function ChecklistModal({
   const [formError, setFormError] = useState<string | null>(null);
   const [confirmDelete, setConfirmDelete] = useState(false);
 
-  useEscapeKey(onClose);
+  // Escape backs out of the inline delete confirm first; only then closes the modal.
+  useEscapeKey(() => (confirmDelete ? setConfirmDelete(false) : onClose()));
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();

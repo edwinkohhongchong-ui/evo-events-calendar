@@ -37,15 +37,6 @@ nav.bg-navy :focus-visible,
   outline-color: #d9a441;
 }
 
-/* Legibility: very light grays used for real text are too faint on the
-   new canvas. Text only; borders/backgrounds are unaffected. */
-.text-gray-400 {
-  color: #6e6e73;
-}
-.text-gray-300 {
-  color: #86868b;
-}
-
 @media (prefers-reduced-motion: reduce) {
   html {
     scroll-behavior: auto;

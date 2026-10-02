@@ -8,6 +8,14 @@ items (features/fixes) that push contains — a push with 1 item goes up by
 `1.05`). If MINOR would pass `.99`, MAJOR increments and MINOR carries the
 remainder (e.g. `1.99` + 2 items → `2.01`).
 
+## v2.63 — 2026-10-02
+
+- Added Log out to the menu for everyone (clears the signed session cookie).
+- Menu and bell: Escape handling only while open, and screen-reader hints (aria-haspopup/expanded).
+- Escape now cancels the inline "delete" confirmation first in the event and checklist windows, and only then closes the window.
+- Larger touch targets (44px, touch screens only) for the Undo/Redo pills, menu rows, bell, notes button, category legend chips, checklist status select and the remove-template button.
+- Removed the global gray-text colour override; the two places that used it now use the design colour directly (no visible change).
+
 ## v2.58 — 2026-10-02
 
 - Added Print Calendar on the Export page (Editors only): pick months (any year, quick buttons for This month, Next 3 months, Whole year), and Print opens a view with one month per A4 landscape page, each month sized to fit its own page.

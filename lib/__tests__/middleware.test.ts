@@ -42,7 +42,7 @@ describe("middleware matcher", () => {
 });
 
 describe("middleware public paths", () => {
-  it.each(["/login", "/api/login", "/api/calendar-feed/x", "/api/calendar-feed/abc.ics"])(
+  it.each(["/login", "/api/login", "/api/logout", "/api/calendar-feed/x", "/api/calendar-feed/abc.ics"])(
     "%s is reachable without a session",
     async (p) => {
       expect(isNext(await middleware(await req(p)))).toBe(true);
@@ -50,7 +50,7 @@ describe("middleware public paths", () => {
   );
 
   it("does not treat look-alike prefixes as public", async () => {
-    for (const p of ["/loginx", "/api/loginx", "/api/calendar-feedx", "/login-evil/../reminders"]) {
+    for (const p of ["/loginx", "/api/loginx", "/api/logoutx", "/api/calendar-feedx", "/login-evil/../reminders"]) {
       expect(isNext(await middleware(await req(p))), p).toBe(false);
     }
   });
