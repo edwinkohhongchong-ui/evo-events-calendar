@@ -93,9 +93,9 @@ function groupForPath(pathname: string | null): string | null {
 }
 
 const ROW = "flex items-center gap-3 w-full text-left px-3 py-2.5 text-body rounded-ctl relative transition-colors duration-fast coarse:min-h-[44px]";
-// Undo / Redo: quiet ghost pills on the navy bar; label collapses to icon-only on phones.
+// Undo / Redo: soft navy-tint pills on the light bar; label collapses to icon-only on phones.
 const HISTORY_BTN =
-  "inline-flex h-8 items-center gap-1.5 rounded-pill px-2.5 text-body text-white/90 whitespace-nowrap transition-colors duration-fast hover:bg-white/10 hover:text-white disabled:opacity-40 disabled:hover:bg-transparent disabled:hover:text-white/90 sm:px-3 coarse:min-h-[44px] coarse:min-w-[44px] coarse:justify-center";
+  "inline-flex h-8 items-center gap-1.5 rounded-pill px-2.5 text-body bg-navy-50 text-navy whitespace-nowrap transition-colors duration-fast hover:bg-navy/10 disabled:opacity-40 disabled:hover:bg-navy-50 sm:px-3 coarse:min-h-[44px] coarse:min-w-[44px] coarse:justify-center";
 
 export default function NavBar({ generalComments = [] }: { generalComments?: NoteCommentRow[] }) {
   const pathname = usePathname();
@@ -260,14 +260,15 @@ export default function NavBar({ generalComments = [] }: { generalComments?: Not
   const divider = <div className="border-t border-line my-1.5 mx-2" role="separator" />;
 
   return (
-    <nav className="bg-navy text-white">
+    <nav className="bg-white/80 text-navy border-b-2 border-gold">
       {error && <ErrorBanner message={error} onDismiss={dismissError} />}
-      <div className="relative max-w-6xl mx-auto px-4 sm:px-6 flex items-center h-12 gap-3">
+      <div className="relative max-w-6xl mx-auto px-4 sm:px-6 flex items-center h-12 gap-2 sm:gap-3">
         <Link
           href="/"
           aria-label="+EVO Events — back to the calendar"
-          className="font-semibold text-sm whitespace-nowrap shrink-0 rounded-md px-1 -mx-1 hover:opacity-80 transition-opacity duration-fast"
+          className="inline-flex items-center gap-2 font-semibold text-sm text-navy whitespace-nowrap shrink-0 rounded-md px-1 -mx-1 hover:opacity-80 transition-opacity duration-fast"
         >
+          <span className="h-2 w-2 shrink-0 rounded-full bg-gold" aria-hidden="true" />
           <span className="sm:hidden">+EVO</span>
           <span className="hidden sm:inline">+EVO Events</span>
         </Link>
@@ -337,11 +338,11 @@ export default function NavBar({ generalComments = [] }: { generalComments?: Not
             aria-expanded={menuOpen}
             aria-haspopup="menu"
             aria-label="Open menu"
-            className="flex flex-col justify-center gap-[3px] w-8 h-8 coarse:w-11 coarse:h-11 rounded-full hover:bg-white/10 items-center"
+            className="flex flex-col justify-center gap-[3px] w-8 h-8 coarse:w-11 coarse:h-11 rounded-full bg-navy-50 text-navy hover:bg-navy/10 transition-colors duration-fast items-center"
           >
-            <span className="block w-4 h-[2px] bg-white rounded-full" />
-            <span className="block w-4 h-[2px] bg-white rounded-full" />
-            <span className="block w-4 h-[2px] bg-white rounded-full" />
+            <span className="block w-4 h-[2px] bg-navy rounded-full" />
+            <span className="block w-4 h-[2px] bg-navy rounded-full" />
+            <span className="block w-4 h-[2px] bg-navy rounded-full" />
           </button>
 
           {menuOpen && (

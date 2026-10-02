@@ -8,6 +8,11 @@ items (features/fixes) that push contains — a push with 1 item goes up by
 `1.05`). If MINOR would pass `.99`, MAJOR increments and MINOR carries the
 remainder (e.g. `1.99` + 2 items → `2.01`).
 
+## v2.69 — 2026-10-02
+
+- Colour picker redone to follow the Google Sheets palette: the top two rows (greys and vivid colours) are always shown, and "More colours" opens the six tint and shade rows, a THEME section with the 14 existing colours, and a CUSTOM section (colour wheel and hex field). The chosen colour shows a tick and the picker opens expanded when it is not in the top two rows. Replaces the 216-colour web-safe grid.
+- New top bar (Option C): light translucent bar with navy text, a gold dot by the name and a 2px gold bottom line; Undo/Redo, bell, notes and menu are soft pills and round buttons. The old solid navy bar is gone.
+
 ## v2.66 — 2026-10-02
 
 - The Backup download now covers all 17 tables the app uses (added event checklist items, the activity log and exam/term source dates); a missing table no longer fails the whole backup and is listed under `skipped`. A test fails if a new table is ever left out.

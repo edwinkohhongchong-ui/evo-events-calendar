@@ -32,7 +32,6 @@ h1, h2, h3, h4 {
   outline: 2px solid #1f2a44;
   outline-offset: 2px;
 }
-nav.bg-navy :focus-visible,
 [data-surface="dark"] :focus-visible {
   outline-color: #d9a441;
 }

@@ -11,7 +11,7 @@ import {
   tint,
 } from "../colorStyle";
 import { LEVEL_CHIP_CLASSES, LEVEL_DOT_CLASSES, SEASON_BAR_COLORS, SEASON_COLOR_KEYS } from "../constants";
-import { WEB_SAFE_COLORS, generateWebSafeColors } from "../webSafeColors";
+import { GOOGLE_PALETTE } from "../googlePalette";
 
 describe("named keys render exactly as before", () => {
   it("returns the original class strings and no inline style", () => {
@@ -54,9 +54,14 @@ describe("contrast and tint", () => {
     expect(contrastRatio("#000000", "#ffffff")).toBeCloseTo(21, 0);
     expect(contrastRatio("#ffffff", "#ffffff")).toBeCloseTo(1, 5);
   });
-  it("always reaches WCAG AA (4.5:1) for the chosen text colour on every web-safe bar", () => {
-    for (const hex of WEB_SAFE_COLORS) {
+  it("always reaches WCAG AA (4.5:1) for the chosen text colour on every Google palette bar", () => {
+    for (const hex of GOOGLE_PALETTE) {
       expect(contrastRatio(hex, readableTextColor(hex))).toBeGreaterThanOrEqual(4.5);
+    }
+  });
+  it("chip text reaches WCAG AA on the chip tint for every Google palette colour", () => {
+    for (const hex of GOOGLE_PALETTE) {
+      expect(contrastRatio(tint(hex, 0.22), readableTextColor(tint(hex, 0.22)))).toBeGreaterThanOrEqual(4.5);
     }
   });
   it("tint mixes over white", () => {
@@ -84,19 +89,5 @@ describe("hex values render through inline styles", () => {
     const b = barStyle("#1f2a44");
     expect(b.style).toMatchObject({ backgroundColor: "#1f2a44", color: "#ffffff" });
     expect(b.style?.borderColor).not.toBe("#1f2a44");
-  });
-});
-
-describe("web-safe palette", () => {
-  it("has 216 unique lowercase #rrggbb values built from 00/33/66/99/cc/ff", () => {
-    const all = generateWebSafeColors();
-    expect(all).toHaveLength(216);
-    expect(new Set(all).size).toBe(216);
-    for (const hex of all) {
-      expect(hex).toMatch(/^#(?:[03699cf][03699cf]){3}$/);
-      expect(isHexColor(hex)).toBe(true);
-    }
-    expect(all[0]).toBe("#000000");
-    expect(all[215]).toBe("#ffffff");
   });
 });

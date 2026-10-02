@@ -3,36 +3,61 @@
 import { CSSProperties, KeyboardEvent, useId, useRef, useState } from "react";
 import { SEASON_COLOR_KEYS } from "@/lib/constants";
 import { barStyle, chipStyle, contrastRatio, isHexColor, isNamedColor, normaliseColor, readableTextColor } from "@/lib/colorStyle";
-import { WEB_SAFE_COLORS } from "@/lib/webSafeColors";
+import { GOOGLE_PALETTE, GOOGLE_PALETTE_COLS, GOOGLE_PALETTE_ROWS, GOOGLE_PALETTE_VISIBLE, GOOGLE_PALETTE_VISIBLE_ROWS } from "@/lib/googlePalette";
 import { ColorValue } from "@/lib/types";
 import { INPUT } from "./fieldStyles";
 
 interface ColorPickerProps {
   value: ColorValue;
   onChange: (value: ColorValue) => void;
+  disabled?: boolean;
 }
 
-const WEB_SAFE_COLS = 12;
-const SWATCH_RING = "ring-2 ring-offset-1 ring-navy";
+const THEME_COLS = 7;
 const SWATCH_FOCUS = "focus-visible:ring-2 focus-visible:ring-offset-1 focus-visible:ring-navy focus-visible:outline-none";
+// 10 columns: 24px + 6px gaps = 294px; on touch 28px + 6px gaps = 334px, which
+// fits max-w-md (448px) minus modal padding. Not 44px: ten 44px targets would
+// need 440px+, so touch gets the WCAG 2.2 AA minimum (24px) with generous gaps.
+const GRID = "grid grid-cols-10 gap-1.5 w-max";
+const ROUND = "h-6 w-6 coarse:h-7 coarse:w-7 rounded-full border border-black/15";
+const SECTION_LABEL = "text-micro font-semibold uppercase tracking-wider text-ink-2";
 
-// Colour picker for Seasons and Categories: the 14 named palette colours, the
-// 216 web-safe colours, and a custom colour (system wheel + hex field). One
-// radiogroup with a single tab stop (roving tabindex); arrow keys move through
-// the swatches in DOM order and select as they go, like native radios.
-export default function ColorPicker({ value, onChange }: ColorPickerProps) {
+// Tick colour for a swatch: white or black, whichever contrasts more.
+function tickColor(hex: string) {
+  return contrastRatio(hex, "#ffffff") >= contrastRatio(hex, "#000000") ? "#ffffff" : "#000000";
+}
+
+function Check({ color }: { color: string }) {
+  return (
+    <svg viewBox="0 0 16 16" aria-hidden="true" className="pointer-events-none mx-auto h-3.5 w-3.5 coarse:h-4 coarse:w-4" fill="none" stroke={color} strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M3.5 8.5l3 3 6-7" />
+    </svg>
+  );
+}
+
+// Colour picker for Seasons and Categories, laid out like the Google Sheets
+// text-colour palette: greys + vivid rows up front, everything else (tints and
+// shades, the 14 named theme colours, a custom colour) behind "More colours".
+// One radiogroup with a single tab stop (roving tabindex); arrow keys move
+// through the swatches in DOM order and select as they go, like native radios.
+export default function ColorPicker({ value, onChange, disabled = false }: ColorPickerProps) {
   const groupRef = useRef<HTMLDivElement>(null);
   const hexId = useId();
+  const regionId = useId();
   // What the hex field shows while the user is typing; null = mirror `value`.
   const [draft, setDraft] = useState<string | null>(null);
 
   const current = normaliseColor(value) ?? value;
   const hexText = draft ?? (isHexColor(current) ? current : "");
   const draftInvalid = draft !== null && draft !== "" && normaliseColor(draft.startsWith("#") ? draft : `#${draft}`) === null;
-  const webSafeSelected = isHexColor(current) && WEB_SAFE_COLORS.includes(current);
-  const [webSafeOpen, setWebSafeOpen] = useState(webSafeSelected);
+  const isCustom = isHexColor(current) && !GOOGLE_PALETTE.includes(current);
+  const hiddenByDefault = !GOOGLE_PALETTE_VISIBLE.includes(current);
+  // Open on a selection that would otherwise be hidden.
+  const [open, setOpen] = useState(hiddenByDefault);
+  const [customOpen, setCustomOpen] = useState(isCustom);
 
   function pick(next: ColorValue) {
+    if (disabled) return;
     setDraft(null);
     onChange(next);
   }
@@ -62,10 +87,18 @@ export default function ColorPicker({ value, onChange }: ColorPickerProps) {
     if (normalised && isHexColor(normalised)) onChange(normalised);
   }
 
-  // Exactly one radio is tabbable: the selected one, else the first.
-  const anySelected = isNamedColor(current) || webSafeSelected;
+  // Exactly one radio is tabbable: the selected one if it is rendered, else the first visible swatch.
+  const selectedRendered = open || !hiddenByDefault;
 
-  function swatch(key: string, colorValue: ColorValue, className: string, style: CSSProperties | undefined, cols: number, first: boolean) {
+  function swatch(
+    key: string,
+    colorValue: ColorValue,
+    className: string,
+    style: CSSProperties | undefined,
+    cols: number,
+    first: boolean,
+    tick: string
+  ) {
     const selected = current === colorValue;
     return (
       <button
@@ -76,13 +109,19 @@ export default function ColorPicker({ value, onChange }: ColorPickerProps) {
         aria-label={key}
         title={key}
         data-cols={cols}
-        tabIndex={selected || (!anySelected && first) ? 0 : -1}
+        disabled={disabled}
+        tabIndex={(selected && selectedRendered) || (!(selectedRendered && (isNamedColor(current) || isHexColor(current))) && first) ? 0 : -1}
         onClick={() => pick(colorValue)}
-        className={[className, selected ? SWATCH_RING : "", SWATCH_FOCUS].join(" ")}
+        className={[className, SWATCH_FOCUS, "flex items-center justify-center disabled:cursor-not-allowed disabled:opacity-60"].join(" ")}
         style={style}
-      />
+      >
+        {selected && <Check color={tick} />}
+      </button>
     );
   }
+
+  const hexSwatch = (hex: string, first: boolean) =>
+    swatch(hex, hex as ColorValue, ROUND, { backgroundColor: hex }, GOOGLE_PALETTE_COLS, first, tickColor(hex));
 
   const chip = chipStyle(current);
   const bar = barStyle(current);
@@ -90,62 +129,91 @@ export default function ColorPicker({ value, onChange }: ColorPickerProps) {
     ? contrastRatio(current, readableTextColor(current)).toFixed(1)
     : null;
 
+  const visibleRows = GOOGLE_PALETTE_ROWS.slice(0, GOOGLE_PALETTE_VISIBLE_ROWS);
+  const moreRows = GOOGLE_PALETTE_ROWS.slice(GOOGLE_PALETTE_VISIBLE_ROWS);
+
   return (
     <div ref={groupRef} role="radiogroup" aria-label="Colour" onKeyDown={handleKeyDown} className="flex flex-col gap-3">
-      <div className="flex flex-col gap-1.5">
-        <span className="text-micro font-medium text-ink-2">Current palette</span>
-        <div className="flex flex-wrap gap-2">
-          {SEASON_COLOR_KEYS.map((key, i) =>
-            swatch(key, key, `h-7 w-7 coarse:h-11 coarse:w-11 rounded-full border-2 ${barStyle(key).className}`, undefined, 7, i === 0)
-          )}
-        </div>
-      </div>
+      <div className={GRID}>{visibleRows.flat().map((hex, i) => hexSwatch(hex, i === 0))}</div>
 
-      <details open={webSafeOpen} onToggle={(e) => setWebSafeOpen(e.currentTarget.open)}>
-        <summary className="cursor-pointer select-none text-micro font-medium text-ink-2 coarse:min-h-[44px] coarse:leading-[44px]">
-          Web-safe colours (216)
-        </summary>
-        <div
-          className="mt-1.5 grid w-max grid-cols-[repeat(12,max-content)] gap-0.5 coarse:grid-cols-[repeat(6,max-content)] coarse:gap-1"
-        >
-          {WEB_SAFE_COLORS.map((hex) =>
-            swatch(hex, hex as ColorValue, "h-6 w-6 coarse:h-11 coarse:w-11 rounded-sm border border-black/10", { backgroundColor: hex }, WEB_SAFE_COLS, false)
-          )}
-        </div>
-      </details>
+      <button
+        type="button"
+        aria-expanded={open}
+        aria-controls={regionId}
+        onClick={() => setOpen((o) => !o)}
+        className="flex w-max items-center gap-1 rounded-ctl text-micro font-medium text-ink-2 hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-navy coarse:min-h-[44px]"
+      >
+        {open ? "Fewer colours" : "More colours"}
+        <svg viewBox="0 0 16 16" aria-hidden="true" className={`h-3 w-3 transition-transform ${open ? "rotate-180" : ""}`} fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M3.5 6l4.5 4.5L12.5 6" />
+        </svg>
+      </button>
 
-      <div className="flex flex-col gap-1.5">
-        <span className="text-micro font-medium text-ink-2">Custom</span>
-        <div className="flex items-center gap-2">
-          <input
-            type="color"
-            aria-label="Pick a custom colour"
-            value={isHexColor(current) ? current : "#1f2a44"}
-            onChange={(e) => pick(e.target.value.toLowerCase() as ColorValue)}
-            className="h-10 w-12 coarse:h-11 coarse:w-14 shrink-0 cursor-pointer rounded-ctl border border-line-strong bg-white p-1"
-          />
-          <input
-            id={hexId}
-            type="text"
-            inputMode="text"
-            spellCheck={false}
-            autoComplete="off"
-            maxLength={7}
-            placeholder="#1F2A44"
-            aria-label="Custom colour hex code"
-            aria-invalid={draftInvalid}
-            aria-describedby={draftInvalid ? `${hexId}-err` : undefined}
-            value={hexText}
-            onChange={(e) => handleHexInput(e.target.value.trim())}
-            onBlur={() => setDraft(null)}
-            className={`${INPUT} max-w-[9rem] font-mono ${draftInvalid ? "!border-danger" : ""}`}
-          />
+      <div id={regionId} hidden={!open} className="flex flex-col gap-3">
+        <div className={GRID}>{moreRows.flat().map((hex) => hexSwatch(hex, false))}</div>
+
+        <div className="flex flex-col gap-1.5">
+          <span className={SECTION_LABEL}>Theme</span>
+          <div className="grid w-max grid-cols-7 gap-1.5">
+            {SEASON_COLOR_KEYS.map((key) =>
+              swatch(key, key, `${ROUND} ${barStyle(key).className}`, undefined, THEME_COLS, false, "#1d1d1f")
+            )}
+          </div>
         </div>
-        {draftInvalid && (
-          <p id={`${hexId}-err`} role="alert" className="text-micro text-danger">
-            Use 6 hex digits, like #1F2A44.
-          </p>
-        )}
+
+        <div className="flex flex-col gap-1.5">
+          <span className={SECTION_LABEL}>Custom</span>
+          <div className="flex flex-wrap items-center gap-1.5">
+            {isCustom && swatch(current, current, ROUND, { backgroundColor: current }, 1, false, tickColor(current))}
+            <button
+              type="button"
+              aria-expanded={customOpen}
+              aria-controls={`${hexId}-custom`}
+              aria-label={customOpen ? "Hide custom colour fields" : "Add a custom colour"}
+              disabled={disabled}
+              onClick={() => setCustomOpen((o) => !o)}
+              className={`${ROUND} flex items-center justify-center bg-white text-ink-2 hover:text-ink ${SWATCH_FOCUS} disabled:opacity-60`}
+            >
+              <svg viewBox="0 0 16 16" aria-hidden="true" className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                <path d="M8 3v10M3 8h10" />
+              </svg>
+            </button>
+          </div>
+          <div id={`${hexId}-custom`} hidden={!customOpen} className="flex flex-col gap-1.5">
+            <div className="flex items-center gap-2">
+              <input
+                type="color"
+                aria-label="Pick a custom colour"
+                disabled={disabled}
+                value={isHexColor(current) ? current : "#1f2a44"}
+                onChange={(e) => pick(e.target.value.toLowerCase() as ColorValue)}
+                className="h-10 w-12 coarse:h-11 coarse:w-14 shrink-0 cursor-pointer rounded-ctl border border-line-strong bg-white p-1"
+              />
+              <input
+                id={hexId}
+                type="text"
+                inputMode="text"
+                spellCheck={false}
+                autoComplete="off"
+                maxLength={7}
+                placeholder="#1F2A44"
+                aria-label="Custom colour hex code"
+                aria-invalid={draftInvalid}
+                aria-describedby={draftInvalid ? `${hexId}-err` : undefined}
+                disabled={disabled}
+                value={hexText}
+                onChange={(e) => handleHexInput(e.target.value.trim())}
+                onBlur={() => setDraft(null)}
+                className={`${INPUT} max-w-[9rem] font-mono ${draftInvalid ? "!border-danger" : ""}`}
+              />
+            </div>
+            {draftInvalid && (
+              <p id={`${hexId}-err`} role="alert" className="text-micro text-danger">
+                Use 6 hex digits, like #1F2A44.
+              </p>
+            )}
+          </div>
+        </div>
       </div>
 
       <div className="flex flex-wrap items-center gap-2" aria-live="polite">
