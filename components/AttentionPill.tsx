@@ -86,6 +86,7 @@ export default function AttentionPill({
         onClick={() => setOpen((o) => !o)}
         aria-expanded={open}
         aria-haspopup="true"
+        data-tour="overdue-pill"
         aria-label={`${total} overdue checklist ${total === 1 ? "item" : "items"}`}
         className="inline-flex min-h-[36px] items-center gap-1.5 rounded-pill bg-danger/10 px-3.5 text-body font-medium text-danger transition-colors duration-fast hover:bg-danger/15 [@media(pointer:coarse)]:min-h-[44px]"
       >

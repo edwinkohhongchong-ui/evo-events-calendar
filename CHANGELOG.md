@@ -8,6 +8,12 @@ items (features/fixes) that push contains — a push with 1 item goes up by
 `1.05`). If MINOR would pass `.99`, MAJOR increments and MINOR carries the
 remainder (e.g. `1.99` + 2 items → `2.01`).
 
+## v2.66 — 2026-10-02
+
+- The Backup download now covers all 17 tables the app uses (added event checklist items, the activity log and exam/term source dates); a missing table no longer fails the whole backup and is listed under `skipped`. A test fails if a new table is ever left out.
+- Added a read-only schema check (`npm run check:schema`) that lists which tables and migration-added columns exist in Supabase and which migration adds any that are missing.
+- The tour now highlights the search button, the overdue pill and the Seasons menu item.
+
 ## v2.63 — 2026-10-02
 
 - Added Log out to the menu for everyone (clears the signed session cookie).

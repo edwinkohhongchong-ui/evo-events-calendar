@@ -1,21 +1,7 @@
 import { requireRoleRoute } from "@/lib/authRoute";
 import { NextResponse } from "next/server";
-import {
-  getAllChecklist,
-  getAllChecklistTemplateItemsRaw,
-  getAllChecklistTemplatesRaw,
-  getAllDayNotes,
-  getAllEventExceptions,
-  getAllEventOverrides,
-  getAllEventsRaw,
-  getAllGeneralNotes,
-  getAllHolidays,
-  getAllLevels,
-  getAllMonthFocus,
-  getAllNoteComments,
-  getAllReminderTemplates,
-  getAllSeasons,
-} from "@/lib/data";
+import { supabase } from "@/lib/supabase";
+import { BACKUP_TABLES } from "@/lib/backupTables";
 
 export const dynamic = "force-dynamic";
 
@@ -29,55 +15,30 @@ export async function GET() {
   const denied = await requireRoleRoute("editor");
   if (denied) return denied;
 
-  const [
-    events,
-    holidays,
-    seasons,
-    levels,
-    checklist,
-    checklistTemplates,
-    checklistTemplateItems,
-    dayNotes,
-    noteComments,
-    reminderTemplates,
-    eventOverrides,
-    eventExceptions,
-    monthFocus,
-    generalNotes,
-  ] = await Promise.all([
-    getAllEventsRaw(),
-    getAllHolidays(),
-    getAllSeasons(),
-    getAllLevels(),
-    getAllChecklist(),
-    getAllChecklistTemplatesRaw(),
-    getAllChecklistTemplateItemsRaw(),
-    getAllDayNotes(),
-    getAllNoteComments(),
-    getAllReminderTemplates(),
-    getAllEventOverrides(),
-    getAllEventExceptions(),
-    getAllMonthFocus(),
-    getAllGeneralNotes(),
-  ]);
+  const backup: Record<string, unknown> = { generated_at: new Date().toISOString() };
+  // A table that doesn't exist yet (unapplied migration) or errors is skipped
+  // with a note instead of failing the whole backup.
+  const skipped: Record<string, string> = {};
 
-  const backup = {
-    generated_at: new Date().toISOString(),
-    events,
-    holidays,
-    seasons,
-    levels,
-    checklist,
-    checklist_templates: checklistTemplates,
-    checklist_template_items: checklistTemplateItems,
-    day_notes: dayNotes,
-    note_comments: noteComments,
-    reminder_templates: reminderTemplates,
-    event_overrides: eventOverrides,
-    event_exceptions: eventExceptions,
-    month_focus: monthFocus,
-    general_notes: generalNotes,
-  };
+  await Promise.all(
+    BACKUP_TABLES.map(async (table) => {
+      try {
+        const rows: unknown[] = [];
+        // PostgREST caps a response at 1000 rows, so page through.
+        for (let from = 0; ; from += 1000) {
+          const { data, error } = await supabase.from(table).select("*").range(from, from + 999);
+          if (error) throw new Error(error.message);
+          rows.push(...(data ?? []));
+          if (!data || data.length < 1000) break;
+        }
+        backup[table] = rows;
+      } catch (err) {
+        backup[table] = [];
+        skipped[table] = err instanceof Error ? err.message : "unknown error";
+      }
+    }),
+  );
+  backup.skipped = skipped;
 
   const today = new Date().toISOString().slice(0, 10);
   const json = JSON.stringify(backup, null, 2);

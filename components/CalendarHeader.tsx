@@ -179,7 +179,7 @@ export default function CalendarHeader({ monthStart, levels, onAddClick, openChe
               <IconButton label="Clear search (Esc)" icon={<XIcon />} onClick={clearSearch} />
             </div>
           ) : (
-            <IconButton label="Search events (/)" icon={<SearchIcon />} onClick={openSearch} />
+            <IconButton label="Search events (/)" icon={<SearchIcon />} onClick={openSearch} data-tour="search-button" />
           )}
           {/* Printable month overview (print CSS in globals.css). Hidden on phones
               to keep the bar one row; shown for Editors and Viewers alike. */}

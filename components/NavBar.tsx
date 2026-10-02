@@ -48,7 +48,7 @@ const TOOLS: Group = {
   icon: <ToolsIcon />,
   items: [
     { href: "/holidays", label: "Holidays", icon: <SunIcon /> },
-    { href: "/seasons", label: "Seasons", icon: <LayersIcon /> },
+    { href: "/seasons", label: "Seasons", icon: <LayersIcon />, tour: "nav-seasons" },
     { href: "/levels", label: "Categories", icon: <TagIcon /> },
   ],
 };

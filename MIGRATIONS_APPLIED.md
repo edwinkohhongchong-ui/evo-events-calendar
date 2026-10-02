@@ -49,6 +49,8 @@ in this repo (the initial schema lives in `supabase_schema.sql`).
 
 Next available migration number: **027**. (Indexes on event_overrides and event_exceptions were considered and skipped: their unique (event_id, original_date) constraints already index those lookups.)
 
+Run `npm run check:schema` (read-only; uses `.env.local`) to see which tables/columns above actually exist in the live database.
+
 ## Process for new migrations
 Whenever a new migration file is added, add a row here as **"Not yet
 confirmed."** Update it to **"Yes"** only after Edwin explicitly confirms he

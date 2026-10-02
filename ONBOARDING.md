@@ -153,7 +153,7 @@ check that file's top entry for the exact current version and what's in it.
   live Supabase project, and what the next free number is — check it before
   adding one, and add your row there as "Not yet confirmed". (Numbering starts
   at 002; the original schema is `supabase_schema.sql`. Migrations 002-024 are
-  applied; the next free number is 025.)
+  applied; the next free number is 025.) `npm run check:schema` is a read-only check of which tables/columns exist in the live database.
 
 ## Working with Claude Code on this project
 This project was built almost entirely through conversational, phase-by-phase

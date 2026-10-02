@@ -60,6 +60,7 @@ export const TOUR_STEPS: TourStep[] = [
     title: "Find an event",
     body: "Click the magnifier at the top of the calendar, or press the / key, and start typing. Matching events stay bright and the rest fade back. Press Escape to clear the search.",
     route: "/",
+    targetSelector: '[data-tour="search-button"]',
   },
   {
     title: "Peek at an event",
@@ -91,6 +92,7 @@ export const TOUR_STEPS: TourStep[] = [
     title: "The \"overdue\" pill",
     body: 'When a checklist item is past its due date and not ticked, a red "overdue" pill appears in the month bar. Click it to see which events need attention, then click one to open it. The pill disappears once everything is caught up.',
     route: "/",
+    targetSelector: '[data-tour="overdue-pill"]',
   },
 
   // --- Part 3 of 6: Seasons ---
@@ -98,6 +100,8 @@ export const TOUR_STEPS: TourStep[] = [
     title: "Seasons",
     body: "Seasons are the coloured bars for things like school terms, holidays and exam periods. Open ☰ → Tools → Seasons to add, edit or delete them.",
     route: "/seasons",
+    targetSelector: '[data-tour="nav-seasons"]',
+    requiresMenuOpen: true,
   },
   {
     title: "Update Calendar and Start a New Year",
