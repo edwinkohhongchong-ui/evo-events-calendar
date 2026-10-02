@@ -20,6 +20,8 @@ interface CalendarGridProps {
   onEventClick: (occurrence: EventOccurrence) => void;
   onHolidayClick: (holiday: HolidayRow) => void;
   onSeasonClick: (season: SeasonRow) => void;
+  /** Freeze the weekday row under the sticky month bar (live calendar only; never in print views). */
+  stickyHeader?: boolean;
 }
 
 export default function CalendarGrid({
@@ -32,10 +34,21 @@ export default function CalendarGrid({
   onEventClick,
   onHolidayClick,
   onSeasonClick,
+  stickyHeader = false,
 }: CalendarGridProps) {
   return (
-    <div className="print-grid border border-line bg-surface rounded-card overflow-hidden">
-      <div className="print-dow grid grid-cols-7 bg-surface border-b border-line text-micro font-medium text-ink-2">
+    // overflow-clip (not hidden) keeps the rounded corners without creating a
+    // scroll container, which would break the sticky weekday row below.
+    <div className="print-grid border border-line bg-surface rounded-card [overflow:clip]">
+      <div
+        className={[
+          "print-dow grid grid-cols-7 bg-surface border-b border-line text-micro font-medium text-ink-2",
+          // Sticks just under the month bar (CalendarHeader publishes its height as
+          // --month-bar-h; 1px overlap hides any subpixel seam). z-20 < bar's z-30,
+          // > day cells/chips (unstacked). Static in print and while html.printing.
+          stickyHeader ? "sticky top-[calc(var(--month-bar-h,56px)-1px)] z-20 print:static" : "",
+        ].join(" ")}
+      >
         {WEEKDAY_LABELS.map((label, i) => (
           <div
             key={label}

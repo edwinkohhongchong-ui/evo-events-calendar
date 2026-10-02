@@ -364,6 +364,7 @@ export default function CalendarBoard({
           </div>
           <PrintFit className="hidden sm:block print-show">
           <CalendarGrid
+            stickyHeader
             weeks={weeks}
             monthStart={monthStart}
             dayIndex={dayIndex}

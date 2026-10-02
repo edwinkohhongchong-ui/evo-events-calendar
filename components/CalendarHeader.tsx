@@ -103,6 +103,7 @@ export default function CalendarHeader({ monthStart, levels, onAddClick, openChe
   // tall calendar column, not this short header (sticky is bounded by its parent).
   const showAttention = !!onOpenEvent && openChecklistRows.length > 0;
   const sentinelRef = useRef<HTMLDivElement>(null);
+  const barRef = useRef<HTMLDivElement>(null);
   const [stuck, setStuck] = useState(false);
   useEffect(() => {
     const el = sentinelRef.current;
@@ -112,10 +113,29 @@ export default function CalendarHeader({ monthStart, levels, onAddClick, openChe
     return () => io.disconnect();
   }, []);
 
+  // Publish the bar's rendered height as --month-bar-h so the weekday row in
+  // CalendarGrid can stick directly beneath it at any width (the bar wraps or
+  // grows with search, chips, etc.). CSS falls back to 56px before this runs.
+  useEffect(() => {
+    const el = barRef.current;
+    if (!el) return;
+    const root = document.documentElement;
+    const publish = () => root.style.setProperty("--month-bar-h", `${el.getBoundingClientRect().height}px`);
+    publish();
+    if (typeof ResizeObserver === "undefined") return;
+    const ro = new ResizeObserver(publish);
+    ro.observe(el);
+    return () => {
+      ro.disconnect();
+      root.style.removeProperty("--month-bar-h");
+    };
+  }, []);
+
   return (
     <div className="contents">
       <div ref={sentinelRef} aria-hidden="true" className="h-px -mb-px" />
       <div
+        ref={barRef}
         className={[
           "print-header sticky top-0 z-30 print:static print:bg-transparent print:backdrop-blur-none -mx-1 mb-1 flex items-center gap-x-2 gap-y-2 sm:flex-wrap sm:gap-x-4 bg-canvas/95 px-1 py-2 backdrop-blur-sm transition-[border-color] duration-fast",
           "border-b",

@@ -341,6 +341,7 @@ html.printing .print-week {
   page-break-inside: avoid;
 }
 html.printing .print-grid .print-dow {
+  position: static;
   font-size: 8px;
   line-height: 10px;
 }

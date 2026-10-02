@@ -24,7 +24,7 @@ export default function GeneralNotesDrawer({ open, onOpenChange, comments }: Pro
         aria-haspopup="dialog"
         aria-label="General Notes"
         title="General Notes"
-        className="relative flex h-8 w-8 coarse:h-11 coarse:w-11 items-center justify-center rounded-full bg-navy-50 text-navy hover:bg-navy/10 transition-colors duration-fast"
+        className="relative flex h-8 w-8 coarse:h-11 coarse:w-11 items-center justify-center rounded-full bg-white/10 text-white hover:bg-white/20 focus-visible:outline-gold transition-colors duration-fast"
       >
         <NotebookPenIcon className="!h-[18px] !w-[18px]" />
       </button>

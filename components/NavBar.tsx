@@ -93,9 +93,9 @@ function groupForPath(pathname: string | null): string | null {
 }
 
 const ROW = "flex items-center gap-3 w-full text-left px-3 py-2.5 text-body rounded-ctl relative transition-colors duration-fast coarse:min-h-[44px]";
-// Undo / Redo: soft navy-tint pills on the light bar; label collapses to icon-only on phones.
+// Undo / Redo: soft translucent-white pills on the navy bar; label collapses to icon-only on phones.
 const HISTORY_BTN =
-  "inline-flex h-8 items-center gap-1.5 rounded-pill px-2.5 text-body bg-navy-50 text-navy whitespace-nowrap transition-colors duration-fast hover:bg-navy/10 disabled:opacity-40 disabled:hover:bg-navy-50 sm:px-3 coarse:min-h-[44px] coarse:min-w-[44px] coarse:justify-center";
+  "inline-flex h-8 items-center gap-1.5 rounded-pill px-2.5 text-body bg-white/10 text-white whitespace-nowrap transition-colors duration-fast hover:bg-white/20 focus-visible:outline-gold disabled:opacity-40 disabled:hover:bg-white/10 sm:px-3 coarse:min-h-[44px] coarse:min-w-[44px] coarse:justify-center";
 
 export default function NavBar({ generalComments = [] }: { generalComments?: NoteCommentRow[] }) {
   const pathname = usePathname();
@@ -260,13 +260,13 @@ export default function NavBar({ generalComments = [] }: { generalComments?: Not
   const divider = <div className="border-t border-line my-1.5 mx-2" role="separator" />;
 
   return (
-    <nav className="bg-surface text-navy border-b-2 border-gold">
+    <nav className="bg-navy text-white border-b-2 border-gold">
       {error && <ErrorBanner message={error} onDismiss={dismissError} />}
       <div className="relative max-w-6xl mx-auto px-4 sm:px-6 flex items-center h-12 gap-2 sm:gap-3">
         <Link
           href="/"
           aria-label="+EVO Events — back to the calendar"
-          className="inline-flex items-center gap-2 font-semibold text-ui text-navy whitespace-nowrap shrink-0 rounded-ctl px-1 -mx-1 hover:opacity-80 transition-opacity duration-fast"
+          className="inline-flex items-center gap-2 font-semibold text-ui text-white whitespace-nowrap shrink-0 rounded-ctl px-1 -mx-1 hover:opacity-80 transition-opacity duration-fast focus-visible:outline-gold"
         >
           <span className="h-2 w-2 shrink-0 rounded-full bg-gold" aria-hidden="true" />
           <span className="sm:hidden">+EVO</span>
@@ -306,7 +306,7 @@ export default function NavBar({ generalComments = [] }: { generalComments?: Not
         {!isEditor && (
           <span
             title="Ask an Editor to change things"
-            className="inline-flex h-8 items-center whitespace-nowrap rounded-pill bg-navy-50 px-2.5 text-micro font-medium text-navy coarse:min-h-[44px] coarse:px-3"
+            className="inline-flex h-8 items-center whitespace-nowrap rounded-pill bg-white/15 px-2.5 text-micro font-medium text-white coarse:min-h-[44px] coarse:px-3"
           >
             View only
           </span>
@@ -346,11 +346,11 @@ export default function NavBar({ generalComments = [] }: { generalComments?: Not
             aria-expanded={menuOpen}
             aria-haspopup="menu"
             aria-label="Open menu"
-            className="flex flex-col justify-center gap-[3px] w-8 h-8 coarse:w-11 coarse:h-11 rounded-full bg-navy-50 text-navy hover:bg-navy/10 transition-colors duration-fast items-center"
+            className="flex flex-col justify-center gap-[3px] w-8 h-8 coarse:w-11 coarse:h-11 rounded-full bg-white/10 text-white hover:bg-white/20 focus-visible:outline-gold transition-colors duration-fast items-center"
           >
-            <span className="block w-4 h-[2px] bg-navy rounded-full" />
-            <span className="block w-4 h-[2px] bg-navy rounded-full" />
-            <span className="block w-4 h-[2px] bg-navy rounded-full" />
+            <span className="block w-4 h-[2px] bg-white rounded-full" />
+            <span className="block w-4 h-[2px] bg-white rounded-full" />
+            <span className="block w-4 h-[2px] bg-white rounded-full" />
           </button>
 
           {menuOpen && (

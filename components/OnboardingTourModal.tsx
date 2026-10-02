@@ -142,9 +142,9 @@ export default function OnboardingTourModal() {
             left: rect.left - 6,
             width: rect.width + 12,
             height: rect.height + 12,
-            // Navy inner ring reads on a white target (the light navbar); the gold
-            // outer ring reads on the dimmed backdrop.
-            boxShadow: "0 0 0 2px #1F2A44, 0 0 0 5px #D9A441, 0 0 0 9999px rgba(0,0,0,0.4)",
+            // White inner ring reads on the navy bar (and on dark targets); the gold
+            // outer ring reads on the dimmed backdrop and on light targets.
+            boxShadow: "0 0 0 2px #FFFFFF, 0 0 0 5px #D9A441, 0 0 0 9999px rgba(0,0,0,0.4)",
           }}
         />
       )}

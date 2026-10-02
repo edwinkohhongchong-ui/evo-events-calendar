@@ -8,6 +8,11 @@ items (features/fixes) that push contains — a push with 1 item goes up by
 `1.05`). If MINOR would pass `.99`, MAJOR increments and MINOR carries the
 remainder (e.g. `1.99` + 2 items → `2.01`).
 
+## v2.95 — 2026-10-02
+
+- The weekday row (Mon–Sun) on the month calendar is now frozen: it stays visible just under the month bar while you scroll down the weeks (desktop grid only; the phone agenda and the print views are unchanged).
+- The top bar is back to the brand navy with white text, keeping the gold dot, gold bottom line and soft pill buttons; the focus ring, "View only" label, notification badge and tour highlight ring were restyled for the dark bar.
+
 ## v2.93 — 2026-10-02
 
 - Colour picker fixed: it now opens collapsed (greys and vivid colours only), and "More colours / Fewer colours" really toggles (the extra rows were never hidden because a layout class overrode the hidden attribute). The THEME section is removed, and Custom (the "+", colour wheel and hex field) appears only in the expanded view. A colour that isn't in the palette (an older named colour or a custom hex) shows as a "Current" swatch so the selection is never hidden; existing categories and seasons keep their colours.
