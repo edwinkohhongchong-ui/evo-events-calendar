@@ -123,7 +123,7 @@ export default function EventBarRow({
   if (segments.length === 0) return null;
 
   return (
-    <div className="grid grid-cols-7" style={{ gridAutoRows: "20px" }}>
+    <div className="print-event-row grid grid-cols-7" style={{ gridAutoRows: "20px" }}>
       {segments.map((segment) => (
         <SegmentBlock
           key={`${segment.occurrence.event.id}-${segment.occurrence.originalDate}-w${segment.weekIndex}`}

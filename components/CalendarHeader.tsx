@@ -117,7 +117,7 @@ export default function CalendarHeader({ monthStart, levels, onAddClick, openChe
       <div ref={sentinelRef} aria-hidden="true" className="h-px -mb-px" />
       <div
         className={[
-          "sticky top-0 z-30 print:static print:bg-transparent print:backdrop-blur-none -mx-1 mb-1 flex items-center gap-x-2 gap-y-2 sm:flex-wrap sm:gap-x-4 bg-canvas/95 px-1 py-2 backdrop-blur-sm transition-[border-color] duration-fast",
+          "print-header sticky top-0 z-30 print:static print:bg-transparent print:backdrop-blur-none -mx-1 mb-1 flex items-center gap-x-2 gap-y-2 sm:flex-wrap sm:gap-x-4 bg-canvas/95 px-1 py-2 backdrop-blur-sm transition-[border-color] duration-fast",
           "border-b",
           stuck ? "border-line" : "border-transparent",
         ].join(" ")}
@@ -222,7 +222,7 @@ export default function CalendarHeader({ monthStart, levels, onAddClick, openChe
         </div>
       )}
 
-      <div className="mb-3 mt-2">
+      <div className="print-legend mb-3 mt-2">
         <LevelChips
           levels={levels}
           onEdit={isEditor ? (level) => setLevelModal({ type: "edit", level }) : undefined}

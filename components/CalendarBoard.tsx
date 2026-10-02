@@ -38,6 +38,7 @@ import { matchesEventQuery, parseSearchQuery } from "@/lib/eventSearch";
 import { useUndo } from "@/lib/undo/UndoProvider";
 import { useIsEditor } from "@/lib/roleContext";
 import FocusHighlighter from "./FocusHighlighter";
+import PrintFit from "./PrintFit";
 import { DayNoteRow, EventChecklistProgress, EventOccurrence, EventRow, HolidayRow, LevelRow, OpenChecklistRow, SeasonRow } from "@/lib/types";
 
 interface CalendarBoardProps {
@@ -310,7 +311,7 @@ export default function CalendarBoard({
           onOpenEvent={(event) => setModal({ type: "editEvent", event })}
         />
         <div data-tour="calendar-grid">
-          <div className="sm:hidden print:hidden">
+          <div className="sm:hidden print-hide">
             <MonthAgenda
               monthStart={monthStart}
               days={weeks.flat()}
@@ -323,7 +324,7 @@ export default function CalendarBoard({
               onAddClick={isEditor ? (date) => setQuickAdd({ date, anchor: null }) : undefined}
             />
           </div>
-          <div className="hidden sm:block print:block">
+          <PrintFit className="hidden sm:block print-show">
           <CalendarGrid
             weeks={weeks}
             monthStart={monthStart}
@@ -344,9 +345,9 @@ export default function CalendarBoard({
             onHolidayClick={(holiday) => setHolidayModal({ type: "edit", holiday })}
             onSeasonClick={(season) => setSeasonModal({ type: "edit", season })}
           />
-          </div>
+          </PrintFit>
         </div>
-        <p className="print-footer hidden print:block">Printed {formatDateDisplay(todayStr())}</p>
+        <p className="print-footer hidden print-show">Printed {formatDateDisplay(todayStr())}</p>
         <DragOverlay>{activeOcc && <EventCardContent occurrence={activeOcc} lifted />}</DragOverlay>
       </DndContext>
       {quickAdd && isEditor && (

@@ -112,8 +112,8 @@ export default function DayCell({
         <div className="flex flex-col gap-0.5">
           {occurrences.map((occ, i) => (
             // Collapsed extras stay in the DOM but hidden on screen so a printout
-            // lists every event (print CSS shows them; "+N more" is print:hidden).
-            <div key={occurrenceKey(occ)} className={showAll || i < MAX_VISIBLE ? undefined : "hidden print:block"}>
+            // lists every event (`.print-extra` in globals.css shows them; "+N more" is `.print-hide`).
+            <div key={occurrenceKey(occ)} className={showAll || i < MAX_VISIBLE ? undefined : "hidden print-extra"}>
               <EventCard occurrence={occ} onClick={() => onEventClick(occ)} />
             </div>
           ))}
@@ -127,7 +127,7 @@ export default function DayCell({
             e.stopPropagation();
             setExpanded((prev) => !prev);
           }}
-          className="print:hidden text-micro text-ink-2 hover:text-navy hover:underline text-left"
+          className="print-hide text-micro text-ink-2 hover:text-navy hover:underline text-left"
         >
           {expanded ? "Show less" : `+${occurrences.length - MAX_VISIBLE} more`}
         </button>

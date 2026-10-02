@@ -117,17 +117,330 @@ nav.bg-navy :focus-visible,
 /* ==========================================================================
    PRINT: printable month overview (home page `/`, current month).
    Triggered by the header Print button (window.print()) or Cmd/Ctrl+P.
-   Everything here is inside @media print, so screen styling is untouched.
-   Structure hooks: .print-grid / .print-week / .print-footer (components),
-   [data-date] day cells, [data-event-id] chips and bars, `print:` utilities.
-   Level colours use print-color-adjust: exact so the 3px left bars and
-   season bars survive; if a browser strips them anyway, text, borders and
-   bar outlines still carry the structure.
+   Structure hooks: .print-grid / .print-week / .print-footer / .print-dow /
+   .print-season-row / .print-event-row / .print-header / .print-legend,
+   .print-hide / .print-show / .print-extra, [data-date], [data-event-id].
+
+   AUTO-FIT: components/PrintFit.tsx adds `html.printing` on `beforeprint` and
+   measures the layout on screen, so every LAYOUT-affecting print rule exists
+   twice below: once under @media print and once prefixed `html.printing`
+   (BLOCK A and BLOCK B are identical except for that prefix: edit both).
+   Colour-only rules live once, in the final @media print block.
    ========================================================================== */
 @page {
   size: A4 landscape;
   margin: 8mm;
 }
+
+/* While measuring on screen, mimic the printable width (A4 landscape - 2x8mm). */
+html.printing body {
+  width: 1062px;
+  max-width: none;
+  min-height: 0;
+}
+
+/* ---- BLOCK A: @media print ---- */
+@media print {
+  /* Chrome that never prints: top nav, toasts, popovers, drawers, dialogs. */
+  nav,
+  .fixed,
+  [role="dialog"],
+  [role="tooltip"],
+  [role="status"],
+  [data-day-note-editor],
+  .print-hide {
+    display: none !important;
+  }
+  .print-show,
+  .print-extra {
+    display: block !important;
+  }
+  /* Legend stays (level colours); its filter/edit controls do not. */
+  main button[aria-label^="Edit category"],
+  main button[aria-label^="Delete category"],
+  main button[title="Edit category"] {
+    display: none !important;
+  }
+  
+  /* Compact month title + legend. */
+  main h1 {
+    font-size: 16px !important;
+    line-height: 20px !important;
+  }
+  .print-header {
+    position: static !important;
+    padding: 0 !important;
+    margin: 0 0 2px !important;
+    gap: 2px 8px !important;
+    border: 0 !important;
+  }
+  .print-legend {
+    margin: 0 0 4px !important;
+  }
+  .print-legend,
+  .print-legend * {
+    font-size: 9px !important;
+    line-height: 12px !important;
+  }
+  .print-legend button {
+    min-height: 0 !important;
+    padding-top: 0 !important;
+    padding-bottom: 0 !important;
+  }
+  
+  /* Grid frame. */
+  .print-grid {
+    border-radius: 0 !important;
+    overflow: visible !important;
+  }
+  .print-week {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+  .print-grid .print-dow {
+    font-size: 8px;
+    line-height: 10px;
+  }
+  .print-grid .print-dow > div {
+    padding-top: 0 !important;
+    padding-bottom: 0 !important;
+  }
+  
+  /* Season + multi-day bars: short, small, single line. */
+  .print-grid .print-season-row {
+    grid-auto-rows: 11px !important;
+  }
+  .print-grid .print-event-row {
+    grid-auto-rows: 12px !important;
+  }
+  .print-grid .print-season-row > button {
+    font-size: 8px !important;
+    line-height: 10px !important;
+    padding: 0 3px !important;
+  }
+  .print-grid .print-event-row > [data-event-id] {
+    font-size: 8.5px !important;
+    line-height: 11px !important;
+  }
+  .print-grid .print-event-row > [data-event-id] > button {
+    padding: 0 3px !important;
+  }
+  
+  /* Day cells: no min height, tight padding; rows share space naturally. */
+  .print-grid [data-date] {
+    min-height: 0 !important;
+    cursor: default;
+    padding: 1px 2px !important;
+    gap: 1px !important;
+    break-inside: avoid;
+  }
+  .print-grid [data-date] button[title="Add a note to this day"] {
+    display: none !important;
+  }
+  .print-grid [data-date] > div:first-child {
+    gap: 0 3px !important;
+  }
+  .print-grid [data-date] a {
+    height: 11px !important;
+    width: auto !important;
+    min-width: 11px;
+    font-size: 9px !important;
+    line-height: 11px !important;
+  }
+  .print-grid [data-date] button[title^="Edit"] {
+    font-size: 8px !important;
+    line-height: 10px !important;
+  }
+  .print-grid [data-date] button[title^="Edit"] svg {
+    width: 8px !important;
+    height: 8px !important;
+  }
+  .print-grid [data-date] > div:not(:first-child) {
+    gap: 1px !important;
+  }
+  .print-grid [data-date] > div > span {
+    font-size: 8.5px !important;
+    line-height: 10px !important;
+  }
+  
+  /* Event chips: ~9px, tight padding, wrapping allowed at 1.1 line height. */
+  .print-grid [data-date] [data-event-id] {
+    break-inside: avoid;
+    filter: none !important;
+  }
+  .print-grid [data-date] [data-event-id] > div {
+    padding: 0 2px 0 3px !important;
+    line-height: 1.1 !important;
+  }
+  .print-grid [data-date] [data-event-id] > div * {
+    font-size: 9px !important;
+    line-height: 1.1 !important;
+  }
+  .print-grid [data-date] .truncate {
+    white-space: normal !important;
+    overflow: visible !important;
+    text-overflow: clip !important;
+    overflow-wrap: anywhere;
+  }
+  
+  .print-footer {
+    margin-top: 3px !important;
+    font-size: 9px !important;
+    line-height: 11px !important;
+  }
+}
+
+/* ---- BLOCK B: html.printing (screen measurement; same rules as BLOCK A) ---- */
+
+/* Chrome that never prints: top nav, toasts, popovers, drawers, dialogs. */
+html.printing nav,
+html.printing .fixed,
+html.printing [role="dialog"],
+html.printing [role="tooltip"],
+html.printing [role="status"],
+html.printing [data-day-note-editor],
+html.printing .print-hide {
+  display: none !important;
+}
+html.printing .print-show,
+html.printing .print-extra {
+  display: block !important;
+}
+/* Legend stays (level colours); its filter/edit controls do not. */
+html.printing main button[aria-label^="Edit category"],
+html.printing main button[aria-label^="Delete category"],
+html.printing main button[title="Edit category"] {
+  display: none !important;
+}
+
+/* Compact month title + legend. */
+html.printing main h1 {
+  font-size: 16px !important;
+  line-height: 20px !important;
+}
+html.printing .print-header {
+  position: static !important;
+  padding: 0 !important;
+  margin: 0 0 2px !important;
+  gap: 2px 8px !important;
+  border: 0 !important;
+}
+html.printing .print-legend {
+  margin: 0 0 4px !important;
+}
+html.printing .print-legend,
+html.printing .print-legend * {
+  font-size: 9px !important;
+  line-height: 12px !important;
+}
+html.printing .print-legend button {
+  min-height: 0 !important;
+  padding-top: 0 !important;
+  padding-bottom: 0 !important;
+}
+
+/* Grid frame. */
+html.printing .print-grid {
+  border-radius: 0 !important;
+  overflow: visible !important;
+}
+html.printing .print-week {
+  break-inside: avoid;
+  page-break-inside: avoid;
+}
+html.printing .print-grid .print-dow {
+  font-size: 8px;
+  line-height: 10px;
+}
+html.printing .print-grid .print-dow > div {
+  padding-top: 0 !important;
+  padding-bottom: 0 !important;
+}
+
+/* Season + multi-day bars: short, small, single line. */
+html.printing .print-grid .print-season-row {
+  grid-auto-rows: 11px !important;
+}
+html.printing .print-grid .print-event-row {
+  grid-auto-rows: 12px !important;
+}
+html.printing .print-grid .print-season-row > button {
+  font-size: 8px !important;
+  line-height: 10px !important;
+  padding: 0 3px !important;
+}
+html.printing .print-grid .print-event-row > [data-event-id] {
+  font-size: 8.5px !important;
+  line-height: 11px !important;
+}
+html.printing .print-grid .print-event-row > [data-event-id] > button {
+  padding: 0 3px !important;
+}
+
+/* Day cells: no min height, tight padding; rows share space naturally. */
+html.printing .print-grid [data-date] {
+  min-height: 0 !important;
+  cursor: default;
+  padding: 1px 2px !important;
+  gap: 1px !important;
+  break-inside: avoid;
+}
+html.printing .print-grid [data-date] button[title="Add a note to this day"] {
+  display: none !important;
+}
+html.printing .print-grid [data-date] > div:first-child {
+  gap: 0 3px !important;
+}
+html.printing .print-grid [data-date] a {
+  height: 11px !important;
+  width: auto !important;
+  min-width: 11px;
+  font-size: 9px !important;
+  line-height: 11px !important;
+}
+html.printing .print-grid [data-date] button[title^="Edit"] {
+  font-size: 8px !important;
+  line-height: 10px !important;
+}
+html.printing .print-grid [data-date] button[title^="Edit"] svg {
+  width: 8px !important;
+  height: 8px !important;
+}
+html.printing .print-grid [data-date] > div:not(:first-child) {
+  gap: 1px !important;
+}
+html.printing .print-grid [data-date] > div > span {
+  font-size: 8.5px !important;
+  line-height: 10px !important;
+}
+
+/* Event chips: ~9px, tight padding, wrapping allowed at 1.1 line height. */
+html.printing .print-grid [data-date] [data-event-id] {
+  break-inside: avoid;
+  filter: none !important;
+}
+html.printing .print-grid [data-date] [data-event-id] > div {
+  padding: 0 2px 0 3px !important;
+  line-height: 1.1 !important;
+}
+html.printing .print-grid [data-date] [data-event-id] > div * {
+  font-size: 9px !important;
+  line-height: 1.1 !important;
+}
+html.printing .print-grid [data-date] .truncate {
+  white-space: normal !important;
+  overflow: visible !important;
+  text-overflow: clip !important;
+  overflow-wrap: anywhere;
+}
+
+html.printing .print-footer {
+  margin-top: 3px !important;
+  font-size: 9px !important;
+  line-height: 11px !important;
+}
+
+/* ---- Colour / ink rules (no layout effect): print only ---- */
 @media print {
   html,
   body {
@@ -140,62 +453,16 @@ nav.bg-navy :focus-visible,
     -webkit-print-color-adjust: exact;
     print-color-adjust: exact;
   }
-
-  /* Chrome that never prints: top nav, toasts, popovers, drawers, dialogs. */
-  nav,
-  .fixed,
-  [role="dialog"],
-  [role="tooltip"],
-  [role="status"],
-  [data-day-note-editor] {
-    display: none !important;
-  }
-
-  /* Legend stays (level colours); its filter/edit controls do not. */
-  main button[aria-label^="Edit category"],
-  main button[aria-label^="Delete category"],
-  main button[title="Edit category"] {
-    display: none !important;
-  }
   /* Legend swatches are 10px dots: keep them exact and outlined. */
   main button[aria-pressed] > span[aria-hidden="true"] {
     border: 1px solid rgba(0, 0, 0, 0.35);
   }
-
-  /* Grid frame: flat, thin, black-ish borders so structure survives B/W. */
   .print-grid {
     border: 1px solid #555 !important;
-    border-radius: 0 !important;
-    overflow: visible !important;
-  }
-  .print-week {
-    break-inside: avoid;
-    page-break-inside: avoid;
   }
   .print-grid [data-date] {
-    min-height: 0 !important;
-    cursor: default;
     border-color: #999 !important;
-    padding: 2px 3px !important;
-    gap: 1px !important;
-    break-inside: avoid;
   }
-  .print-grid [data-date] button[title="Add a note to this day"] {
-    display: none !important;
-  }
-
-  /* Full names: wrap in cells instead of truncating (bars keep their fixed row). */
-  .print-grid [data-date] .truncate {
-    white-space: normal !important;
-    overflow: visible !important;
-    text-overflow: clip !important;
-    overflow-wrap: anywhere;
-  }
-  .print-grid [data-date] [data-event-id] {
-    break-inside: avoid;
-    filter: none !important;
-  }
-
   /* Read as black on white; level colour lives in the left bar / tint. */
   .print-grid,
   .print-grid * {
@@ -208,21 +475,18 @@ nav.bg-navy :focus-visible,
     border-right: 0.5px solid rgba(0, 0, 0, 0.25);
     border-bottom: 0.5px solid rgba(0, 0, 0, 0.25);
   }
-  /* Today marker: print as a plain number, not a navy disc. */
   /* Days outside this month: lighter, as on screen. */
   .print-grid [data-date].bg-canvas > * {
     opacity: 0.55;
   }
+  /* Today marker: plain number, not a navy disc. */
   .print-grid [data-date] a {
     background: transparent !important;
     outline: none !important;
     font-weight: 600;
   }
-
   .print-footer {
-    margin-top: 4px;
-    font-size: 10px;
-    color: #555;
+    color: #555 !important;
     text-align: right;
   }
 }

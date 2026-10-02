@@ -1,0 +1,88 @@
+"use client";
+
+import { useEffect, useRef, ReactNode } from "react";
+import { findFitScale } from "@/lib/printFit";
+
+// A4 landscape, 8mm @page margins (keep in sync with @page in globals.css).
+// 1mm = 96/25.4 px.
+const PAGE_W = Math.floor((297 - 16) * (96 / 25.4)); // 1062
+const PAGE_H = Math.floor((210 - 16) * (96 / 25.4)); // 733
+const SAFETY = 15; // px of slack so rounding never spills a line onto page 2
+const FLOOR = 0.4;
+const STEP = 0.02;
+
+/**
+ * Wraps the month grid and, just before printing (button OR Cmd/Ctrl+P),
+ * scales it down so header + grid + footer fit one A4 landscape sheet.
+ *
+ * Measured under the same layout print will use: `html.printing` applies the
+ * print layout rules (globals.css) on screen, and forces body to PAGE_W wide.
+ * Screen layout and drag-and-drop are untouched; everything is undone on
+ * `afterprint`.
+ */
+export default function PrintFit({ className, children }: { className?: string; children: ReactNode }) {
+  const outerRef = useRef<HTMLDivElement>(null);
+  const innerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const html = document.documentElement;
+
+    function reset() {
+      html.classList.remove("printing");
+      const outer = outerRef.current;
+      const inner = innerRef.current;
+      if (outer) {
+        outer.style.height = "";
+        outer.style.overflow = "";
+      }
+      if (inner) {
+        inner.style.width = "";
+        inner.style.transform = "";
+        inner.style.transformOrigin = "";
+      }
+    }
+
+    function fit() {
+      const outer = outerRef.current;
+      const inner = innerRef.current;
+      reset();
+      html.classList.add("printing");
+      if (!outer || !inner) return;
+      const width = outer.clientWidth;
+      if (width <= 0 || inner.scrollHeight <= 0) return; // grid not shown (e.g. phone agenda)
+
+      const footer = document.querySelector<HTMLElement>(".print-footer");
+      outer.style.overflow = "hidden";
+      inner.style.transformOrigin = "top left";
+
+      // Content end (document px) at scale z: bottom of the footer, i.e. the
+      // header, grid and footer all counted, whatever their heights.
+      const measure = (z: number) => {
+        inner.style.width = `${width / z}px`;
+        inner.style.transform = `scale(${z})`;
+        outer.style.height = `${Math.ceil(inner.scrollHeight * z)}px`;
+        const endEl = footer && footer.offsetParent !== null ? footer : outer;
+        return endEl.getBoundingClientRect().bottom + window.scrollY;
+      };
+
+      const z = findFitScale(measure, PAGE_H - SAFETY, FLOOR, STEP);
+      measure(z); // leave the DOM at the chosen scale
+    }
+
+    window.addEventListener("beforeprint", fit);
+    window.addEventListener("afterprint", reset);
+    return () => {
+      window.removeEventListener("beforeprint", fit);
+      window.removeEventListener("afterprint", reset);
+      reset();
+    };
+  }, []);
+
+  return (
+    <div ref={outerRef} className={className}>
+      <div ref={innerRef}>{children}</div>
+    </div>
+  );
+}
+
+export { PAGE_W, PAGE_H };

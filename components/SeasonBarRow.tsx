@@ -18,7 +18,7 @@ export default function SeasonBarRow({ segments, onSeasonClick }: SeasonBarRowPr
   if (segments.length === 0) return null;
 
   return (
-    <div className="grid grid-cols-7" style={{ gridAutoRows: "18px" }}>
+    <div className="print-season-row grid grid-cols-7" style={{ gridAutoRows: "18px" }}>
       {segments.map((segment) => {
         const colorKey = resolveSeasonColor(segment.season);
         return (

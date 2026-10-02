@@ -35,7 +35,7 @@ export default function CalendarGrid({
 }: CalendarGridProps) {
   return (
     <div className="print-grid border border-line bg-surface rounded-card overflow-hidden">
-      <div className="grid grid-cols-7 bg-surface border-b border-line text-micro font-medium text-ink-2">
+      <div className="print-dow grid grid-cols-7 bg-surface border-b border-line text-micro font-medium text-ink-2">
         {WEEKDAY_LABELS.map((label, i) => (
           <div
             key={label}

@@ -8,6 +8,11 @@ items (features/fixes) that push contains — a push with 1 item goes up by
 `1.05`). If MINOR would pass `.99`, MAJOR increments and MINOR carries the
 remainder (e.g. `1.99` + 2 items → `2.01`).
 
+## v2.56 — 2026-10-02
+
+- Print month now auto-sizes to one A4 landscape page: print styles are compacted (small season/multi-day bars and chips) and the page scales itself down to fit when you print (button or Cmd/Ctrl+P), down to a 40% floor.
+- Hardened the automatic checks that guard the Viewer lockdown: every server-action file and API route is discovered automatically, the Editor check must be the first statement of each action, wrappers and exports must have the expected shape, and the middleware (public paths, forged cookies, Viewer blocks, header stripping) is tested directly.
+
 ## v2.54 — 2026-10-02
 
 - Quick-add now has a Date field (any day, default the day clicked), so phones can add events on days with no agenda row; the "More options" hand-off keeps the chosen date.
