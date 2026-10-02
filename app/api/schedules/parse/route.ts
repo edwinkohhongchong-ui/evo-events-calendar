@@ -8,6 +8,7 @@ import { parseScheduleLines } from "@/lib/schedules/parseSchedule";
 import { classifySchedule } from "@/lib/schedules/classify";
 import { planDiff } from "@/lib/schedules/diff";
 import { buildSchedulePlan } from "@/lib/schedules/planRows";
+import { runHolidayCheck } from "@/lib/schedules/holidayCheckRun";
 
 export const dynamic = "force-dynamic";
 
@@ -55,7 +56,9 @@ export async function POST(request: NextRequest) {
     }
     const [holidays, seasons] = await Promise.all([getAllHolidays(), getAllSeasons()]);
     const diff = planDiff(classifySchedule(parsed), { holidays, seasons });
-    return NextResponse.json(buildSchedulePlan(parsed, diff));
+    const plan = buildSchedulePlan(parsed, diff);
+    // Advisory only and never throws: a Calendarific problem must not fail the parse.
+    return NextResponse.json({ ...plan, holidayCheck: await runHolidayCheck(plan) });
   } catch (err) {
     if (err instanceof DocxReadError || err instanceof ImportLimitError) return fail(err.message, 422);
     console.error("schedule import parse failed:", err);

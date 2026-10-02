@@ -16,6 +16,8 @@ import { HOLIDAY_TYPES, SEASON_CATEGORIES } from "@/lib/constants";
 import type { DiffStatus } from "@/lib/schedules/diff";
 import type { FlagCode } from "@/lib/schedules/types";
 import type { PlanRow, SchedulePlan } from "@/lib/schedules/planRows";
+import { summaryLine } from "@/lib/schedules/holidayCheck";
+import type { HolidayCheckRow } from "@/lib/schedules/holidayCheck";
 import { describeApply, savedCount } from "@/lib/schedules/applyValidation";
 import type { ApplySummary } from "@/lib/schedules/applyValidation";
 import {
@@ -86,6 +88,12 @@ export default function ScheduleImportPreview({ plan, onReset }: { plan: Schedul
   const [applyError, setApplyError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
   const [undone, setUndone] = useState(false);
+
+  const check = plan.holidayCheck;
+  const checkByRow = useMemo(
+    () => new Map(check?.status === "ok" ? check.rows.map((c) => [c.rowId, c]) : []),
+    [check]
+  );
 
   const counts = useMemo(() => planCounts(plan), [plan]);
   const selection = useMemo(() => buildSelection(plan, selected, drafts), [plan, selected, drafts]);
@@ -180,6 +188,7 @@ export default function ScheduleImportPreview({ plan, onReset }: { plan: Schedul
       <h2 className="mb-2 text-title text-navy">
         {title} <span className="text-body font-normal text-ink-3">({rows.length})</span>
       </h2>
+      {title === "Holidays" && check && <HolidayCheckSummary check={check} />}
       <div className={TABLE_CARD}>
         <table className={TABLE}>
           <thead>
@@ -204,6 +213,7 @@ export default function ScheduleImportPreview({ plan, onReset }: { plan: Schedul
                 row={row}
                 docYear={plan.docYear}
                 draft={drafts[row.rowId]}
+                check={checkByRow.get(row.rowId)}
                 ticked={selected.has(row.rowId)}
                 editing={editing === row.rowId}
                 onToggle={(on) => toggle(row, on)}
@@ -321,6 +331,58 @@ export default function ScheduleImportPreview({ plan, onReset }: { plan: Schedul
   );
 }
 
+function HolidayCheckSummary({ check }: { check: NonNullable<SchedulePlan["holidayCheck"]> }) {
+  if (check.status === "unavailable") {
+    return (
+      <p className="mb-2 rounded-ctl bg-surface px-4 py-3 text-body text-ink-2" role="status">
+        Holiday check unavailable: {check.message}. Check manually.
+      </p>
+    );
+  }
+  return (
+    <div className="mb-2">
+      <p className="rounded-ctl bg-surface px-4 py-3 text-body text-ink-2" role="status">
+        {summaryLine(check.rows)}
+      </p>
+      <Collapsible title={`Calendarific holidays not in the document (${check.notInDocument.length})`}>
+        <p className="mb-2 text-micro text-ink-3">
+          Public holidays Calendarific lists that no row above covers. For information only; nothing is added.
+        </p>
+        <ul className="flex list-disc flex-col gap-1 pl-5 text-body text-ink-2">
+          {check.notInDocument.map((h) => (
+            <li key={`${h.date}${h.name}`}>
+              {h.name} · {formatDateDisplay(h.date)}
+            </li>
+          ))}
+          {check.notInDocument.length === 0 && <li className="list-none">Nothing missing.</li>}
+        </ul>
+      </Collapsible>
+    </div>
+  );
+}
+
+// Advisory only: never changes whether a row is ticked. Hidden once the row is edited, because
+// the check ran on the document's values.
+function CheckBadge({ check }: { check: HolidayCheckRow }) {
+  const text =
+    check.result === "match"
+      ? "Verified: Calendarific"
+      : check.result === "date-differs"
+        ? `Calendarific says ${check.calendarificName ?? "this holiday"} on ${check.calendarificDate ? formatDateDisplay(check.calendarificDate) : "another date"}`
+        : check.result === "not-found"
+          ? "Not found in Calendarific"
+          : "Not checked";
+  const variant: PillVariant = check.result === "match" ? "ok" : check.result === "date-differs" ? "warn" : "neutral";
+  return (
+    <div className="mt-1 flex items-start gap-1.5 text-micro text-ink-2" title={check.detail}>
+      <Pill variant={variant} className="!whitespace-normal">
+        {text}
+      </Pill>
+      {check.result !== "match" && <span>{check.detail}</span>}
+    </div>
+  );
+}
+
 function Collapsible({ title, children }: { title: string; children: React.ReactNode }) {
   const [open, setOpen] = useState(false);
   return (
@@ -345,6 +407,7 @@ interface RowProps {
   row: PlanRow;
   docYear: number | null;
   draft: RowDraft | undefined;
+  check: HolidayCheckRow | undefined;
   ticked: boolean;
   editing: boolean;
   onToggle: (on: boolean) => void;
@@ -353,7 +416,7 @@ interface RowProps {
   onResetDraft: () => void;
 }
 
-function PreviewRow({ row, docYear, draft, ticked, editing, onToggle, onEdit, onDraft, onResetDraft }: RowProps) {
+function PreviewRow({ row, docYear, draft, check, ticked, editing, onToggle, onEdit, onDraft, onResetDraft }: RowProps) {
   const v = effective(row, draft);
   const problems = blockingProblems(row, draft, docYear);
   const blocked = !canTick(row, draft, docYear);
@@ -409,6 +472,7 @@ function PreviewRow({ row, docYear, draft, ticked, editing, onToggle, onEdit, on
               <span>{f.message}</span>
             </div>
           ))}
+          {check && !draft && <CheckBadge check={check} />}
           {row.possibleDuplicates.map((d) => (
             <div key={d.id} className="mt-1 flex items-start gap-1.5 text-micro text-ink-2">
               <Pill variant="neutral">Duplicate?</Pill>

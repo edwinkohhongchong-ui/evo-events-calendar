@@ -8,6 +8,10 @@ items (features/fixes) that push contains — a push with 1 item goes up by
 `1.05`). If MINOR would pass `.99`, MAJOR increments and MINOR carries the
 remainder (e.g. `1.99` + 2 items → `2.01`).
 
+## v2.107 — 2026-10-02
+
+- The schedule import preview now cross-checks every public holiday against Calendarific (the same service Start a New Year uses): green "Verified: Calendarific", amber "Calendarific says <name> on <date>" when the date differs (expected for moon-sighting holidays), or grey "Not found in Calendarific", with a summary line and a list of Calendarific holidays the document doesn't mention. It is advisory only (it never ticks or edits rows), a failed lookup never blocks the import (the preview says "Holiday check unavailable. Check manually."), and the results are included in "Copy list for web check". The holiday lookup was moved into a shared module; Start a New Year behaves as before.
+
 ## v2.106 — 2026-10-02
 
 - Added Import schedules (Word) under Admin in the menu (Editors only, also an "Import from Word" button on the Seasons page): upload the yearly education schedules document and review what it found before anything is saved. The preview shows each holiday and season as New, Changed (old against new) or Unchanged, with plain-language flags (tentative, year looks wrong, end before start, not yet published, possible duplicate, matched by name only), tick boxes (only safe rows start ticked), inline editing, lists of calendar items the document doesn't mention and lines it couldn't place, and a "Copy list for web check" button. Apply asks for confirmation, saves with one Undo for the whole import, and stops with a clear message if a row fails or someone else changed it meanwhile.

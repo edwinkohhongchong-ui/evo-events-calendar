@@ -3,6 +3,7 @@ import type { ImportRowInput } from "./applyValidation";
 import type { PlanRow, SchedulePlan } from "./planRows";
 import { cleanNotes, cleanText } from "./text";
 import { isStrongMatch } from "./diff";
+import { copyText } from "./holidayCheck";
 
 // Pure helpers behind the import preview: what is ticked, what can be ticked,
 // what gets sent to Apply, and the counts shown. No React, no I/O.
@@ -129,15 +130,24 @@ export function planCounts(plan: SchedulePlan): PlanCounts {
   };
 }
 
-/** "Section | Name | start - end | tentative?" one line per ticked row, for pasting into a chat to double-check. */
+/**
+ * "Section | Name | start - end | tentative? [| Calendarific result]" one line per ticked row, for pasting
+ * into a chat to double-check. Holidays get the Calendarific column when the check ran.
+ */
 export function copyListText(plan: SchedulePlan, selected: Set<string>, drafts: Drafts): string {
   const lines: string[] = [];
+  const check = plan.holidayCheck?.status === "ok" ? new Map(plan.holidayCheck.rows.map((c) => [c.rowId, c])) : null;
   const add = (section: string, rows: PlanRow[]) => {
     for (const r of rows) {
       if (!selected.has(r.rowId)) continue;
       const v = effective(r, drafts[r.rowId]);
       const dates = r.kind === "holiday" || v.start === v.end ? v.start : `${v.start} - ${v.end}`;
-      lines.push([section, cleanText(v.name), dates, r.tentative ? "tentative" : ""].join(" | "));
+      const cols = [section, cleanText(v.name), dates, r.tentative ? "tentative" : ""];
+      if (check && r.kind === "holiday") {
+        // The check ran on the document's values; an edited row has not been re-checked.
+        cols.push(drafts[r.rowId] && (v.name !== r.name || v.start !== r.start) ? "Calendarific: not rechecked (edited)" : copyText(check.get(r.rowId)));
+      }
+      lines.push(cols.join(" | "));
     }
   };
   add("Holidays", plan.holidays);

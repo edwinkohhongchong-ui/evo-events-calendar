@@ -1,6 +1,7 @@
 import type { HolidayRow, SeasonRow } from "../types";
 import { isStrongMatch } from "./diff";
 import type { DiffStatus, FieldChange, HolidayDiff, MatchKind, ScheduleDiff, SeasonDiff } from "./diff";
+import type { HolidayCheck } from "./holidayCheck";
 import { mergeNotes } from "./text";
 import type { Flag, IgnoredLine, ParsedSchedule } from "./types";
 
@@ -71,6 +72,8 @@ export interface SchedulePlan {
   missingFromDocument: { holidays: MissingRow[]; seasons: MissingRow[] };
   ignoredLines: IgnoredLine[];
   issues: Flag[];
+  /** Advisory public-holiday cross-check; absent on a plan built without one. */
+  holidayCheck?: HolidayCheck;
 }
 
 export const WEAK_MATCH_MESSAGE = "Matched by name only. Check this is the same row before applying.";

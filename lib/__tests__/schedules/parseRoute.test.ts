@@ -1,4 +1,4 @@
-import { describe, it, expect, vi } from "vitest";
+import { beforeEach, describe, it, expect, vi } from "vitest";
 import JSZip from "jszip";
 import { NextRequest } from "next/server";
 
@@ -13,6 +13,7 @@ vi.mock("@/lib/schedules/parseSchedule", async () => await import("../../schedul
 vi.mock("@/lib/schedules/classify", async () => await import("../../schedules/classify"));
 vi.mock("@/lib/schedules/diff", async () => await import("../../schedules/diff"));
 vi.mock("@/lib/schedules/planRows", async () => await import("../../schedules/planRows"));
+vi.mock("@/lib/schedules/holidayCheckRun", async () => await import("../../schedules/holidayCheckRun"));
 
 import { POST } from "../../../app/api/schedules/parse/route";
 
@@ -49,6 +50,9 @@ async function uploadRequest(bytes: Uint8Array, name: string): Promise<NextReque
     duplex: "half",
   } as never);
 }
+
+// No key means the holiday check reports "unavailable" without touching the network.
+beforeEach(() => vi.stubEnv("CALENDARIFIC_API_KEY", ""));
 
 describe("POST /api/schedules/parse", () => {
   it("returns a plan for a good document", async () => {
