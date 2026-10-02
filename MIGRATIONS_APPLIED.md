@@ -40,12 +40,13 @@ it immediately after confirming a migration has been run.
 | 022 | supabase_migration_022_checklist_auto_check.sql | Checklist "automated check" tag (auto_check_type column) | Yes (confirmed run by Edwin, 1 Oct 2026) |
 | 023 | supabase_migration_023_activity_log.sql | Activity log table for the notification bell (activity_log) | Yes (table already existed when re-run on 1 Oct; bell shows live entries) |
 | 024 | supabase_migration_024_event_checklists.sql | Per-event checklists: event_checklist_items table + weeks_before on checklist_template_items (idempotent) | Yes (run by Edwin, 2 Oct 2026; first checklist added to "Gathering with Regina", 4 Oct 2026) |
+| 025 | supabase_migration_025_owner.sql | Owner (free-text name) on events and event_checklist_items, 60-char check (idempotent) | **NOT yet applied** (Edwin runs it in Supabase; code works without it, owner just can't be saved yet) |
 
 Note: numbering starts at 002 — there is no `supabase_migration_001_*.sql` file
 in this repo (the initial schema lives in `supabase_schema.sql`).
 
 
-Next available migration number: **025**. (Indexes on event_overrides and event_exceptions were considered and skipped: their unique (event_id, original_date) constraints already index those lookups.)
+Next available migration number: **026**. (Indexes on event_overrides and event_exceptions were considered and skipped: their unique (event_id, original_date) constraints already index those lookups.)
 
 ## Process for new migrations
 Whenever a new migration file is added, add a row here as **"Not yet

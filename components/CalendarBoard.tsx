@@ -3,7 +3,7 @@
 import { useMemo, useState, useRef, useTransition, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { startOfMonth, endOfMonth } from "date-fns";
-import { toDateStr } from "@/lib/dates";
+import { toDateStr, todayStr, formatDateDisplay } from "@/lib/dates";
 import {
   DndContext,
   DragOverlay,
@@ -310,7 +310,7 @@ export default function CalendarBoard({
           onOpenEvent={(event) => setModal({ type: "editEvent", event })}
         />
         <div data-tour="calendar-grid">
-          <div className="sm:hidden">
+          <div className="sm:hidden print:hidden">
             <MonthAgenda
               monthStart={monthStart}
               days={weeks.flat()}
@@ -323,7 +323,7 @@ export default function CalendarBoard({
               onAddClick={isEditor ? (date) => setQuickAdd({ date, anchor: null }) : undefined}
             />
           </div>
-          <div className="hidden sm:block">
+          <div className="hidden sm:block print:block">
           <CalendarGrid
             weeks={weeks}
             monthStart={monthStart}
@@ -346,6 +346,7 @@ export default function CalendarBoard({
           />
           </div>
         </div>
+        <p className="print-footer hidden print:block">Printed {formatDateDisplay(todayStr())}</p>
         <DragOverlay>{activeOcc && <EventCardContent occurrence={activeOcc} lifted />}</DragOverlay>
       </DndContext>
       {quickAdd && isEditor && (
@@ -361,7 +362,7 @@ export default function CalendarBoard({
           }}
           onMoreOptions={(draft) => {
             setQuickAdd(null);
-            setModal({ type: "add", date: quickAdd.date, draft });
+            setModal({ type: "add", date: draft.date, draft });
           }}
         />
       )}

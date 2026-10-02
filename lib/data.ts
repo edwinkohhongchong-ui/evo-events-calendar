@@ -471,7 +471,7 @@ export async function getOpenChecklistRows(): Promise<OpenChecklistRow[]> {
     const cutoff = toDateStr(addDays(todayDate(), -14));
     const { data, error } = await supabase
       .from("event_checklist_items")
-      .select("id, item, weeks_before, event:events!inner(*)")
+      .select("*, event:events!inner(*)")
       .eq("done", false)
       .not("weeks_before", "is", null)
       .gte("event.event_date", cutoff);
@@ -486,7 +486,7 @@ export async function getOpenChecklistRows(): Promise<OpenChecklistRow[]> {
       const raw = (Array.isArray(r.event) ? r.event[0] : r.event) as EventRow;
       const event = eventsById.get(raw.id) ?? raw;
       eventsById.set(event.id, event);
-      return { id: r.id, item: r.item, weeks_before: r.weeks_before as number, event };
+      return { id: r.id, item: r.item, weeks_before: r.weeks_before as number, owner: r.owner ?? null, event };
     });
   } catch (err) {
     console.error("getOpenChecklistRows threw:", err);

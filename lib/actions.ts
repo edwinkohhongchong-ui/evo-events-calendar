@@ -12,6 +12,7 @@ import { requireRole } from "./authz";
 import { logActivity } from "./activity";
 import { runAction } from "./actionResult";
 import { EVENT_CONFLICT_MESSAGE } from "./eventConflict";
+import { OWNER_MIGRATION_HINT, isMissingOwnerColumn, withOwner } from "./owner";
 
 // Moves a single occurrence to newDate. Never touches new_time/new_end_date —
 // the upsert below only ever sends event_id/original_date/new_date, so
@@ -215,13 +216,18 @@ export interface EventFormValues {
   preacher_name: string | null;
   sermon_title: string | null;
   theme: string | null;
+  // Optional free-text name. Only sent to the database when non-empty (see
+  // withOwner), so saving works before migration 025 adds the column.
+  owner?: string | null;
 }
 
 async function createEventImpl(values: EventFormValues): Promise<AffectedRow[]> {
   await requireRole("editor");
-  const { data, error } = await supabase.from("events").insert(values).select().single();
+  const row = withOwner(values);
+  const { data, error } = await supabase.from("events").insert(row).select().single();
   if (error) {
     console.error(error);
+    if ("owner" in row && isMissingOwnerColumn(error)) throw new Error(OWNER_MIGRATION_HINT);
     if (error.code === "23503") {
       throw new Error("That event type's category doesn't exist any more. Add it under Categories, then try again.");
     }
@@ -244,11 +250,15 @@ async function updateEventImpl(
 ): Promise<AffectedRow[]> {
   await requireRole("editor");
   const before = await fetchRow("events", id);
-  let query = supabase.from("events").update(values).eq("id", id);
+  // `before` has an owner key only once migration 025 exists, which is also
+  // the only time sending owner: null (to clear it) is safe.
+  const row = withOwner(values, !!before && "owner" in before);
+  let query = supabase.from("events").update(row).eq("id", id);
   if (expectedUpdatedAt) query = query.eq("updated_at", expectedUpdatedAt);
   const { data, error } = await query.select();
   if (error) {
     console.error(error);
+    if ("owner" in row && isMissingOwnerColumn(error)) throw new Error(OWNER_MIGRATION_HINT);
     if (error.code === "23503") {
       throw new Error("That event type's category doesn't exist any more. Add it under Categories, then try again.");
     }
@@ -333,13 +343,15 @@ async function detachOccurrenceImpl(
   values: EventFormValues
 ): Promise<AffectedRow[]> {
   await requireRole("editor");
+  const row = withOwner(values);
   const { data: inserted, error: insertError } = await supabase
     .from("events")
-    .insert({ ...values, recurring: "None", repeat_until: null })
+    .insert({ ...row, recurring: "None", repeat_until: null })
     .select()
     .single();
   if (insertError) {
     console.error(insertError);
+    if ("owner" in row && isMissingOwnerColumn(insertError)) throw new Error(OWNER_MIGRATION_HINT);
     throw new Error("Something went wrong saving this event. Please try again.");
   }
   const affected: AffectedRow[] = [{ table: "events", id: inserted.id, before: null, after: inserted }];
@@ -420,13 +432,15 @@ async function splitSeriesFromOccurrenceImpl(
   // overrides/exceptions; if any later step fails, rollbackSplit puts back
   // whatever was already applied (best effort), so the worst case is "no
   // change" rather than a truncated series with nothing replacing it.
+  const row = withOwner(values);
   const { data: inserted, error: insertError } = await supabase
     .from("events")
-    .insert(values)
+    .insert(row)
     .select()
     .single();
   if (insertError) {
     console.error(insertError);
+    if ("owner" in row && isMissingOwnerColumn(insertError)) throw new Error(OWNER_MIGRATION_HINT);
     throw new Error("Something went wrong saving this event series. Please try again.");
   }
   const newEventId = inserted.id as string;

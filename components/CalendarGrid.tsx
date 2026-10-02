@@ -34,7 +34,7 @@ export default function CalendarGrid({
   onSeasonClick,
 }: CalendarGridProps) {
   return (
-    <div className="border border-line bg-surface rounded-card overflow-hidden">
+    <div className="print-grid border border-line bg-surface rounded-card overflow-hidden">
       <div className="grid grid-cols-7 bg-surface border-b border-line text-micro font-medium text-ink-2">
         {WEEKDAY_LABELS.map((label, i) => (
           <div
@@ -46,7 +46,7 @@ export default function CalendarGrid({
         ))}
       </div>
       {weeks.map((week, weekIdx) => (
-        <div key={weekIdx}>
+        <div key={weekIdx} className="print-week">
           <SeasonBarRow segments={seasonSegmentsByWeek[weekIdx] ?? []} onSeasonClick={onSeasonClick} />
           <EventBarRow segments={eventSegmentsByWeek[weekIdx] ?? []} onEventClick={onEventClick} />
           <div className="grid grid-cols-7">

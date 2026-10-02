@@ -6,13 +6,15 @@ import type { LevelRow } from "@/lib/types";
 import { createEvent } from "@/lib/actions";
 import { unwrap } from "@/lib/actionResult";
 import { LEVEL_DOT_CLASSES } from "@/lib/constants";
-import { formatDateDisplay } from "@/lib/dates";
+import { formatDateDisplay, isValidDateStr } from "@/lib/dates";
 import { useLevelColor } from "@/lib/levelColorContext";
 import { useUndo } from "@/lib/undo/UndoProvider";
 import { useEscapeKey } from "@/lib/useEscapeKey";
 import { useFocusTrap } from "@/lib/useFocusTrap";
 import {
   buildQuickAddValues,
+  DATE_INPUT_MAX,
+  DATE_INPUT_MIN,
   defaultQuickLevel,
   displayCategoryFor,
   eventTypeButtonNames,
@@ -27,6 +29,7 @@ import { INPUT, LABEL } from "./ui/fieldStyles";
 
 export interface QuickAddDraft {
   name: string;
+  date: string;
   time: string;
   level: string;
 }
@@ -64,11 +67,12 @@ function useIsDesktop(): boolean {
 // one step. Rendered through a portal because the sticky month bar's
 // backdrop-filter would otherwise become the containing block of anything
 // fixed. Anchored beside the day on desktop, a bottom sheet below `sm`.
-export default function QuickAddPopover({ date, anchor, levels, onClose, onSaved, onMoreOptions }: QuickAddPopoverProps) {
+export default function QuickAddPopover({ date: initialDate, anchor, levels, onClose, onSaved, onMoreOptions }: QuickAddPopoverProps) {
   const { record } = useUndo();
   const ref = useRef<HTMLDivElement>(null);
   const desktop = useIsDesktop();
   const [name, setName] = useState("");
+  const [date, setDate] = useState(initialDate);
   const [time, setTime] = useState("");
   const [level, setLevel] = useState(() => defaultQuickLevel(readLastQuickLevel(), levels));
   const [zonePicked, setZonePicked] = useState(false);
@@ -159,7 +163,7 @@ export default function QuickAddPopover({ date, anchor, levels, onClose, onSaved
       ref={ref}
       tabIndex={-1}
       role="dialog"
-      aria-label={`Quick add event on ${formatDateDisplay(date)}`}
+      aria-label="Quick add event"
       style={desktop ? { position: "fixed", width: WIDTH, left: pos?.left ?? 0, top: pos?.top ?? 0, visibility: placed ? "visible" : "hidden" } : undefined}
       className={[
         "z-50 outline-none bg-surface shadow-pop evo-modal-card",
@@ -170,7 +174,7 @@ export default function QuickAddPopover({ date, anchor, levels, onClose, onSaved
       onClick={(e) => e.stopPropagation()}
     >
       <form onSubmit={handleSubmit} className="flex flex-col gap-3" noValidate>
-        <div className="text-chip font-medium text-ink-2">{formatDateDisplay(date)}</div>
+        <div className="text-chip font-medium text-ink-2">{isValidDateStr(date) ? formatDateDisplay(date) : "Add event"}</div>
         <label className="flex flex-col gap-1">
           <span className={LABEL}>Event name</span>
           <input
@@ -183,6 +187,20 @@ export default function QuickAddPopover({ date, anchor, levels, onClose, onSaved
             className={INPUT}
             autoComplete="off"
             maxLength={200}
+          />
+        </label>
+        <label className="flex flex-col gap-1">
+          <span className={LABEL}>Date</span>
+          <input
+            type="date"
+            value={date}
+            min={DATE_INPUT_MIN}
+            max={DATE_INPUT_MAX}
+            onChange={(e) => {
+              setDate(e.target.value);
+              setError(null);
+            }}
+            className={INPUT}
           />
         </label>
         <label className="flex flex-col gap-1">
@@ -240,7 +258,7 @@ export default function QuickAddPopover({ date, anchor, levels, onClose, onSaved
         <div className="flex items-center justify-between gap-3">
           <button
             type="button"
-            onClick={() => onMoreOptions({ name: name.trim(), time, level })}
+            onClick={() => onMoreOptions({ name: name.trim(), date: isValidDateStr(date) ? date : initialDate, time, level })}
             className="min-h-[32px] coarse:min-h-[44px] text-body font-medium text-navy hover:underline"
           >
             More options

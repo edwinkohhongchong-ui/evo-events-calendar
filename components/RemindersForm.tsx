@@ -4,10 +4,11 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { useUndo } from "@/lib/undo/UndoProvider";
 import { deleteReminderTemplate } from "@/lib/reminderTemplateActions";
-import { ChecklistTemplateWithItems, ReminderTemplateRow } from "@/lib/types";
+import { ChecklistTemplateWithItems, OpenChecklistRow, ReminderTemplateRow } from "@/lib/types";
 import { ReminderPickerEvent } from "@/lib/data";
 import { expandTemplateItems } from "@/lib/eventChecklist";
 import { todayDate, todayStr, toDateStr, formatDateDisplay, formatEventTimeRange } from "@/lib/dates";
+import { buildOverdueSummary } from "@/lib/overdueSummary";
 import ReminderTemplateModal from "./ReminderTemplateModal";
 import ConfirmModal from "./ConfirmModal";
 import { unwrap } from "@/lib/actionResult";
@@ -21,6 +22,7 @@ import { PlusIcon, TrashIcon } from "./icons";
 interface RemindersFormProps {
   templates: ReminderTemplateRow[];
   checklistTemplates: ChecklistTemplateWithItems[];
+  openChecklistRows?: OpenChecklistRow[];
 }
 
 type TemplateModalState = { type: "closed" } | { type: "add" } | { type: "edit"; template: ReminderTemplateRow };
@@ -65,7 +67,7 @@ function buildMessage(
   return lines.join("\n").trim();
 }
 
-export default function RemindersForm({ templates, checklistTemplates }: RemindersFormProps) {
+export default function RemindersForm({ templates, checklistTemplates, openChecklistRows = [] }: RemindersFormProps) {
   const router = useRouter();
   const { record } = useUndo();
   const [selectedId, setSelectedId] = useState("");
@@ -90,6 +92,9 @@ export default function RemindersForm({ templates, checklistTemplates }: Reminde
   const [removingId, setRemovingId] = useState<string | null>(null);
   const [pendingDelete, setPendingDelete] = useState<ReminderTemplateRow | null>(null);
   const [deleteError, setDeleteError] = useState<string | null>(null);
+  const [overdueNote, setOverdueNote] = useState<string | null>(null);
+  const copiedTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(() => () => { if (copiedTimer.current) clearTimeout(copiedTimer.current); }, []);
 
   // Each fetch gets a sequence number; only the newest may write state, so a
   // slow earlier response can't overwrite a newer lookahead's list.
@@ -191,6 +196,22 @@ export default function RemindersForm({ templates, checklistTemplates }: Reminde
     setError(null);
     const url = `https://t.me/${encodeURIComponent(cleanHandle)}?text=${encodeURIComponent(message)}`;
     window.open(url, "_blank", "noopener,noreferrer");
+  }
+
+  async function copyOverdueSummary() {
+    const text = buildOverdueSummary(openChecklistRows, todayStr());
+    if (!text) {
+      setOverdueNote("Nothing overdue — all caught up.");
+      return;
+    }
+    try {
+      await navigator.clipboard.writeText(text);
+      setOverdueNote("Copied");
+    } catch {
+      setOverdueNote("Couldn't copy — your browser blocked clipboard access.");
+    }
+    if (copiedTimer.current) clearTimeout(copiedTimer.current);
+    copiedTimer.current = setTimeout(() => setOverdueNote(null), 3000);
   }
 
   function handleRemoveTemplate(template: ReminderTemplateRow) {
@@ -390,6 +411,21 @@ export default function RemindersForm({ templates, checklistTemplates }: Reminde
         <Button onClick={openInTelegram} className="self-start">
           Open in Telegram
         </Button>
+      </Card>
+
+      <Card padding="p-5" className="flex flex-col gap-3">
+        <h2 className="text-title text-ink">Overdue checklist items</h2>
+        <p className="-mt-1 text-body text-ink-2">
+          Copies a plain-text list of open overdue items, grouped by event, to paste wherever you like. Nothing is sent.
+        </p>
+        <div className="flex items-center gap-3">
+          <Button variant="secondary" onClick={copyOverdueSummary}>
+            Copy overdue summary
+          </Button>
+          <span role="status" aria-live="polite" className="text-body text-ink-2">
+            {overdueNote}
+          </span>
+        </div>
       </Card>
 
       <div className="flex flex-col gap-2">

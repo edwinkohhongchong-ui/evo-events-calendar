@@ -1,6 +1,6 @@
 import type { EventRow } from "./types";
 
-type Searchable = Pick<EventRow, "name" | "series" | "location" | "theme" | "preacher_name" | "sermon_title">;
+type Searchable = Pick<EventRow, "name" | "series" | "location" | "theme" | "preacher_name" | "sermon_title" | "owner">;
 
 /** Lower-cased, trimmed, whitespace-split search terms; empty when there is nothing to search for. */
 export function parseSearchQuery(query: string): string[] {
@@ -8,15 +8,15 @@ export function parseSearchQuery(query: string): string[] {
 }
 
 /**
- * Case-insensitive match on name, series, location, theme, preacher and
- * sermon title. Every whitespace-separated term must appear somewhere in
+ * Case-insensitive match on name, series, location, theme, preacher,
+ * sermon title and owner. Every whitespace-separated term must appear somewhere in
  * those fields (so "youth camp" matches name "Camp" + series "Youth").
  * An empty query matches everything.
  */
 export function matchesEventQuery(event: Searchable, query: string): boolean {
   const terms = parseSearchQuery(query);
   if (terms.length === 0) return true;
-  const haystack = [event.name, event.series, event.location, event.theme, event.preacher_name, event.sermon_title]
+  const haystack = [event.name, event.series, event.location, event.theme, event.preacher_name, event.sermon_title, event.owner]
     .filter(Boolean)
     .join("\n")
     .toLowerCase();

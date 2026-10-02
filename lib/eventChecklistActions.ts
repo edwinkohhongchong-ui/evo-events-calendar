@@ -5,6 +5,7 @@ import { requireRole } from "./authz";
 import { runAction } from "./actionResult";
 import { logActivity } from "./activity";
 import { expandTemplateItems } from "./eventChecklist";
+import { OWNER_MIGRATION_HINT, buildOwnerOptions, isMissingOwnerColumn, parseOwner } from "./owner";
 import { ChecklistTemplateWithItems, EventChecklistItemRow } from "./types";
 
 const MIGRATION_HINT = "Event checklists need the latest database update (migration 024). Ask Edwin to run it.";
@@ -65,13 +66,15 @@ async function applyChecklistTemplateImpl(eventId: string, templateId: string): 
   await requireRole("editor");
   const { data: event, error: eventErr } = await supabase
     .from("events")
-    .select("id, name, recurring, event_date")
+    .select("*")
     .eq("id", eventId)
     .single();
   if (eventErr || !event) throw new Error("That event couldn't be found.");
   if (event.recurring !== "None") {
     throw new Error("Checklists aren't available on repeating events yet.");
   }
+  // New items start with the event's owner (only present after migration 025).
+  const defaultOwner = parseOwner(event.owner);
 
   const options = await getChecklistTemplateOptionsImpl();
   const template = options.find((t) => t.id === templateId);
@@ -93,6 +96,7 @@ async function applyChecklistTemplateImpl(eventId: string, templateId: string): 
       weeks_before: it.weeks_before,
       source_template: template.name,
       sort_order: start + i,
+      ...(defaultOwner ? { owner: defaultOwner } : {}),
     }));
   if (rows.length === 0) return 0;
 
@@ -141,10 +145,16 @@ async function removeEventChecklistImpl(eventId: string): Promise<void> {
 }
 
 // Add one custom item to an event's checklist (no template needed). Editors only.
-async function addChecklistItemImpl(eventId: string, text: string, weeksBefore?: number | null): Promise<void> {
+async function addChecklistItemImpl(
+  eventId: string,
+  text: string,
+  weeksBefore?: number | null,
+  owner?: string | null
+): Promise<void> {
   await requireRole("editor");
   const item = (text ?? "").trim().slice(0, 200);
   if (!item) throw new Error("Type what needs doing.");
+  const itemOwner = parseOwner(owner);
   const { data: event, error: eventErr } = await supabase
     .from("events")
     .select("id, name, recurring, event_date")
@@ -164,7 +174,10 @@ async function addChecklistItemImpl(eventId: string, text: string, weeksBefore?:
     item,
     weeks_before: weeksBefore ?? null,
     sort_order: next,
+    // Only sent when set, so adding items still works before migration 025.
+    ...(itemOwner ? { owner: itemOwner } : {}),
   });
+  if (error && itemOwner && isMissingOwnerColumn(error)) throw new Error(OWNER_MIGRATION_HINT);
   if (error) throw friendly(error, "Couldn't add that item. Please try again.");
   await logActivity({
     action: "edited",
@@ -173,6 +186,33 @@ async function addChecklistItemImpl(eventId: string, text: string, weeksBefore?:
     label: `${event.name} (checklist)`,
     itemDate: event.event_date,
   });
+}
+
+// Change (or clear, with a blank name) who owns one checklist item. Editors only.
+async function setChecklistItemOwnerImpl(itemId: string, owner: string | null): Promise<void> {
+  await requireRole("editor");
+  const value = parseOwner(owner);
+  const { error } = await supabase.from("event_checklist_items").update({ owner: value }).eq("id", itemId);
+  if (error && isMissingOwnerColumn(error)) throw new Error(OWNER_MIGRATION_HINT);
+  if (error) throw friendly(error, "Couldn't update that item. Please try again.");
+}
+
+// Owner names already used on events and checklist items, for the datalist.
+// Empty (not an error) before migration 025.
+async function getOwnerOptionsImpl(): Promise<string[]> {
+  await requireRole("editor");
+  const [events, items] = await Promise.all([
+    supabase.from("events").select("owner").not("owner", "is", null),
+    supabase.from("event_checklist_items").select("owner").not("owner", "is", null),
+  ]);
+  for (const { error } of [events, items]) {
+    if (error) {
+      if (isMissingOwnerColumn(error) || error.code === "42P01") return [];
+      throw friendly(error, "Couldn't load owner names.");
+    }
+  }
+  const rows = [...(events.data ?? []), ...(items.data ?? [])] as { owner: string | null }[];
+  return buildOwnerOptions(rows.map((r) => r.owner));
 }
 
 // Remove a single item from an event's checklist. Editors only.
@@ -200,6 +240,12 @@ export async function removeEventChecklist(...args: Parameters<typeof removeEven
 }
 export async function addChecklistItem(...args: Parameters<typeof addChecklistItemImpl>) {
   return runAction(() => addChecklistItemImpl(...args));
+}
+export async function setChecklistItemOwner(...args: Parameters<typeof setChecklistItemOwnerImpl>) {
+  return runAction(() => setChecklistItemOwnerImpl(...args));
+}
+export async function getOwnerOptions(...args: Parameters<typeof getOwnerOptionsImpl>) {
+  return runAction(() => getOwnerOptionsImpl(...args));
 }
 export async function removeChecklistItem(...args: Parameters<typeof removeChecklistItemImpl>) {
   return runAction(() => removeChecklistItemImpl(...args));

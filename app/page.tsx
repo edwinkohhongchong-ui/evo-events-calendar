@@ -60,9 +60,9 @@ export default async function Home({ searchParams }: HomeProps) {
   );
 
   return (
-    <main className="max-w-[1600px] mx-auto px-4 py-4 sm:px-6 sm:py-5">
-      <div className="grid grid-cols-1 lg:grid-cols-[232px_minmax(0,1fr)_232px] gap-4 lg:gap-6 items-start">
-        <div className="order-2 lg:order-1">
+    <main className="max-w-[1600px] mx-auto px-4 py-4 sm:px-6 sm:py-5 print:max-w-none print:p-0">
+      <div className="grid grid-cols-1 lg:grid-cols-[232px_minmax(0,1fr)_232px] gap-4 lg:gap-6 items-start print:block">
+        <div className="order-2 lg:order-1 print:hidden">
           <NotesPanel
             title="General Notes"
             subtitle="Every month"
@@ -84,9 +84,11 @@ export default async function Home({ searchParams }: HomeProps) {
             checklistProgress={checklistProgress}
             openChecklistRows={openChecklistRows}
           />
-          <CategoryListView occurrences={inMonthOccurrences} levels={levels} defaultAddDate={defaultAddDate} />
+          <div className="print:hidden">
+            <CategoryListView occurrences={inMonthOccurrences} levels={levels} defaultAddDate={defaultAddDate} />
+          </div>
         </div>
-        <div className="order-3">
+        <div className="order-3 print:hidden">
           <NotesPanel
             key={`${year}-${month}`}
             title="Month Notes"

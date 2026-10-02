@@ -161,6 +161,13 @@ export const SearchIcon = (p: P) => (
     <path d="m21 21-4.35-4.35" />
   </Icon>
 );
+export const PrinterIcon = (p: P) => (
+  <Icon {...p}>
+    <path d="M6 9V2h12v7" />
+    <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2" />
+    <rect x="6" y="14" width="12" height="8" />
+  </Icon>
+);
 export const TagPlusIcon = (p: P) => (
   <Icon {...p}>
     <path d="M12.59 2.59A2 2 0 0 0 11.17 2H2v9.17a2 2 0 0 0 .59 1.41l8.82 8.82a2 2 0 0 0 2.83 0l7.18-7.18a2 2 0 0 0 0-2.83z" />

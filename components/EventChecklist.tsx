@@ -12,11 +12,14 @@ import {
   getEventChecklist,
   removeEventChecklist,
   setChecklistItemDone,
+  setChecklistItemOwner,
 } from "@/lib/eventChecklistActions";
 import { unwrap } from "@/lib/actionResult";
 import { dueDate, isOverdue, progressOf, SUGGESTED_TEMPLATE_BY_GATHERING_TYPE } from "@/lib/eventChecklist";
 import { parseDateStr, todayStr } from "@/lib/dates";
 import { useIsEditor } from "@/lib/roleContext";
+import { useOwnerOptions } from "@/lib/useOwnerOptions";
+import { OWNER_MAX, normalizeOwner } from "@/lib/owner";
 import ConfirmModal from "./ConfirmModal";
 import Button from "./ui/Button";
 import { ChevronIcon, CheckSquareIcon, XIcon } from "./icons";
@@ -47,6 +50,10 @@ export default function EventChecklist({ event }: { event: EventRow }) {
   const [showPicker, setShowPicker] = useState(false);
   const autoOpened = useRef(false);
   const [newItem, setNewItem] = useState("");
+  // New items default to the event's owner; stays as typed between adds.
+  const [newOwner, setNewOwner] = useState(event.owner ?? "");
+  const [editingOwnerId, setEditingOwnerId] = useState<string | null>(null);
+  const ownerOptions = useOwnerOptions(isEditor);
 
   const repeating = event.recurring !== "None";
   const today = todayStr();
@@ -101,6 +108,7 @@ export default function EventChecklist({ event }: { event: EventRow }) {
   const suggestedName = event.gathering_type ? SUGGESTED_TEMPLATE_BY_GATHERING_TYPE[event.gathering_type] : undefined;
   const listId = `event-checklist-${event.id}`;
   const coarse = "[@media(pointer:coarse)]:min-h-[44px]";
+  const ownerListId = `owner-options-${event.id}`;
 
   async function add() {
     if (!templateId) return;
@@ -159,7 +167,7 @@ export default function EventChecklist({ event }: { event: EventRow }) {
     setBusy(true);
     setError(null);
     try {
-      unwrap(await addChecklistItem(event.id, text));
+      unwrap(await addChecklistItem(event.id, text, null, normalizeOwner(newOwner) || null));
       setNewItem("");
       await load();
       setOpen(true);
@@ -168,6 +176,22 @@ export default function EventChecklist({ event }: { event: EventRow }) {
       setError(err instanceof Error ? err.message : "Couldn't add that item.");
     } finally {
       setBusy(false);
+    }
+  }
+
+  async function saveOwner(item: EventChecklistItemRow, raw: string) {
+    setEditingOwnerId(null);
+    const next = normalizeOwner(raw) || null;
+    if (next === (item.owner ?? null)) return;
+    // Optimistic: show it now, restore if the save fails.
+    setItems((prev) => prev && prev.map((i) => (i.id === item.id ? { ...i, owner: next } : i)));
+    try {
+      unwrap(await setChecklistItemOwner(item.id, next));
+      setError(null);
+      router.refresh();
+    } catch (err) {
+      setItems((prev) => prev && prev.map((i) => (i.id === item.id ? item : i)));
+      setError(err instanceof Error ? err.message : "Couldn't update that item.");
     }
   }
 
@@ -184,6 +208,13 @@ export default function EventChecklist({ event }: { event: EventRow }) {
     }
   }
 
+  const ownerDatalist = (
+    <datalist id={ownerListId}>
+      {ownerOptions.map((n) => (
+        <option key={n} value={n} />
+      ))}
+    </datalist>
+  );
   const addForm = (
   <form
     onSubmit={(e) => {
@@ -192,13 +223,24 @@ export default function EventChecklist({ event }: { event: EventRow }) {
     }}
     className="flex items-center gap-2"
   >
+    {ownerDatalist}
     <input
       value={newItem}
       onChange={(e) => setNewItem(e.target.value)}
       placeholder="Add an item…"
       aria-label="Add an item to this checklist"
       maxLength={200}
-      className={`${INPUT} !min-h-[36px] flex-1 ${coarse}`}
+      className={`${INPUT} !min-h-[36px] min-w-0 flex-1 ${coarse}`}
+    />
+    <input
+      value={newOwner}
+      onChange={(e) => setNewOwner(e.target.value)}
+      list={ownerListId}
+      placeholder="Owner"
+      aria-label="Owner of the new item"
+      maxLength={OWNER_MAX}
+      autoComplete="off"
+      className={`${INPUT} !min-h-[36px] w-28 shrink-0 ${coarse}`}
     />
     <Button type="submit" size="sm" variant="secondary" className={coarse} disabled={!newItem.trim()} loading={busy}>
       Add
@@ -292,9 +334,43 @@ export default function EventChecklist({ event }: { event: EventRow }) {
                           {format(parseDateStr(due), "d MMM")}
                         </span>
                       ) : null}
+                      {!isEditor && it.owner && (
+                        <span>
+                          {it.done || due ? " · " : ""}Owner: {it.owner}
+                        </span>
+                      )}
                     </span>
                   </span>
                 </label>
+                {isEditor &&
+                  (editingOwnerId === it.id ? (
+                    <input
+                      autoFocus
+                      defaultValue={it.owner ?? ""}
+                      list={ownerListId}
+                      maxLength={OWNER_MAX}
+                      autoComplete="off"
+                      aria-label={`Owner of: ${it.item}`}
+                      placeholder="Owner"
+                      onBlur={(e) => void saveOwner(it, e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") e.currentTarget.blur();
+                      }}
+                      className={`${INPUT} !min-h-[32px] my-1.5 w-28 shrink-0 self-center`}
+                    />
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => setEditingOwnerId(it.id)}
+                      title={it.owner ? "Change owner" : "Set an owner"}
+                      aria-label={it.owner ? `Owner ${it.owner}. Change owner of: ${it.item}` : `Set owner of: ${it.item}`}
+                      className={`max-w-[7.5rem] shrink-0 truncate px-2 text-chip hover:bg-canvas hover:text-navy ${
+                        it.owner ? "text-ink-2" : "text-ink-3"
+                      }`}
+                    >
+                      {it.owner || "+ Owner"}
+                    </button>
+                  ))}
                 {isEditor && (
                   <button
                     type="button"

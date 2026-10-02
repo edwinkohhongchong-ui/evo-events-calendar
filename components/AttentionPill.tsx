@@ -4,7 +4,11 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { EventRow, OpenChecklistRow } from "@/lib/types";
 import { computeAttention, totalOverdueItems } from "@/lib/eventChecklist";
 import { formatDateDisplay, todayStr } from "@/lib/dates";
+import { filterRowsByOwner, normalizeOwner, OWNER_MAX } from "@/lib/owner";
 import { FlagIcon } from "./icons";
+
+// Same browser-remembered display name the checklist uses for "done by".
+const MY_NAME_KEY = "evo-author-name";
 
 const MAX_ROWS = 8;
 
@@ -22,7 +26,38 @@ export default function AttentionPill({
   const [open, setOpen] = useState(false);
   const wrapRef = useRef<HTMLDivElement>(null);
   const today = todayStr();
-  const events = useMemo(() => computeAttention(rows, today), [rows, today]);
+  // "Mine" filter: the viewer's own name, remembered in this browser only.
+  const [myName, setMyName] = useState("");
+  const [mine, setMine] = useState(false);
+  const [asking, setAsking] = useState(false);
+  const [draft, setDraft] = useState("");
+  useEffect(() => {
+    try {
+      setMyName(normalizeOwner(localStorage.getItem(MY_NAME_KEY)));
+    } catch {
+      /* no saved name; the toggle asks for one */
+    }
+  }, []);
+  function saveName() {
+    const name = normalizeOwner(draft);
+    if (!name) return;
+    setMyName(name);
+    setMine(true);
+    setAsking(false);
+    try {
+      localStorage.setItem(MY_NAME_KEY, name);
+    } catch {
+      /* remembered for this visit only */
+    }
+  }
+  function toggleMine() {
+    if (mine) setMine(false);
+    else if (myName) setMine(true);
+    else setAsking(true);
+  }
+  const visibleRows = useMemo(() => (mine ? filterRowsByOwner(rows, myName) : rows), [mine, rows, myName]);
+  const events = useMemo(() => computeAttention(visibleRows, today), [visibleRows, today]);
+  // The pill's count always covers everything overdue; "Mine" only narrows the list.
   const total = useMemo(() => totalOverdueItems(rows, today), [rows, today]);
 
   useEffect(() => {
@@ -64,7 +99,65 @@ export default function AttentionPill({
           aria-label="Overdue checklist items"
           className="absolute left-0 top-full z-40 mt-1.5 w-full overflow-hidden rounded-card bg-surface text-ink shadow-pop sm:w-[22rem]"
         >
+          <div className="flex flex-col gap-1.5 border-b border-line px-4 py-2">
+            <div className="flex items-center justify-between gap-2">
+              <button
+                type="button"
+                onClick={toggleMine}
+                aria-pressed={mine}
+                className={`rounded-pill px-3 py-1 text-body font-medium transition-colors duration-fast [@media(pointer:coarse)]:min-h-[44px] ${
+                  mine ? "bg-navy text-white" : "bg-fill text-ink-2 hover:bg-line"
+                }`}
+              >
+                Mine
+              </button>
+              {myName && !asking && (
+                <span className="truncate text-micro text-ink-2">
+                  {myName}{" "}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setDraft(myName);
+                      setAsking(true);
+                    }}
+                    className="font-medium text-navy hover:underline"
+                  >
+                    change
+                  </button>
+                </span>
+              )}
+            </div>
+            {asking && (
+              <form
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  saveName();
+                }}
+                className="flex items-center gap-2"
+              >
+                <input
+                  autoFocus
+                  value={draft}
+                  onChange={(e) => setDraft(e.target.value)}
+                  maxLength={OWNER_MAX}
+                  placeholder="Your name, as it appears under Owner"
+                  aria-label="Your name"
+                  className="min-h-[36px] min-w-0 flex-1 rounded-ctl border border-line bg-surface px-2.5 text-body text-ink"
+                />
+                <button
+                  type="submit"
+                  disabled={!normalizeOwner(draft)}
+                  className="rounded-ctl bg-navy px-3 py-1.5 text-body font-medium text-white disabled:opacity-50"
+                >
+                  Save
+                </button>
+              </form>
+            )}
+          </div>
           <div className="max-h-[60vh] overflow-y-auto py-1">
+            {mine && shown.length === 0 && (
+              <p className="px-4 py-3 text-body text-ink-2">Nothing overdue is assigned to {myName}.</p>
+            )}
             {shown.map((a) => (
               <button
                 key={a.event.id}

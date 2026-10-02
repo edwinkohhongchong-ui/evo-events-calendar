@@ -123,6 +123,11 @@ function PreviewCard({ occurrence, anchor }: { occurrence: EventOccurrence; anch
           {event.location}
         </div>
       )}
+      {event.owner && (
+        <div className="text-ink-2">
+          <span className="font-medium">Owner:</span> {event.owner}
+        </div>
+      )}
       {checklist && checklist.total > 0 && (
         <div
           className={[

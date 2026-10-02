@@ -97,3 +97,20 @@ describe("placePopover", () => {
     expect(p.left + 320).toBeLessThanOrEqual(392);
   });
 });
+
+describe("validateQuickAdd date", () => {
+  const lv = names("Youth");
+  const base = { name: "X", time: "", level: "Youth" };
+  it("accepts a real date within the supported years", () => {
+    expect(validateQuickAdd({ ...base, date: "2026-05-17" }, lv)).toBeNull();
+  });
+  it("rejects missing, impossible, and out-of-range dates", () => {
+    expect(validateQuickAdd({ ...base, date: "" }, lv)).toBe("Date is required.");
+    expect(validateQuickAdd({ ...base, date: "2026-02-30" }, lv)).toBe("Pick a valid date.");
+    expect(validateQuickAdd({ ...base, date: "1999-12-31" }, lv)).toMatch(/between 2000 and 2100/);
+    expect(validateQuickAdd({ ...base, date: "2101-01-01" }, lv)).toMatch(/between 2000 and 2100/);
+  });
+  it("buildQuickAddValues saves the chosen date", () => {
+    expect(buildQuickAddValues({ ...base, date: "2026-07-04" }).event_date).toBe("2026-07-04");
+  });
+});

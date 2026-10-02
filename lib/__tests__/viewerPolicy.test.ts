@@ -27,7 +27,7 @@ const POLICY: Record<string, Record<string, Role>> = {
   "eventChecklistActions.ts": {
     getEventChecklist: "viewer", getChecklistTemplateOptions: "editor", applyChecklistTemplate: "editor",
     setChecklistItemDone: "editor", removeEventChecklist: "editor", addChecklistItem: "editor",
-    removeChecklistItem: "editor",
+    removeChecklistItem: "editor", setChecklistItemOwner: "editor", getOwnerOptions: "editor",
   },
   "holidayActions.ts": { createHoliday: "editor", updateHoliday: "editor", deleteHoliday: "editor" },
   "levelActions.ts": { createLevel: "editor", updateLevel: "editor", deleteLevel: "editor" },

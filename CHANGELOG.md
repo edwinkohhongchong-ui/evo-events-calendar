@@ -8,6 +8,14 @@ items (features/fixes) that push contains — a push with 1 item goes up by
 `1.05`). If MINOR would pass `.99`, MAJOR increments and MINOR carries the
 remainder (e.g. `1.99` + 2 items → `2.01`).
 
+## v2.54 — 2026-10-02
+
+- Quick-add now has a Date field (any day, default the day clicked), so phones can add events on days with no agenda row; the "More options" hand-off keeps the chosen date.
+- Added "Copy overdue summary" on Reminders: copies a plain list of overdue checklist items grouped by event, ready to paste into Telegram (covers events from the last 14 days onward).
+- Added a Print button for the month view (A4 landscape, month only; hides menus and sidebars; every event on a busy day prints).
+- Added an Owner field (free text, up to 60 characters) on events and on checklist items, shown in the event view, checklist rows and hover preview; Duplicate carries it. Needs migration 025 (`supabase_migration_025_owner.sql`) in Supabase; until it is run, saving an owner shows a plain "run migration 025" message.
+- Added a "Mine" toggle on the needs-attention pill (remembers your name), and event search now also matches the owner.
+
 ## v2.49 — 2026-10-02
 
 - Viewers are now read-only: they can look at everything and post comments and replies in the General Notes and Month Notes sidebars, and nothing else. Eight actions that Viewers could use (ticking an event's checklist, editing holidays, seasons, categories, reminder templates and monthly checklist items, and the Check Calendar log) now need the Editor role; the screens hide or grey out edit controls for Viewers (no dragging, Edit, quick-add, Undo or checklist ticking).

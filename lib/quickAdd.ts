@@ -1,5 +1,6 @@
 import type { EventFormValues } from "./actions";
 import { ZONE_LEVEL_NAMES } from "./constants";
+import { isValidDateStr, MAX_YEAR, MIN_YEAR } from "./dates";
 
 type Named = { name: string };
 
@@ -30,6 +31,10 @@ export function displayCategoryFor(levelName: string, zonePickedWithoutLevel = f
   return zonePickedWithoutLevel ? "Zone" : "";
 }
 
+/** Native date input bounds (the year range the calendar supports). */
+export const DATE_INPUT_MIN = `${MIN_YEAR}-01-01`;
+export const DATE_INPUT_MAX = `${MAX_YEAR}-12-31`;
+
 /** The remembered level if it still exists as an Event type, otherwise "" (force a choice). */
 export function defaultQuickLevel(remembered: string | null | undefined, levels: Named[]): string {
   if (!remembered || remembered === "Gathering") return "";
@@ -49,6 +54,9 @@ export interface QuickAddInput {
 export function validateQuickAdd(input: QuickAddInput, levels: Named[]): string | null {
   if (!input.name.trim()) return "Name is required.";
   if (!input.date) return "Date is required.";
+  if (!isValidDateStr(input.date)) return "Pick a valid date.";
+  const year = Number(input.date.slice(0, 4));
+  if (year < MIN_YEAR || year > MAX_YEAR) return `Pick a date between ${MIN_YEAR} and ${MAX_YEAR}.`;
   if (!input.level) return input.zonePickedWithoutLevel ? "Choose a zone." : "Choose an Event Type.";
   if (!levels.some((l) => l.name === input.level)) {
     return `There's no “${input.level}” category. Add it with + Category (exact name), then try again.`;

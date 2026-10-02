@@ -12,7 +12,7 @@ import LevelChips from "./LevelChips";
 import Button from "./ui/Button";
 import IconButton from "./ui/IconButton";
 import { useEventSearch } from "@/lib/eventSearchContext";
-import { ChevronLeftIcon, ChevronRightIcon, PlusIcon, SearchIcon, TagPlusIcon, XIcon } from "./icons";
+import { ChevronLeftIcon, ChevronRightIcon, PlusIcon, PrinterIcon, SearchIcon, TagPlusIcon, XIcon } from "./icons";
 
 // Prev/next stay real links (middle-click, open in new tab) styled as
 // icon-only buttons with a CSS tooltip, since IconButton renders a <button>.
@@ -117,14 +117,14 @@ export default function CalendarHeader({ monthStart, levels, onAddClick, openChe
       <div ref={sentinelRef} aria-hidden="true" className="h-px -mb-px" />
       <div
         className={[
-          "sticky top-0 z-30 -mx-1 mb-1 flex items-center gap-x-2 gap-y-2 sm:flex-wrap sm:gap-x-4 bg-canvas/95 px-1 py-2 backdrop-blur-sm transition-[border-color] duration-fast",
+          "sticky top-0 z-30 print:static print:bg-transparent print:backdrop-blur-none -mx-1 mb-1 flex items-center gap-x-2 gap-y-2 sm:flex-wrap sm:gap-x-4 bg-canvas/95 px-1 py-2 backdrop-blur-sm transition-[border-color] duration-fast",
           "border-b",
           stuck ? "border-line" : "border-transparent",
         ].join(" ")}
       >
         <div className="flex items-center gap-1 sm:gap-2">
           <h1 className="text-title sm:text-display text-navy mr-1">{format(monthStart, "MMMM yyyy")}</h1>
-          <div className="flex items-center gap-0.5">
+          <div className="flex items-center gap-0.5 print:hidden">
             <NavChevron
               href={prevHref}
               label={`${format(prev, "MMMM yyyy")} (←)`}
@@ -139,17 +139,17 @@ export default function CalendarHeader({ monthStart, levels, onAddClick, openChe
           <Link
             href="/"
             title="Jump to this month (T)"
-            className="inline-flex min-h-[36px] items-center rounded-pill bg-fill px-3 sm:px-4 [@media(pointer:coarse)]:min-h-[44px] text-body font-medium text-navy transition-colors duration-fast ease-apple hover:bg-line"
+            className="print:hidden inline-flex min-h-[36px] items-center rounded-pill bg-fill px-3 sm:px-4 [@media(pointer:coarse)]:min-h-[44px] text-body font-medium text-navy transition-colors duration-fast ease-apple hover:bg-line"
           >
             Today
           </Link>
         </div>
         {showAttention && (
-          <div className="hidden sm:block">
+          <div className="hidden sm:block print:hidden">
             <AttentionPill rows={openChecklistRows} onOpenEvent={onOpenEvent!} />
           </div>
         )}
-        <div className="ml-auto flex items-center gap-2">
+        <div className="ml-auto flex items-center gap-2 print:hidden">
           {showSearch ? (
             <div className="absolute inset-0 z-10 flex items-center gap-2 bg-canvas px-2 sm:static sm:inset-auto sm:bg-transparent sm:px-0">
               <div className="relative min-w-0 flex-1 sm:w-56 sm:flex-none">
@@ -181,6 +181,11 @@ export default function CalendarHeader({ monthStart, levels, onAddClick, openChe
           ) : (
             <IconButton label="Search events (/)" icon={<SearchIcon />} onClick={openSearch} />
           )}
+          {/* Printable month overview (print CSS in globals.css). Hidden on phones
+              to keep the bar one row; shown for Editors and Viewers alike. */}
+          <span className="hidden sm:inline-flex">
+            <IconButton label="Print this month" icon={<PrinterIcon />} onClick={() => window.print()} />
+          </span>
           {isEditor && (
             <>
             <Button
@@ -212,7 +217,7 @@ export default function CalendarHeader({ monthStart, levels, onAddClick, openChe
       </div>
 
       {showAttention && (
-        <div className="mb-1 mt-2 sm:hidden">
+        <div className="mb-1 mt-2 sm:hidden print:hidden">
           <AttentionPill rows={openChecklistRows} onOpenEvent={onOpenEvent!} />
         </div>
       )}

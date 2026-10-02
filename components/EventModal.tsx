@@ -25,6 +25,8 @@ import { displayCategoryFor as displayCategory, eventTypeButtonNames, zoneLevels
 import { useUndo } from "@/lib/undo/UndoProvider";
 import { useIsEditor } from "@/lib/roleContext";
 import { useEscapeKey } from "@/lib/useEscapeKey";
+import { useOwnerOptions } from "@/lib/useOwnerOptions";
+import { OWNER_MAX, normalizeOwner } from "@/lib/owner";
 import ConfirmDialog from "./ConfirmDialog";
 import ModalShell from "./ui/ModalShell";
 import { INPUT, LABEL, TEXTAREA } from "./ui/fieldStyles";
@@ -221,6 +223,8 @@ function EventModalInner({
   // picked yet"; this flag disambiguates purely for display/validation.
   const [zonePickedWithoutLevel, setZonePickedWithoutLevel] = useState(false);
   const [location, setLocation] = useState(event?.location ?? "");
+  const [owner, setOwner] = useState(event?.owner ?? "");
+  const ownerOptions = useOwnerOptions(isEditor);
   const [recurring, setRecurring] = useState<Recurring>(event?.recurring ?? "None");
   const [repeatUntil, setRepeatUntil] = useState(event?.repeat_until ?? "");
   // Gate for saving a recurring event with no Repeat Until — forces an
@@ -241,6 +245,7 @@ function EventModalInner({
             event.end_time ||
             event.duration_minutes != null ||
             event.location ||
+            event.owner ||
             event.notes ||
             event.recurring !== "None")) ||
         (occurrence && (occurrence.spanEndDate !== occurrence.occurrenceDate || occurrence.endTime))
@@ -434,6 +439,7 @@ function EventModalInner({
       duration_minutes: durationMinutes !== "" ? Number(durationMinutes) : null,
       level,
       location: location.trim() || null,
+      owner: normalizeOwner(owner) || null,
       recurring,
       repeat_until: recurring === "None" ? null : repeatUntil || null,
       notes: notes.trim() || null,
@@ -681,6 +687,11 @@ function EventModalInner({
               <div className="flex items-center gap-1.5 text-ink-2">
                 <MapPinIcon className="!h-4 !w-4" />
                 {location}
+              </div>
+            )}
+            {owner && (
+              <div className="text-ink-2">
+                <span className="font-medium">Owner:</span> {owner}
               </div>
             )}
           </div>
@@ -1067,6 +1078,24 @@ function EventModalInner({
                     placeholder="Main Hall"
                     className={INPUT}
                   />
+                </label>
+
+                <label className="flex flex-col gap-1">
+                  <span className={LABEL}>Owner</span>
+                  <input
+                    value={owner}
+                    onChange={(e) => setOwner(e.target.value)}
+                    maxLength={OWNER_MAX}
+                    list="event-owner-options"
+                    placeholder="Who is responsible (optional)"
+                    autoComplete="off"
+                    className={INPUT}
+                  />
+                  <datalist id="event-owner-options">
+                    {ownerOptions.map((n) => (
+                      <option key={n} value={n} />
+                    ))}
+                  </datalist>
                 </label>
 
                 <div className="grid grid-cols-2 gap-3">

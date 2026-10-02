@@ -45,6 +45,8 @@ export interface EventRow {
   preacher_name: string | null;
   sermon_title: string | null;
   theme: string | null;
+  // Free-text person name (migration 025). Absent until that migration is applied.
+  owner?: string | null;
 }
 
 export type HolidayType =
@@ -274,6 +276,7 @@ export interface EventChecklistItemRow {
   source_template: string | null;
   sort_order: number;
   created_at: string;
+  owner?: string | null; // migration 025
 }
 
 // An unticked, dated checklist item together with its event: the raw input
@@ -283,6 +286,7 @@ export interface OpenChecklistRow {
   id: string;
   item: string;
   weeks_before: number;
+  owner?: string | null; // the item's own owner; falls back to event.owner
   event: EventRow;
 }
 

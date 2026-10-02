@@ -10,6 +10,7 @@ const ev = makeEvent({
   theme: "Hope",
   preacher_name: "Edwin Koh",
   sermon_title: "Rise Up",
+  owner: "Darius Tan",
 });
 
 describe("parseSearchQuery", () => {
@@ -31,6 +32,7 @@ describe("matchesEventQuery", () => {
     ["theme", "hope"],
     ["preacher", "koh"],
     ["sermon title", "rise up"],
+    ["owner", "darius"],
   ])("matches on %s, case-insensitively", (_f, q) => {
     expect(matchesEventQuery(ev, q)).toBe(true);
   });
