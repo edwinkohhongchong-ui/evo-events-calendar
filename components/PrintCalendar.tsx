@@ -1,11 +1,11 @@
 "use client";
 
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { format } from "date-fns";
 import { DndContext } from "@dnd-kit/core";
 import CalendarGrid from "./CalendarGrid";
-import PrintFit from "./PrintFit";
+import PrintFit, { PRINT_FIT_EVENT } from "./PrintFit";
 import Button from "./ui/Button";
 import { PrinterIcon } from "./icons";
 import { buildDayIndex } from "@/lib/dayIndex";
@@ -110,6 +110,14 @@ export default function PrintCalendar({ months, levels, checklistProgress, print
     [levels]
   );
 
+  // PrintFit flags a month it had to clip at the minimum scale.
+  const [tooBusy, setTooBusy] = useState(false);
+  useEffect(() => {
+    const update = () => setTooBusy(document.querySelector('[data-print-overflow="true"]') !== null);
+    window.addEventListener(PRINT_FIT_EVENT, update);
+    return () => window.removeEventListener(PRINT_FIT_EVENT, update);
+  }, [months]);
+
   return (
     <>
       <div className="print-hide sticky top-0 z-30 flex items-center justify-between gap-3 border-b border-line bg-surface px-4 py-2">
@@ -123,6 +131,11 @@ export default function PrintCalendar({ months, levels, checklistProgress, print
           Print
         </Button>
       </div>
+      {tooBusy && (
+        <p role="alert" className="print-hide mx-4 mt-3 rounded-ctl bg-danger/10 px-3 py-2 text-body text-danger">
+          This month is very busy and may be cut off; try printing fewer weeks.
+        </p>
+      )}
       <main className="print-pages">
         <LevelColorProvider colorMap={colorMap}>
           <EventChecklistProvider progress={checklistProgress}>

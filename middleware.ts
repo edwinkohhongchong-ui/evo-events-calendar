@@ -23,7 +23,8 @@ export async function middleware(request: NextRequest) {
 
   if (role) {
     if (!isPathAllowedForRole(request.nextUrl.pathname, role)) {
-      return NextResponse.redirect(new URL("/", request.url));
+      // The hint lets the home page explain the bounce instead of it looking like a glitch.
+      return NextResponse.redirect(new URL("/?notice=editors-only", request.url));
     }
 
     // Hand the role to Server Components (app/layout.tsx reads this via

@@ -17,7 +17,7 @@ export default async function ExportPage() {
 
   return (
     <main className="max-w-2xl mx-auto p-4 sm:p-6">
-      <h1 className="text-xl font-semibold text-navy mb-4">Export Document</h1>
+      <h1 className="text-display text-navy mb-4">Export Document</h1>
       <InstructionsPanel lines={INSTRUCTIONS} />
       <ExportForm levels={levels} />
       <PrintCalendarCard />

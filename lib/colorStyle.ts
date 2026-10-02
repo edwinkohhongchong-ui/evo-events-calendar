@@ -17,9 +17,9 @@ const INK = "#1d1d1f";
 const WHITE = "#ffffff";
 const BLACK = "#000000";
 
-// Shown when a hex colour is rejected by the pre-026 check constraint.
-export const CUSTOM_COLOR_MIGRATION_MESSAGE =
-  "Custom colours need the latest database update (run migration 026).";
+// Shown when a hex colour is rejected by the pre-026 check constraint. The
+// callers log the real migration number server-side.
+export const CUSTOM_COLOR_MIGRATION_MESSAGE = "This option isn't switched on yet. Please tell Edwin.";
 
 export function isHexColor(value: unknown): value is `#${string}` {
   return typeof value === "string" && HEX_RE.test(value);

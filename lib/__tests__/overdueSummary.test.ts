@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { buildOverdueSummary } from "../overdueSummary";
+import { buildOverdueSummary, overdueWithoutOwner } from "../overdueSummary";
 import { todayStr } from "../dates";
 import type { OpenChecklistRow } from "../types";
 import { makeEvent } from "./fixtures";
@@ -66,5 +66,15 @@ describe("buildOverdueSummary", () => {
     // due 2026-03-09: overdue by Singapore's date, though still the 9th in UTC
     const text = buildOverdueSummary([row("a", "Camp", "2026-03-23", "Book venue", 2)], todayStr())!;
     expect(text).toContain("Book venue (1 day overdue)");
+  });
+});
+
+describe("overdueWithoutOwner", () => {
+  it("counts overdue items where neither the item nor its event has an owner", () => {
+    const owned = { ...row("a", "Camp", "2026-03-24", "Book venue", 3), owner: "Ann" };
+    const inherited = { ...row("b", "Night", "2026-03-24", "Poster", 3), event: makeEvent({ id: "b", event_date: "2026-03-24", owner: "Bob" }) };
+    const none = row("c", "Retreat", "2026-03-24", "Menu", 3);
+    const notOverdue = row("d", "Later", "2026-09-24", "Menu", 3);
+    expect(overdueWithoutOwner([owned, inherited, none, notOverdue], "2026-03-15")).toBe(1);
   });
 });

@@ -15,11 +15,14 @@ interface ColorPickerProps {
 
 const THEME_COLS = 7;
 const SWATCH_FOCUS = "focus-visible:ring-2 focus-visible:ring-offset-1 focus-visible:ring-navy focus-visible:outline-none";
-// 10 columns: 24px + 6px gaps = 294px; on touch 28px + 6px gaps = 334px, which
-// fits max-w-md (448px) minus modal padding. Not 44px: ten 44px targets would
-// need 440px+, so touch gets the WCAG 2.2 AA minimum (24px) with generous gaps.
-const GRID = "grid grid-cols-10 gap-1.5 w-max";
-const ROUND = "h-6 w-6 coarse:h-7 coarse:w-7 rounded-full border border-black/15";
+// Fluid grids: the swatches shrink to fit the container (a 375px phone's ~303px
+// modal body would overflow ten fixed 24-28px swatches), capped at 24px (28px on
+// touch). Not 44px: ten 44px targets would need 440px+.
+const GRID = "grid w-full grid-cols-10 gap-1.5";
+const SWATCH = "border border-black/15 rounded-full";
+const ROUND = `aspect-square w-full max-w-6 coarse:max-w-7 justify-self-center ${SWATCH}`;
+// Fixed-size variant for the flex "Custom" row (not part of a grid).
+const ROUND_FIXED = `h-6 w-6 coarse:h-7 coarse:w-7 ${SWATCH}`;
 const SECTION_LABEL = "text-micro font-semibold uppercase tracking-wider text-ink-2";
 
 // Tick colour for a swatch: white or black, whichever contrasts more.
@@ -154,7 +157,7 @@ export default function ColorPicker({ value, onChange, disabled = false }: Color
 
         <div className="flex flex-col gap-1.5">
           <span className={SECTION_LABEL}>Theme</span>
-          <div className="grid w-max grid-cols-7 gap-1.5">
+          <div className="grid w-full grid-cols-7 gap-1.5">
             {SEASON_COLOR_KEYS.map((key) =>
               swatch(key, key, `${ROUND} ${barStyle(key).className}`, undefined, THEME_COLS, false, "#1d1d1f")
             )}
@@ -164,7 +167,7 @@ export default function ColorPicker({ value, onChange, disabled = false }: Color
         <div className="flex flex-col gap-1.5">
           <span className={SECTION_LABEL}>Custom</span>
           <div className="flex flex-wrap items-center gap-1.5">
-            {isCustom && swatch(current, current, ROUND, { backgroundColor: current }, 1, false, tickColor(current))}
+            {isCustom && swatch(current, current, ROUND_FIXED, { backgroundColor: current }, 1, false, tickColor(current))}
             <button
               type="button"
               aria-expanded={customOpen}
@@ -172,7 +175,7 @@ export default function ColorPicker({ value, onChange, disabled = false }: Color
               aria-label={customOpen ? "Hide custom colour fields" : "Add a custom colour"}
               disabled={disabled}
               onClick={() => setCustomOpen((o) => !o)}
-              className={`${ROUND} flex items-center justify-center bg-white text-ink-2 hover:text-ink ${SWATCH_FOCUS} disabled:opacity-60`}
+              className={`${ROUND_FIXED} flex items-center justify-center bg-white text-ink-2 hover:text-ink ${SWATCH_FOCUS} disabled:opacity-60`}
             >
               <svg viewBox="0 0 16 16" aria-hidden="true" className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
                 <path d="M8 3v10M3 8h10" />

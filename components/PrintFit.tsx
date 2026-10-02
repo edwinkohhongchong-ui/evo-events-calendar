@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, ReactNode } from "react";
-import { findFitScale } from "@/lib/printFit";
+import { clippedHeight, findFitScale } from "@/lib/printFit";
 
 // A4 landscape, 8mm @page margins (keep in sync with @page in globals.css).
 // 1mm = 96/25.4 px.
@@ -10,6 +10,8 @@ const PAGE_H = Math.floor((210 - 16) * (96 / 25.4)); // 733
 const SAFETY = 15; // px of slack so rounding never spills a line onto page 2
 const FLOOR = 0.4;
 const STEP = 0.02;
+/** Fired on window after every fit; listeners read `[data-print-overflow]`. */
+export const PRINT_FIT_EVENT = "evo:print-fit";
 
 /**
  * Wraps the month grid and, just before printing (button OR Cmd/Ctrl+P),
@@ -73,13 +75,36 @@ export default function PrintFit({ className, children }: { className?: string; 
         return endEl.getBoundingClientRect().bottom + window.scrollY - origin;
       };
 
-      const z = findFitScale(measure, PAGE_H - SAFETY, FLOOR, STEP);
-      measure(z); // leave the DOM at the chosen scale
+      const avail = PAGE_H - SAFETY;
+      const z = findFitScale(measure, avail, FLOOR, STEP);
+      const end = measure(z); // leave the DOM at the chosen scale
+      if (end > avail) {
+        // Even the floor does not fit: clip (outer is overflow:hidden) rather
+        // than spilling a stray second sheet, and flag it for the on-screen warning.
+        outer.style.height = `${clippedHeight(outer.offsetHeight, end, avail)}px`;
+        outer.dataset.printOverflow = "true";
+      } else {
+        delete outer.dataset.printOverflow;
+      }
+      window.dispatchEvent(new Event(PRINT_FIT_EVENT));
     }
+
+    // Print preview pages (inside [data-print-page]) check once on load so the
+    // too-busy warning shows before the user presses Print. The measure is
+    // synchronous and undone before paint, so nothing flickers.
+    let raf = 0;
+    const precheck = () => {
+      if (!outerRef.current?.closest("[data-print-page]")) return;
+      fit();
+      reset();
+    };
+    raf = requestAnimationFrame(precheck);
+    document.fonts?.ready.then(precheck).catch(() => {});
 
     window.addEventListener("beforeprint", fit);
     window.addEventListener("afterprint", reset);
     return () => {
+      cancelAnimationFrame(raf);
       window.removeEventListener("beforeprint", fit);
       window.removeEventListener("afterprint", reset);
       reset();

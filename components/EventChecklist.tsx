@@ -18,7 +18,6 @@ import { unwrap } from "@/lib/actionResult";
 import { dueDate, isOverdue, progressOf, SUGGESTED_TEMPLATE_BY_GATHERING_TYPE } from "@/lib/eventChecklist";
 import { parseDateStr, todayStr } from "@/lib/dates";
 import { useIsEditor } from "@/lib/roleContext";
-import { useOwnerOptions } from "@/lib/useOwnerOptions";
 import { OWNER_MAX, normalizeOwner } from "@/lib/owner";
 import ConfirmModal from "./ConfirmModal";
 import Button from "./ui/Button";
@@ -37,7 +36,7 @@ function authorName(): string | null {
 
 // Per-event checklist inside the event details view. Editors add (from a
 // template) or remove it; Editors and Viewers tick items. One-off events only.
-export default function EventChecklist({ event }: { event: EventRow }) {
+export default function EventChecklist({ event, ownerOptions = [] }: { event: EventRow; ownerOptions?: string[] }) {
   const router = useRouter();
   const isEditor = useIsEditor();
   const [items, setItems] = useState<EventChecklistItemRow[] | null>(null);
@@ -53,7 +52,8 @@ export default function EventChecklist({ event }: { event: EventRow }) {
   // New items default to the event's owner; stays as typed between adds.
   const [newOwner, setNewOwner] = useState(event.owner ?? "");
   const [editingOwnerId, setEditingOwnerId] = useState<string | null>(null);
-  const ownerOptions = useOwnerOptions(isEditor);
+  // Escape cancels the inline owner input; the blur that follows must not save.
+  const skipOwnerSave = useRef(false);
 
   const repeating = event.recurring !== "None";
   const today = todayStr();
@@ -94,9 +94,7 @@ export default function EventChecklist({ event }: { event: EventRow }) {
   }, [repeating, isEditor, event.gathering_type]);
 
   if (repeating) {
-    return isEditor ? (
-      <p className="text-micro text-ink-2">Checklists aren&rsquo;t available on repeating events yet.</p>
-    ) : null;
+    return isEditor ? <p className="text-micro text-ink-2">Checklists aren&rsquo;t available on repeating events yet.</p> : null;
   }
   if (items === null) return null;
 
@@ -216,36 +214,36 @@ export default function EventChecklist({ event }: { event: EventRow }) {
     </datalist>
   );
   const addForm = (
-  <form
-    onSubmit={(e) => {
-      e.preventDefault();
-      void addItem();
-    }}
-    className="flex items-center gap-2"
-  >
-    {ownerDatalist}
-    <input
-      value={newItem}
-      onChange={(e) => setNewItem(e.target.value)}
-      placeholder="Add an item…"
-      aria-label="Add an item to this checklist"
-      maxLength={200}
-      className={`${INPUT} !min-h-[36px] min-w-0 flex-1 ${coarse}`}
-    />
-    <input
-      value={newOwner}
-      onChange={(e) => setNewOwner(e.target.value)}
-      list={ownerListId}
-      placeholder="Owner"
-      aria-label="Owner of the new item"
-      maxLength={OWNER_MAX}
-      autoComplete="off"
-      className={`${INPUT} !min-h-[36px] w-28 shrink-0 ${coarse}`}
-    />
-    <Button type="submit" size="sm" variant="secondary" className={coarse} disabled={!newItem.trim()} loading={busy}>
-      Add
-    </Button>
-  </form>
+    <form
+      onSubmit={(e) => {
+        e.preventDefault();
+        void addItem();
+      }}
+      className="flex items-center gap-2"
+    >
+      {ownerDatalist}
+      <input
+        value={newItem}
+        onChange={(e) => setNewItem(e.target.value)}
+        placeholder="Add an item…"
+        aria-label="Add an item to this checklist"
+        maxLength={200}
+        className={`${INPUT} !min-h-[36px] min-w-0 flex-1 ${coarse}`}
+      />
+      <input
+        value={newOwner}
+        onChange={(e) => setNewOwner(e.target.value)}
+        list={ownerListId}
+        placeholder="Owner"
+        aria-label="Owner of the new item"
+        maxLength={OWNER_MAX}
+        autoComplete="off"
+        className={`${INPUT} !min-h-[36px] w-28 shrink-0 ${coarse}`}
+      />
+      <Button type="submit" size="sm" variant="secondary" className={coarse} disabled={!newItem.trim()} loading={busy}>
+        Add
+      </Button>
+    </form>
   );
 
   const picker = (
@@ -286,9 +284,7 @@ export default function EventChecklist({ event }: { event: EventRow }) {
               {progress.done}/{progress.total}
             </span>
             {overdueCount > 0 && (
-              <span className="rounded-pill bg-danger/10 px-2 text-chip font-medium text-danger">
-                {overdueCount} overdue
-              </span>
+              <span className="rounded-pill bg-danger/10 px-2 text-chip font-medium text-danger">{overdueCount} overdue</span>
             )}
           </span>
           <span className="text-ink-3">
@@ -312,7 +308,9 @@ export default function EventChecklist({ event }: { event: EventRow }) {
             const overdue = isOverdue(event.event_date, it.weeks_before, it.done, today);
             return (
               <li key={it.id} className="group/item flex items-stretch border-b border-line last:border-b-0">
-                <label className={`flex min-h-[44px] min-w-0 flex-1 items-start gap-3 px-4 py-2.5 ${isEditor ? "cursor-pointer hover:bg-canvas" : "cursor-default"}`}>
+                <label
+                  className={`flex min-h-[44px] min-w-0 flex-1 items-start gap-3 px-4 py-2.5 ${isEditor ? "cursor-pointer hover:bg-canvas" : "cursor-default"}`}
+                >
                   <input
                     type="checkbox"
                     checked={it.done}
@@ -334,7 +332,7 @@ export default function EventChecklist({ event }: { event: EventRow }) {
                           {format(parseDateStr(due), "d MMM")}
                         </span>
                       ) : null}
-                      {!isEditor && it.owner && (
+                      {it.owner && (
                         <span>
                           {it.done || due ? " · " : ""}Owner: {it.owner}
                         </span>
@@ -352,23 +350,38 @@ export default function EventChecklist({ event }: { event: EventRow }) {
                       autoComplete="off"
                       aria-label={`Owner of: ${it.item}`}
                       placeholder="Owner"
-                      onBlur={(e) => void saveOwner(it, e.target.value)}
+                      onBlur={(e) => {
+                        if (skipOwnerSave.current) {
+                          skipOwnerSave.current = false;
+                          return;
+                        }
+                        void saveOwner(it, e.target.value);
+                      }}
                       onKeyDown={(e) => {
                         if (e.key === "Enter") e.currentTarget.blur();
+                        else if (e.key === "Escape") {
+                          // Cancel only this input: not the modal, and no half-typed save.
+                          e.stopPropagation();
+                          skipOwnerSave.current = true;
+                          setEditingOwnerId(null);
+                        }
                       }}
                       className={`${INPUT} !min-h-[32px] my-1.5 w-28 shrink-0 self-center`}
                     />
                   ) : (
                     <button
                       type="button"
-                      onClick={() => setEditingOwnerId(it.id)}
+                      onClick={() => {
+                        skipOwnerSave.current = false;
+                        setEditingOwnerId(it.id);
+                      }}
                       title={it.owner ? "Change owner" : "Set an owner"}
                       aria-label={it.owner ? `Owner ${it.owner}. Change owner of: ${it.item}` : `Set owner of: ${it.item}`}
-                      className={`max-w-[7.5rem] shrink-0 truncate px-2 text-chip hover:bg-canvas hover:text-navy ${
-                        it.owner ? "text-ink-2" : "text-ink-3"
+                      className={`shrink-0 px-2 text-chip text-ink-2 hover:bg-canvas hover:text-navy coarse:min-h-[44px] ${
+                        it.owner ? "font-medium underline" : "underline decoration-dashed underline-offset-2"
                       }`}
                     >
-                      {it.owner || "+ Owner"}
+                      {it.owner ? "change" : "+ Owner"}
                     </button>
                   ))}
                 {isEditor && (
@@ -377,7 +390,7 @@ export default function EventChecklist({ event }: { event: EventRow }) {
                     onClick={() => removeItem(it)}
                     aria-label={`Remove item: ${it.item}`}
                     title="Remove this item"
-                    className="flex w-11 shrink-0 items-center justify-center text-ink-3 hover:bg-canvas hover:text-danger md:opacity-0 md:group-hover/item:opacity-100 focus-visible:opacity-100"
+                    className="flex w-11 shrink-0 items-center justify-center text-ink-3 hover:bg-canvas hover:text-danger md:opacity-0 md:group-hover/item:opacity-100 focus-visible:opacity-100 coarse:opacity-100"
                   >
                     <XIcon className="!h-4 !w-4" />
                   </button>
@@ -399,9 +412,7 @@ export default function EventChecklist({ event }: { event: EventRow }) {
           {!hasItems ? (
             <>
               {picker}
-              {suggestedName && templateId && (
-                <p className="text-micro text-ink-2">Suggested for this type of event: {suggestedName}.</p>
-              )}
+              {suggestedName && templateId && <p className="text-micro text-ink-2">Suggested for this type of event: {suggestedName}.</p>}
               <p className="text-micro text-ink-2">Or start with your own item:</p>
               {addForm}
             </>

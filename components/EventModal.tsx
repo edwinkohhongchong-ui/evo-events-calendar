@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, FormEvent } from "react";
+import { useEffect, useRef, useState, FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { ChecklistTemplateWithItems, EventOccurrence, EventRow, EventType, GatheringType, Level, LevelRow, Recurring } from "@/lib/types";
 import { applyChecklistTemplate, getChecklistTemplateOptions } from "@/lib/eventChecklistActions";
@@ -275,6 +275,13 @@ function EventModalInner({
   const [pendingValues, setPendingValues] = useState<EventFormValues | null>(null);
 
   // Escape backs out of the inline delete confirm first; only then closes the modal.
+  // Duplicate opens with the Date focused: the one thing the user must change.
+  const dateRef = useRef<HTMLInputElement>(null);
+  useEffect(() => {
+    if (isDuplicate) dateRef.current?.focus();
+  }, [isDuplicate]);
+  const sameDateAsOriginal = isDuplicate && !!event && eventDate === event.event_date;
+
   useEscapeKey(() => (confirmDelete ? setConfirmDelete(false) : onClose()));
 
   useEffect(() => {
@@ -748,7 +755,7 @@ function EventModalInner({
               <span>{notes}</span>
             </div>
           )}
-          {mode === "edit" && event && <EventChecklist event={event} />}
+          {mode === "edit" && event && <EventChecklist event={event} ownerOptions={ownerOptions} />}
           {formError && <p className="text-body text-danger">{formError}</p>}
         </div>
       ) : step === "editScope" ? (
@@ -870,7 +877,7 @@ function EventModalInner({
               aria-label="Name"
               className="w-full border-0 border-b border-line-strong bg-transparent px-0 py-1.5 text-title text-ink placeholder:text-ink-3 focus:border-navy focus:outline-none"
               required
-              autoFocus={mode === "add"}
+              autoFocus={mode === "add" && !isDuplicate}
             />
             {eventType === "Gathering" && (
               <span className="text-micro text-ink-2">
@@ -967,16 +974,23 @@ function EventModalInner({
             </label>
           )}
 
+          {isDuplicate && event && (
+            <p className="text-micro text-ink-2">Copy of &ldquo;{event.name}&rdquo;</p>
+          )}
           <div className="grid grid-cols-2 gap-3">
             <label className="flex flex-col gap-1">
               <span className={LABEL}>Date</span>
               <input
+                ref={dateRef}
                 type="date"
                 value={eventDate}
                 onChange={(e) => setEventDate(e.target.value)}
-                className={INPUT}
+                className={`${INPUT}${sameDateAsOriginal ? " !border-warn ring-2 ring-warn/30" : ""}`}
                 required
               />
+              {sameDateAsOriginal && (
+                <span className="text-micro font-medium text-warn">Same date as the original. Change it?</span>
+              )}
             </label>
             <label className="flex flex-col gap-1">
               <span className={LABEL}>Time</span>

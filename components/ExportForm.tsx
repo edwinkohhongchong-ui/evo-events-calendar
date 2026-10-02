@@ -169,7 +169,7 @@ export default function ExportForm({ levels }: { levels: LevelRow[] }) {
               aria-pressed={preset === p.id}
               onClick={() => pickPreset(p.id)}
               className={[
-                "min-h-[32px] rounded-pill px-3.5 text-body font-medium transition-colors duration-fast",
+                "min-h-[32px] coarse:min-h-[44px] rounded-pill px-3.5 text-body font-medium transition-colors duration-fast",
                 preset === p.id ? "bg-navy text-white" : "bg-fill text-ink hover:bg-line",
               ].join(" ")}
             >
@@ -216,7 +216,7 @@ export default function ExportForm({ levels }: { levels: LevelRow[] }) {
                 aria-pressed={on}
                 onClick={() => toggleLevel(level.name)}
                 className={[
-                  "inline-flex min-h-[32px] items-center gap-1.5 rounded-pill border px-3 text-body font-medium transition-colors duration-fast",
+                  "inline-flex min-h-[32px] coarse:min-h-[44px] items-center gap-1.5 rounded-pill border px-3 text-body font-medium transition-colors duration-fast",
                   on ? "border-navy bg-navy-50 text-ink" : "border-line-strong bg-white text-ink-3 hover:bg-canvas",
                 ].join(" ")}
               >

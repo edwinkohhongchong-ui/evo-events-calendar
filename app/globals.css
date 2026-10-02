@@ -133,11 +133,12 @@ html.printing body {
 @media print {
   /* Chrome that never prints: top nav, toasts, popovers, drawers, dialogs. */
   nav,
-  .fixed,
+  .fixed:not(.print-grid .fixed),
   [role="dialog"],
   [role="tooltip"],
-  [role="status"],
+  [role="status"]:not(.print-grid [role="status"]),
   [data-day-note-editor],
+  [data-print-hide],
   .print-hide {
     display: none !important;
   }
@@ -284,11 +285,12 @@ html.printing body {
 
 /* Chrome that never prints: top nav, toasts, popovers, drawers, dialogs. */
 html.printing nav,
-html.printing .fixed,
+html.printing .fixed:not(.print-grid .fixed),
 html.printing [role="dialog"],
 html.printing [role="tooltip"],
-html.printing [role="status"],
+html.printing [role="status"]:not(.print-grid [role="status"]),
 html.printing [data-day-note-editor],
+html.printing [data-print-hide],
 html.printing .print-hide {
   display: none !important;
 }
@@ -464,6 +466,13 @@ html.printing .print-footer {
     border-top: 0.5px solid rgba(0, 0, 0, 0.25);
     border-right: 0.5px solid rgba(0, 0, 0, 0.25);
     border-bottom: 0.5px solid rgba(0, 0, 0, 0.25);
+  }
+  /* Season / multi-day bars: the blanket black text above would sit on a dark
+     custom-hex fill, so print the fill as a light tint instead (white veil over
+     the bar's own colour; its darker border stays as the outline). */
+  .print-grid .print-event-row > [data-event-id],
+  .print-grid .print-season-row > button {
+    background-image: linear-gradient(rgba(255, 255, 255, 0.72), rgba(255, 255, 255, 0.72));
   }
   /* Days outside this month: lighter, as on screen. */
   .print-grid [data-date].bg-canvas > * {

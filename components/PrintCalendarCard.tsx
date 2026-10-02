@@ -18,7 +18,7 @@ import Card from "./ui/Card";
 import { INPUT, LABEL } from "./ui/fieldStyles";
 import { PrinterIcon } from "./icons";
 
-const QUICK_BTN = "min-h-[32px] rounded-pill bg-fill px-3.5 text-body font-medium text-ink transition-colors duration-fast hover:bg-line";
+const QUICK_BTN = "min-h-[32px] coarse:min-h-[44px] rounded-pill bg-fill px-3.5 text-body font-medium text-ink transition-colors duration-fast hover:bg-line";
 
 export default function PrintCalendarCard() {
   const router = useRouter();
@@ -46,7 +46,7 @@ export default function PrintCalendarCard() {
   return (
     <Card padding="p-5" className="mt-4 flex flex-col gap-4">
       <section className="flex flex-col gap-2">
-        <h2 className="text-ui font-semibold text-ink">Print Calendar</h2>
+        <h2 className="text-title text-ink">Print Calendar</h2>
         <p className="text-body text-ink-2">Pick the months to print. Each month prints on its own landscape page.</p>
       </section>
 
@@ -76,7 +76,7 @@ export default function PrintCalendarCard() {
                 aria-pressed={on}
                 onClick={() => toggle(key)}
                 className={[
-                  "min-h-[32px] rounded-pill px-3.5 text-body font-medium transition-colors duration-fast",
+                  "min-h-[32px] coarse:min-h-[44px] rounded-pill px-3.5 text-body font-medium transition-colors duration-fast",
                   on ? "bg-navy text-white" : "bg-fill text-ink hover:bg-line",
                 ].join(" ")}
               >
@@ -114,14 +114,15 @@ export default function PrintCalendarCard() {
         </p>
       )}
 
-      <div className="flex justify-end">
+      <div className="flex flex-col items-end gap-1">
         <Button
           disabled={selected.size === 0 || tooMany}
           icon={<PrinterIcon className="!h-4 !w-4" />}
           onClick={() => router.push(printHref(selected))}
         >
-          Print
+          Open print preview
         </Button>
+        <p className="text-micro text-ink-2">Opens a preview first; you print from there.</p>
       </div>
     </Card>
   );

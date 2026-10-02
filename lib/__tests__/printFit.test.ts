@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { findFitScale } from "../printFit";
+import { clippedHeight, findFitScale } from "../printFit";
 
 describe("findFitScale", () => {
   it("returns 1 when content already fits", () => {
@@ -26,5 +26,17 @@ describe("findFitScale", () => {
   });
   it("tolerates bad params", () => {
     expect(findFitScale(() => 1, 10, 0.4, 0)).toBe(1);
+  });
+});
+
+describe("clippedHeight", () => {
+  it("removes the overshoot so the page ends at availH", () => {
+    expect(clippedHeight(600, 780, 718)).toBe(538);
+  });
+  it("leaves the height alone when nothing overshoots", () => {
+    expect(clippedHeight(600, 700, 718)).toBe(600);
+  });
+  it("never goes negative", () => {
+    expect(clippedHeight(10, 900, 718)).toBe(0);
   });
 });

@@ -172,8 +172,14 @@ export default function CalendarHeader({ monthStart, levels, onAddClick, openChe
               </div>
               {searchActive && (
                 <span role="status" className="shrink-0 whitespace-nowrap text-body text-ink-2">
-                  {matchCount} {matchCount === 1 ? "match" : "matches"}
-                  <span className="hidden sm:inline"> this month</span>
+                  {matchCount === 0 ? (
+                    "No match this month."
+                  ) : (
+                    <>
+                      {matchCount} {matchCount === 1 ? "match" : "matches"}
+                      <span className="hidden sm:inline"> this month</span>
+                    </>
+                  )}
                 </span>
               )}
               <IconButton label="Clear search (Esc)" icon={<XIcon />} onClick={clearSearch} />

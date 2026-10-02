@@ -260,13 +260,13 @@ export default function NavBar({ generalComments = [] }: { generalComments?: Not
   const divider = <div className="border-t border-line my-1.5 mx-2" role="separator" />;
 
   return (
-    <nav className="bg-white/80 text-navy border-b-2 border-gold">
+    <nav className="bg-surface text-navy border-b-2 border-gold">
       {error && <ErrorBanner message={error} onDismiss={dismissError} />}
       <div className="relative max-w-6xl mx-auto px-4 sm:px-6 flex items-center h-12 gap-2 sm:gap-3">
         <Link
           href="/"
           aria-label="+EVO Events — back to the calendar"
-          className="inline-flex items-center gap-2 font-semibold text-sm text-navy whitespace-nowrap shrink-0 rounded-md px-1 -mx-1 hover:opacity-80 transition-opacity duration-fast"
+          className="inline-flex items-center gap-2 font-semibold text-ui text-navy whitespace-nowrap shrink-0 rounded-ctl px-1 -mx-1 hover:opacity-80 transition-opacity duration-fast"
         >
           <span className="h-2 w-2 shrink-0 rounded-full bg-gold" aria-hidden="true" />
           <span className="sm:hidden">+EVO</span>
@@ -303,6 +303,14 @@ export default function NavBar({ generalComments = [] }: { generalComments?: Not
         )}
 
         <div className="ml-auto flex items-center gap-1 shrink-0">
+        {!isEditor && (
+          <span
+            title="Ask an Editor to change things"
+            className="inline-flex h-8 items-center whitespace-nowrap rounded-pill bg-navy-50 px-2.5 text-micro font-medium text-navy coarse:min-h-[44px] coarse:px-3"
+          >
+            View only
+          </span>
+        )}
         <NotificationBell
           open={bellOpen}
           onOpenChange={(o) => {

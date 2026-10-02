@@ -6,6 +6,7 @@ import { useOnboardingTour } from "@/lib/useOnboardingTour";
 import { TOUR_STEPS } from "@/lib/tourSteps";
 import { useEscapeKey } from "@/lib/useEscapeKey";
 import { useFocusTrap } from "@/lib/useFocusTrap";
+import Button from "@/components/ui/Button";
 
 type Rect = { top: number; left: number; width: number; height: number };
 
@@ -135,13 +136,15 @@ export default function OnboardingTourModal() {
 
       {rect && (
         <div
-          className="fixed z-[51] rounded-lg pointer-events-none transition-all duration-150 ease-out"
+          className="fixed z-[51] rounded-ctl pointer-events-none transition-all duration-150 ease-out"
           style={{
             top: rect.top - 6,
             left: rect.left - 6,
             width: rect.width + 12,
             height: rect.height + 12,
-            boxShadow: "0 0 0 3px #D9A441, 0 0 0 9999px rgba(0,0,0,0.4)",
+            // Navy inner ring reads on a white target (the light navbar); the gold
+            // outer ring reads on the dimmed backdrop.
+            boxShadow: "0 0 0 2px #1F2A44, 0 0 0 5px #D9A441, 0 0 0 9999px rgba(0,0,0,0.4)",
           }}
         />
       )}
@@ -160,14 +163,14 @@ export default function OnboardingTourModal() {
           aria-modal="true"
           aria-labelledby="evo-tour-title"
           aria-describedby="evo-tour-body"
-          className="bg-white rounded-2xl shadow-xl w-full max-w-md p-8 flex flex-col gap-6 pointer-events-auto outline-none"
+          className="bg-surface rounded-modal shadow-modal w-full max-w-md p-8 flex flex-col gap-6 pointer-events-auto outline-none"
         >
           <div className="flex flex-col gap-2">
-            <p className="text-xs font-medium text-ink-2 tracking-wide">
+            <p className="text-micro text-ink-2">
               Step {step + 1} of {total}
             </p>
-            <h2 id="evo-tour-title" className="text-lg font-semibold text-navy">{current.title}</h2>
-            <p id="evo-tour-body" className="text-sm text-gray-600 leading-relaxed">{current.body}</p>
+            <h2 id="evo-tour-title" className="text-title text-navy">{current.title}</h2>
+            <p id="evo-tour-body" className="text-body text-ink-2">{current.body}</p>
           </div>
 
           <div className="flex items-center justify-center gap-1.5">
@@ -175,46 +178,26 @@ export default function OnboardingTourModal() {
               <span
                 key={i}
                 className={`h-1.5 rounded-full transition-all ${
-                  i === step ? "w-4 bg-gold" : "w-1.5 bg-gray-200"
+                  i === step ? "w-4 bg-gold" : "w-1.5 bg-fill"
                 }`}
               />
             ))}
           </div>
 
           <div className="flex items-center justify-between">
-            <button
-              type="button"
-              onClick={skip}
-              className="text-sm text-ink-2 hover:text-gray-600 coarse:min-h-[44px] coarse:px-3"
-            >
+            <Button variant="ghost" size="sm" onClick={skip} className="!text-ink-2">
               Skip
-            </button>
+            </Button>
             <div className="flex items-center gap-2">
               {!isFirst && (
-                <button
-                  type="button"
-                  onClick={handleBack}
-                  className="px-4 py-1.5 coarse:min-h-[44px] text-sm rounded-full border border-gray-300 text-gray-700 hover:bg-gray-50"
-                >
+                <Button variant="secondary" onClick={handleBack}>
                   Back
-                </button>
+                </Button>
               )}
               {isLast ? (
-                <button
-                  type="button"
-                  onClick={finish}
-                  className="px-4 py-1.5 coarse:min-h-[44px] text-sm rounded-full bg-navy text-white hover:opacity-90"
-                >
-                  Done
-                </button>
+                <Button onClick={finish}>Done</Button>
               ) : (
-                <button
-                  type="button"
-                  onClick={handleNext}
-                  className="px-4 py-1.5 coarse:min-h-[44px] text-sm rounded-full bg-navy text-white hover:opacity-90"
-                >
-                  Next
-                </button>
+                <Button onClick={handleNext}>Next</Button>
               )}
             </div>
           </div>

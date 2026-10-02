@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState, useRef, useTransition, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { startOfMonth, endOfMonth } from "date-fns";
 import { toDateStr, todayStr, formatDateDisplay } from "@/lib/dates";
 import {
@@ -22,6 +22,7 @@ import QuickAddPopover, { type QuickAddDraft } from "./QuickAddPopover";
 import HolidayModal from "./HolidayModal";
 import SeasonModal from "./SeasonModal";
 import ErrorBanner from "./ErrorBanner";
+import InfoNotice from "./InfoNotice";
 import { buildDayIndex } from "@/lib/dayIndex";
 import { occurrenceKey } from "@/lib/occurrenceKey";
 import { withOptimisticMove } from "@/lib/optimisticMove";
@@ -98,6 +99,40 @@ export default function CalendarBoard({
       return rest;
     });
   const [error, setError] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
+  // Bounced here from an Editor-only page by middleware: say so once, then tidy the URL.
+  const searchParams = useSearchParams();
+  const editorsOnlyHint = searchParams.get("notice") === "editors-only";
+  useEffect(() => {
+    if (!editorsOnlyHint) return;
+    setNotice("That page is for Editors.");
+    const params = new URLSearchParams(searchParams.toString());
+    params.delete("notice");
+    const qs = params.toString();
+    router.replace(qs ? `/?${qs}` : "/");
+  }, [editorsOnlyHint, searchParams, router]);
+  const quickAddDateRef = useRef<string | null>(null);
+  // QuickAddPopover closes itself on any outside pointerdown, which would close
+  // and reopen it (losing typed text) when the same day is clicked again. This
+  // listener is registered at mount, so it runs before the popover's own and
+  // flags a pointerdown on the open day's cell (not on a control inside it) so
+  // the resulting close is ignored.
+  const ignoreCloseRef = useRef(false);
+  useEffect(() => {
+    function onPointerDown(e: PointerEvent) {
+      const open = quickAddDateRef.current;
+      if (!open) return;
+      const target = e.target as Element | null;
+      if (target?.closest("button, a, [role='button']")) return;
+      if (target?.closest<HTMLElement>("[data-date]")?.dataset.date !== open) return;
+      ignoreCloseRef.current = true;
+      setTimeout(() => {
+        ignoreCloseRef.current = false;
+      }, 0);
+    }
+    document.addEventListener("pointerdown", onPointerDown, true);
+    return () => document.removeEventListener("pointerdown", onPointerDown, true);
+  }, []);
   const [modal, setModal] = useState<ModalState>({ type: "closed" });
   const [quickAdd, setQuickAdd] = useState<{ date: string; anchor: HTMLElement | null } | null>(null);
   const [holidayModal, setHolidayModal] = useState<HolidayModalState>({ type: "closed" });
@@ -177,6 +212,8 @@ export default function CalendarBoard({
     () => computeEventBarSegments(displayOccurrences, weeks, gridStart, gridEnd),
     [displayOccurrences, weeks, gridStart, gridEnd]
   );
+
+  quickAddDateRef.current = quickAdd?.date ?? null;
 
   function closeQuickAdd() {
     const cell = quickAdd?.anchor;
@@ -289,6 +326,7 @@ export default function CalendarBoard({
       <EventSearchContext.Provider value={search}>
       <EventChecklistProvider progress={checklistProgress}>
       <FocusHighlighter />
+      {notice && <InfoNotice message={notice} onDismiss={() => setNotice(null)} />}
       {error && <ErrorBanner message={error} onDismiss={() => setError(null)} />}
       <DndContext
         id="calendar-dnd"
@@ -332,7 +370,13 @@ export default function CalendarBoard({
             seasonSegmentsByWeek={seasonSegmentsByWeek}
             eventSegmentsByWeek={eventSegmentsByWeek}
             onDayClick={(date) => {
-              if (isDraggingRef.current || !isEditor) return;
+              if (isDraggingRef.current) return;
+              if (!isEditor) {
+                setNotice("View only. Ask an Editor to add events.");
+                return;
+              }
+              // Same day while its popover is open: leave it (and its typed text) alone.
+              if (date === quickAddDateRef.current) return;
               setQuickAdd({
                 date,
                 anchor: document.querySelector<HTMLElement>(`[data-date="${date}"]`),
@@ -356,7 +400,9 @@ export default function CalendarBoard({
           date={quickAdd.date}
           anchor={quickAdd.anchor}
           levels={levels}
-          onClose={closeQuickAdd}
+          onClose={() => {
+            if (!ignoreCloseRef.current) closeQuickAdd();
+          }}
           onSaved={() => {
             setQuickAdd(null);
             startTransition(() => router.refresh());

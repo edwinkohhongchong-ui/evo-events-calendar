@@ -8,6 +8,28 @@ items (features/fixes) that push contains — a push with 1 item goes up by
 `1.05`). If MINOR would pass `.99`, MAJOR increments and MINOR carries the
 remainder (e.g. `1.99` + 2 items → `2.01`).
 
+## v2.89 — 2026-10-02
+
+Review round 2 fixes (code, security, usability and design reviews).
+
+- Viewers now see a "View only" label in the top bar, a friendly notice when clicking an empty day, and "That page is for Editors." when bounced from an Editor-only page.
+- User-facing messages no longer say "run migration 025/026": they read "This option isn't switched on yet. Please tell Edwin." (the migration number goes to the server log only).
+- Event search shows "No match this month." when nothing matches.
+- Clicking the same day while its quick-add is open no longer wipes your typing.
+- Top bar is now plain white (the translucency was invisible); logo uses the design tokens.
+- Quick-add: the name field now reliably gets focus on desktop; on phones there is a grab bar, a fixed Save footer, Date and Time side by side and Zone as buttons, and the keyboard no longer opens by itself.
+- Quick-add shows "Last used" on the pre-selected event type and "Saving as <type>" next to Save.
+- Duplicate event: date field focused and highlighted with "Same date as the original", plus a `Copy of "<name>"` caption.
+- "Mine" on the overdue pill: no-match message lists the owners in use with tap-to-pick names, and a count of overdue items with no owner.
+- Overdue pill: "Copy summary" button (Editors), and the list now spans the phone width.
+- Checklist owner UI: Escape cancels only the inline owner box; "+ Owner" is readable with 44px tap size on touch; remove "x" always visible on touch; "Owner: X" shows for Editors and Viewers; one owner-names fetch per event window.
+- Backup: every table is read in a fixed order (no lost or repeated rows over 1,000), a failed table is recorded as "query failed" with `partial: true`, and the Backup page explains it. Added a test that stops raw database messages from being sent to the browser.
+- Print: dark custom-colour bars print as a light tint with black text; a very busy month shows an on-screen warning and is clipped at the smallest size instead of spilling a stray sheet; print-hiding is scoped so it no longer hides things inside the grid.
+- Colour picker grid now fits phone-width windows without sideways scrolling.
+- Larger touch targets on Print Calendar months and quick buttons, and on the Day page (with clearer Previous/Next day labels); Export headings match the other pages and the button reads "Open print preview".
+- Onboarding tour restyled to the app's design (buttons, text sizes, spotlight ring readable on the light bar).
+- Error page shows a short reference code for support.
+
 ## v2.69 — 2026-10-02
 
 - Colour picker redone to follow the Google Sheets palette: the top two rows (greys and vivid colours) are always shown, and "More colours" opens the six tint and shade rows, a THEME section with the 14 existing colours, and a CUSTOM section (colour wheel and hex field). The chosen colour shows a tick and the picker opens expanded when it is not in the top two rows. Replaces the 216-colour web-safe grid.

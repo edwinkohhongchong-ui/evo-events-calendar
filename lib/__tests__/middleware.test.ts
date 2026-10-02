@@ -100,7 +100,9 @@ describe("middleware with a session", () => {
   it("blocks a Viewer from /reminders and editor-only API routes", async () => {
     const page = await middleware(await req("/reminders", "viewer"));
     expect(page.status).toBe(307);
-    expect(new URL(location(page)!).pathname).toBe("/");
+    const bounced = new URL(location(page)!);
+    expect(bounced.pathname).toBe("/");
+    expect(bounced.searchParams.get("notice")).toBe("editors-only");
     const api = await middleware(await req("/api/admin/backup", "viewer"));
     expect(isNext(api)).toBe(false);
   });

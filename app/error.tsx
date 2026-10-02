@@ -31,6 +31,7 @@ export default function ErrorPage({
             Back to calendar
           </Link>
         </div>
+        {error.digest && <p className="mt-4 text-micro text-ink-2">Reference: {error.digest}</p>}
       </div>
     </main>
   );

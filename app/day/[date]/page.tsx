@@ -42,17 +42,25 @@ export default async function DayPage({ params }: DayPageProps) {
       <div className="flex items-center justify-between mb-4">
         <Link
           href={`/?year=${year}&month=${month}`}
-          className="inline-flex items-center gap-1 rounded-pill py-1 pr-2 text-body font-medium text-navy hover:underline"
+          className="inline-flex items-center gap-1 rounded-pill py-1 pr-2 coarse:min-h-[44px] text-body font-medium text-navy hover:underline"
         >
           <ChevronLeftIcon className="!h-4 !w-4" />
           {format(date, "MMMM yyyy")}
         </Link>
         <div className="flex items-center gap-2">
-          <Link href={`/day/${prevDateStr}`} className={buttonClass("secondary", "sm", "pl-2.5")}>
+          <Link
+            href={`/day/${prevDateStr}`}
+            aria-label={`Previous day, ${format(subDays(date, 1), "EEE d MMM")}`}
+            className={buttonClass("secondary", "sm", "pl-2.5")}
+          >
             <ChevronLeftIcon className="!h-4 !w-4" />
             Prev
           </Link>
-          <Link href={`/day/${nextDateStr}`} className={buttonClass("secondary", "sm", "pr-2.5")}>
+          <Link
+            href={`/day/${nextDateStr}`}
+            aria-label={`Next day, ${format(addDays(date, 1), "EEE d MMM")}`}
+            className={buttonClass("secondary", "sm", "pr-2.5")}
+          >
             Next
             <ChevronRightIcon className="!h-4 !w-4" />
           </Link>

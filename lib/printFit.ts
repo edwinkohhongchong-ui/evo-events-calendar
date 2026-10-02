@@ -21,3 +21,12 @@ export function findFitScale(
   }
   return floor;
 }
+
+/**
+ * Height to give the clipping wrapper when content still overshoots the page at
+ * the scale floor: the wrapper's own height minus the overshoot, so header +
+ * grid + footer end exactly at `availH` instead of spilling onto a second sheet.
+ */
+export function clippedHeight(wrapperH: number, endY: number, availH: number): number {
+  return Math.max(0, wrapperH - Math.max(0, endY - availH));
+}

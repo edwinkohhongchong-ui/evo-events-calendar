@@ -18,7 +18,10 @@ function checkedLevelValues(values: LevelFormValues): LevelFormValues {
 
 // Before migration 026 the DB check constraint rejects hex colours (23514).
 function saveError(code: string | undefined, values: LevelFormValues): Error {
-  if (code === "23514" && isHexColor(values.color_key)) return new Error(CUSTOM_COLOR_MIGRATION_MESSAGE);
+  if (code === "23514" && isHexColor(values.color_key)) {
+    console.error("Custom colour rejected by check constraint: run migration 026.");
+    return new Error(CUSTOM_COLOR_MIGRATION_MESSAGE);
+  }
   return new Error("Something went wrong saving this category. Please try again.");
 }
 

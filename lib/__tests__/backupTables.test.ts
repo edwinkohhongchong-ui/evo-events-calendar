@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { readdirSync, readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
-import { BACKUP_TABLES } from "../backupTables";
+import { BACKUP_TABLES, backupOrderColumns } from "../backupTables";
 
 const ROOT = join(__dirname, "..", "..");
 
@@ -28,5 +28,20 @@ describe("backup table coverage", () => {
     expect(used.size).toBeGreaterThan(10); // guards against the scan silently finding nothing
     const missing = Array.from(used).filter((t) => !(BACKUP_TABLES as readonly string[]).includes(t));
     expect(missing).toEqual([]);
+  });
+
+  it("gives every table a non-empty deterministic order key", () => {
+    for (const t of BACKUP_TABLES) {
+      const cols = backupOrderColumns(t);
+      expect(cols.length).toBeGreaterThan(0);
+      expect(cols.every((c) => /^[a-z_]+$/.test(c))).toBe(true);
+    }
+  });
+
+  it("route orders every page and never leaks raw error text", () => {
+    const src = readFileSync(join(ROOT, "app", "api", "admin", "backup", "route.ts"), "utf8");
+    expect(src).toMatch(/\.order\(/);
+    expect(src).not.toMatch(/skipped\[table\]\s*=\s*err/);
+    expect(src).toMatch(/partial/);
   });
 });

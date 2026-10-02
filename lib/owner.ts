@@ -3,7 +3,7 @@
 
 export const OWNER_MAX = 60;
 
-export const OWNER_MIGRATION_HINT = "Owner needs the latest database update. Run migration 025 first.";
+export const OWNER_MIGRATION_HINT = "This option isn't switched on yet. Please tell Edwin.";
 
 /** Trimmed, inner whitespace collapsed. Empty string when there is nothing. */
 export function normalizeOwner(raw: string | null | undefined): string {
@@ -41,8 +41,14 @@ export function withOwner<T>(
 /** 42703 = column missing, PGRST204/PGRST205 = PostgREST schema cache lacks it. */
 export function isMissingOwnerColumn(error: { code?: string; message?: string } | null | undefined): boolean {
   if (!error) return false;
-  if (error.code === "42703" || error.code === "PGRST204" || error.code === "PGRST205") return true;
-  return /owner/i.test(error.message ?? "") && /column|schema cache/i.test(error.message ?? "");
+  const missing =
+    error.code === "42703" ||
+    error.code === "PGRST204" ||
+    error.code === "PGRST205" ||
+    (/owner/i.test(error.message ?? "") && /column|schema cache/i.test(error.message ?? ""));
+  // The user-facing text is deliberately plain; the real fix goes in the server log.
+  if (missing) console.error("Owner column missing: run migration 025.", error);
+  return missing;
 }
 
 /** Case-insensitive, trimmed name match. Blank on either side never matches. */

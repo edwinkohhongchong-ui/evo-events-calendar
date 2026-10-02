@@ -1,5 +1,6 @@
 import { differenceInCalendarDays } from "date-fns";
-import { dueDate, isOverdue } from "./eventChecklist";
+import { dueDate, isOverdue, totalOverdueItems } from "./eventChecklist";
+import { normalizeOwner } from "./owner";
 import { formatDateDisplay, parseDateStr } from "./dates";
 import type { OpenChecklistRow } from "./types";
 
@@ -31,4 +32,12 @@ export function buildOverdueSummary(rows: OpenChecklistRow[], today: string): st
     for (const it of g.items) lines.push(`  - ${it.item} (${it.daysLate} ${it.daysLate === 1 ? "day" : "days"} overdue)`);
   }
   return lines.join("\n");
+}
+
+/** Overdue items nobody owns (neither the item nor its event), which a "Mine" filter can never show. */
+export function overdueWithoutOwner(rows: OpenChecklistRow[], today: string): number {
+  return totalOverdueItems(
+    rows.filter((r) => !normalizeOwner(r.owner) && !normalizeOwner(r.event.owner)),
+    today
+  );
 }
