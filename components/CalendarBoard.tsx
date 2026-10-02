@@ -187,7 +187,9 @@ export default function CalendarBoard({
     }
   }
 
-  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }));
+  // No sensors for Viewers: nothing can be dragged or resized.
+  const pointerSensor = useSensor(PointerSensor, { activationConstraint: { distance: 5 } });
+  const sensors = useSensors(...(isEditor ? [pointerSensor] : []));
 
   function handleDragStart(e: DragStartEvent) {
     isDraggingRef.current = true;

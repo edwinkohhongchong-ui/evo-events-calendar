@@ -29,7 +29,7 @@ async function updateChecklistItemImpl(
   // Bulk callers (Check Calendar) pass quiet and log one summary instead.
   quiet?: boolean
 ): Promise<AffectedRow[]> {
-  await requireRole("viewer");
+  await requireRole("editor");
   const before = await fetchRow("checklist", id);
   let query = supabase.from("checklist").update(values).eq("id", id);
   if (expectedUpdatedAt) query = query.eq("updated_at", expectedUpdatedAt);
@@ -56,7 +56,7 @@ async function updateChecklistStatusImpl(
   expectedUpdatedAt?: string,
   quiet?: boolean
 ): Promise<AffectedRow[]> {
-  await requireRole("viewer");
+  await requireRole("editor");
   const before = await fetchRow("checklist", id);
   let query = supabase.from("checklist").update({ status }).eq("id", id);
   if (expectedUpdatedAt) query = query.eq("updated_at", expectedUpdatedAt);
@@ -91,7 +91,7 @@ async function deleteChecklistItemImpl(id: string): Promise<AffectedRow[]> {
 
 // One feed entry for a whole "Check Calendar" run, instead of one per item.
 async function logCheckCalendarSummaryImpl(count: number): Promise<void> {
-  await requireRole("viewer");
+  await requireRole("editor");
   const n = Math.max(0, Math.min(999, Math.floor(Number(count) || 0)));
   if (n === 0) return;
   await logActivity({ action: "edited", entity: "checklist", entityId: null, label: `Check Calendar: ${n} item${n === 1 ? "" : "s"} updated` });

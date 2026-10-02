@@ -120,6 +120,7 @@ export default function EventChecklist({ event }: { event: EventRow }) {
   }
 
   async function toggle(item: EventChecklistItemRow) {
+    if (!isEditor) return;
     const next = !item.done;
     const stamp = next ? new Date().toISOString() : null;
     const by = next ? authorName() : null;
@@ -269,12 +270,14 @@ export default function EventChecklist({ event }: { event: EventRow }) {
             const overdue = isOverdue(event.event_date, it.weeks_before, it.done, today);
             return (
               <li key={it.id} className="group/item flex items-stretch border-b border-line last:border-b-0">
-                <label className="flex min-h-[44px] min-w-0 flex-1 cursor-pointer items-start gap-3 px-4 py-2.5 hover:bg-canvas">
+                <label className={`flex min-h-[44px] min-w-0 flex-1 items-start gap-3 px-4 py-2.5 ${isEditor ? "cursor-pointer hover:bg-canvas" : "cursor-default"}`}>
                   <input
                     type="checkbox"
                     checked={it.done}
                     onChange={() => toggle(it)}
-                    className="mt-0.5 h-5 w-5 shrink-0 accent-[#1F2A44]"
+                    disabled={!isEditor}
+                    title={isEditor ? undefined : "View only"}
+                    className="mt-0.5 h-5 w-5 shrink-0 accent-[#1F2A44] disabled:cursor-not-allowed disabled:opacity-60"
                   />
                   <span className="min-w-0 flex-1">
                     <span className={`block text-ui ${it.done ? "text-ink-2 line-through" : "text-ink"}`}>{it.item}</span>

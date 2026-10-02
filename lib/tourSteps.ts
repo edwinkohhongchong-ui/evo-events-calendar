@@ -128,7 +128,7 @@ export const TOUR_STEPS: TourStep[] = [
   // --- Part 5 of 6: Editor vs. Viewer access ---
   {
     title: "Viewer or Editor?",
-    body: "Viewers can look around, edit existing events, tick checklist items and add notes. Only Editors can add or delete events, drag them to a new day, use Undo, or open the other tabs in the ☰ menu. If a button is missing for you, that's expected.",
+    body: "Viewers can look around and comment in the sidebars (General Notes and Month Notes) only. Only Editors can add, edit, tick, move or delete anything, use Undo, or open the other tabs in the ☰ menu. If a button is missing for you, that's expected.",
     route: "/",
     targetSelector: '[data-tour="hamburger-menu-panel"]',
     requiresMenuOpen: true,

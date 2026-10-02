@@ -608,7 +608,7 @@ function EventModalInner({
               Duplicate
             </Button>
           )}
-          <Button onClick={() => setStep("form")}>Edit</Button>
+          {isEditor && <Button onClick={() => setStep("form")}>Edit</Button>}
         </div>
       </>
     );

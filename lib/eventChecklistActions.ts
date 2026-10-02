@@ -108,11 +108,11 @@ async function applyChecklistTemplateImpl(eventId: string, templateId: string): 
   return rows.length;
 }
 
-// Tick or untick one item. Editors and Viewers (the person doing the
-// follow-up is often a Viewer). Not individually logged to the bell: a tick
+// Tick or untick one item. Editors only (Viewers are read-only plus
+// sidebar comments). Not individually logged to the bell: a tick
 // is high-volume and reversible by unticking.
 async function setChecklistItemDoneImpl(itemId: string, done: boolean, doneBy: string | null): Promise<void> {
-  await requireRole("viewer");
+  await requireRole("editor");
   const { error } = await supabase
     .from("event_checklist_items")
     .update({

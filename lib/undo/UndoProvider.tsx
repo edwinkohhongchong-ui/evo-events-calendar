@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { restoreSnapshot } from "./restore";
 import { unwrap } from "../actionResult";
 import { AffectedRow, UndoableAction } from "./types";
+import { useIsEditor } from "../roleContext";
 
 interface LastAction {
   // What happened: a fresh change ("done") or an undo/redo of one.
@@ -61,13 +62,21 @@ export function UndoProvider({ children }: { children: ReactNode }) {
     }, LAST_ACTION_DISPLAY_MS);
   }, []);
 
+  // Undo/Redo is Editor-only (restoreSnapshot requires it), so a Viewer's
+  // comment still gets the confirmation toast but is never made undoable.
+  const isEditor = useIsEditor();
+
   const record = useCallback((label: string, affected: AffectedRow[]) => {
     if (affected.length === 0) return;
+    if (!isEditor) {
+      showLastAction("done", label);
+      return;
+    }
     pastRef.current = [...pastRef.current, { label, affected }];
     futureRef.current = [];
     showLastAction("done", label);
     forceRender();
-  }, [showLastAction]);
+  }, [showLastAction, isEditor]);
 
   const dismissLastAction = useCallback(() => {
     if (lastActionTimerRef.current) clearTimeout(lastActionTimerRef.current);

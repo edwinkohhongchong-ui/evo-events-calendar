@@ -56,9 +56,10 @@ internal tool (not public-facing).
   to scanning quickly, so favor information density over whitespace, but keep
   text legible (don't go below ~13px for event text).
 - Auth: a two-role passcode gate shipped in v1.19 (Editor / Viewer, middleware-
-  enforced), with server-side re-checks on every mutating Server Action added
-  in v1.35 (`lib/authz.ts#requireRole`) so a Viewer can't bypass restrictions
-  via devtools. Supabase RLS itself remains "allow all" by design — the
+  enforced). Viewers can look and comment in the sidebars only (General Notes /
+  Month Notes comments and replies); every other mutation is Editor-only. Server-side
+  re-checks on every mutating Server Action (added in v1.35,
+  `lib/authz.ts#requireRole`) stop a Viewer bypassing this via devtools. Supabase RLS itself remains "allow all" by design — the
   Server Action checks close the application-level gap, not the underlying
   REST-API-level one. This is a deliberate, accepted v1 tradeoff (internal
   tool, single shared URL), not an oversight — don't tighten RLS without

@@ -53,7 +53,35 @@ function validateNoteComment(v: NoteCommentValues) {
 async function createNoteCommentImpl(values: NoteCommentValues): Promise<AffectedRow[]> {
   await requireRole("viewer");
   validateNoteComment(values);
-  const { data, error } = await supabase.from("note_comments").insert(values).select().single();
+  if (values.content.trim() === "") throw new Error("Write something before posting.");
+  if (values.parent_id) {
+    // A reply must hang off a top-level comment in the same note.
+    const { data: parent, error: parentError } = await supabase
+      .from("note_comments")
+      .select("scope, year, month, parent_id")
+      .eq("id", values.parent_id)
+      .maybeSingle();
+    if (parentError) {
+      console.error(parentError);
+      throw new Error("Something went wrong posting this comment. Please try again.");
+    }
+    const sameNote =
+      parent &&
+      parent.parent_id == null &&
+      parent.scope === values.scope &&
+      (values.scope === "general" || (parent.year === values.year && parent.month === values.month));
+    if (!sameNote) throw new Error("Couldn't find the comment you're replying to.");
+  }
+  // Explicit columns only: a client must not be able to set id, created_at etc.
+  const row = {
+    scope: values.scope,
+    year: values.scope === "month" ? values.year : null,
+    month: values.scope === "month" ? values.month : null,
+    author_name: values.author_name,
+    content: values.content,
+    parent_id: values.parent_id ?? null,
+  };
+  const { data, error } = await supabase.from("note_comments").insert(row).select().single();
   if (error) {
     console.error(error);
     throw new Error("Something went wrong posting this comment. Please try again.");

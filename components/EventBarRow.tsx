@@ -7,6 +7,7 @@ import { useIsDimmed } from "@/lib/eventSearchContext";
 import { useLevelColor } from "@/lib/levelColorContext";
 import { occurrenceKey } from "@/lib/occurrenceKey";
 import { useEventPreview } from "./EventPreviewCard";
+import { useIsEditor } from "@/lib/roleContext";
 import { EventOccurrence } from "@/lib/types";
 
 function SegmentBlock({
@@ -18,6 +19,7 @@ function SegmentBlock({
 }) {
   const colorKey = useLevelColor(segment.occurrence.event.level);
   const dimmed = useIsDimmed(segment.occurrence.event.id);
+  const isEditor = useIsEditor();
   // Same resize-handle mechanism as EventCard's single-day cards — only on
   // the segment containing the event's real last day, so a bar spanning
   // several weeks only offers one resize point per end (right handle at the
@@ -72,7 +74,7 @@ function SegmentBlock({
             is just an unlabeled colored bar further down the grid. */}
         {segment.isSpanStart || segment.startCol === 0 ? segment.occurrence.event.name : " "}
       </button>
-      {segment.isSpanStart && (
+      {isEditor && segment.isSpanStart && (
         <div
           ref={setStartRef}
           {...startListeners}
@@ -87,7 +89,7 @@ function SegmentBlock({
           ].join(" ")}
         />
       )}
-      {segment.isSpanEnd && (
+      {isEditor && segment.isSpanEnd && (
         <div
           ref={setResizeRef}
           {...resizeListeners}

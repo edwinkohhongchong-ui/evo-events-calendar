@@ -120,19 +120,23 @@ export default function SeasonModal({ mode, season, onClose, onSaved, onDeleted 
       </div>
       <div className="flex gap-2">
         <Button variant="ghost" onClick={onClose}>
-          Cancel
+          {isEditor ? "Cancel" : "Close"}
         </Button>
-        <Button type="submit" form="modal-form" loading={saving}>
-          {saving ? "Saving…" : "Save"}
-        </Button>
+        {isEditor && (
+          <Button type="submit" form="modal-form" loading={saving}>
+            {saving ? "Saving…" : "Save"}
+          </Button>
+        )}
       </div>
     </>
   );
 
   return (
-    <ModalShell title={mode === "add" ? "Add Season" : "Edit Season"} onClose={onClose} footer={footer} widthClass="max-w-md">
+    <ModalShell title={mode === "add" ? "Add Season" : isEditor ? "Edit Season" : "Season"} onClose={onClose} footer={footer} widthClass="max-w-md">
         {!confirmDelete ? (
-          <form id="modal-form" onSubmit={handleSubmit} className="flex flex-col gap-4">
+          <form id="modal-form" onSubmit={handleSubmit}>
+          {/* Viewers see the details read-only; the fieldset disables every control inside. */}
+          <fieldset disabled={!isEditor} className="m-0 flex min-w-0 flex-col gap-4 border-0 p-0">
             {formError && (
               <p role="alert" className="rounded-ctl bg-danger/10 px-3 py-2 text-body text-danger">
                 {formError}
@@ -212,6 +216,7 @@ export default function SeasonModal({ mode, season, onClose, onSaved, onDeleted 
               />
             </label>
 
+          </fieldset>
           </form>
         ) : (
           <ConfirmDialog

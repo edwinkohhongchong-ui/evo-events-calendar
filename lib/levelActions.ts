@@ -31,7 +31,7 @@ async function updateLevelImpl(
   values: LevelFormValues,
   expectedUpdatedAt?: string
 ): Promise<AffectedRow[]> {
-  await requireRole("viewer");
+  await requireRole("editor");
   const before = await fetchRow("levels", id);
   let query = supabase.from("levels").update(values).eq("id", id);
   if (expectedUpdatedAt) query = query.eq("updated_at", expectedUpdatedAt);

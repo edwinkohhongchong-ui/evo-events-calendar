@@ -5,6 +5,7 @@ import DayViewEventContent from "./DayViewEventContent";
 import { EventOccurrence } from "@/lib/types";
 import { computeDuration, timeStrToMinutes } from "@/lib/timeMath";
 import { occurrenceKey } from "@/lib/occurrenceKey";
+import { useIsEditor } from "@/lib/roleContext";
 
 const MIN_HEIGHT = 24; // px — keeps very short/undurationed events visible and clickable
 const DAY_HEIGHT = 24 * 60; // px — 1px per minute, matches the grid in DayView
@@ -16,6 +17,7 @@ export default function DayViewEventBlock({
   occurrence: EventOccurrence;
   onClick: () => void;
 }) {
+  const isEditor = useIsEditor();
   const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
     id: occurrenceKey(occurrence),
     data: { occurrence },
@@ -42,7 +44,7 @@ export default function DayViewEventBlock({
         onClick();
       }}
       style={{ position: "absolute", top, height: cappedHeight, left: 4, right: 4 }}
-      className={["cursor-grab active:cursor-grabbing", isDragging ? "opacity-30" : ""].join(" ")}
+      className={[isEditor ? "cursor-grab active:cursor-grabbing" : "cursor-pointer", isDragging ? "opacity-30" : ""].join(" ")}
     >
       <DayViewEventContent occurrence={occurrence} />
     </div>

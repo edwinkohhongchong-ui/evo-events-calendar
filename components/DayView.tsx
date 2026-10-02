@@ -14,6 +14,7 @@ import {
 import DayViewEventBlock from "./DayViewEventBlock";
 import DayViewEventContent from "./DayViewEventContent";
 import EventModal from "./EventModal";
+import { useIsEditor } from "@/lib/roleContext";
 import ErrorBanner from "./ErrorBanner";
 import { retimeOccurrence } from "@/lib/actions";
 import { unwrap } from "@/lib/actionResult";
@@ -81,7 +82,10 @@ export default function DayView({ occurrences, levels }: DayViewProps) {
     return next.filter((occ) => isVisible(occ.event.level));
   }, [occurrences, optimisticStart, isVisible]);
 
-  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }));
+  // No sensors for Viewers: nothing can be dragged.
+  const isEditor = useIsEditor();
+  const pointerSensor = useSensor(PointerSensor, { activationConstraint: { distance: 5 } });
+  const sensors = useSensors(...(isEditor ? [pointerSensor] : []));
 
   function handleDragStart(e: DragStartEvent) {
     isDraggingRef.current = true;

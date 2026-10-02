@@ -27,7 +27,7 @@ async function updateSeasonImpl(
   values: SeasonFormValues,
   expectedUpdatedAt?: string
 ): Promise<AffectedRow[]> {
-  await requireRole("viewer");
+  await requireRole("editor");
   const before = await fetchRow("seasons", id);
   let query = supabase.from("seasons").update(values).eq("id", id);
   if (expectedUpdatedAt) query = query.eq("updated_at", expectedUpdatedAt);

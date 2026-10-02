@@ -5,6 +5,7 @@ import EventCardContent from "./EventCardContent";
 import { EventOccurrence } from "@/lib/types";
 import { occurrenceKey } from "@/lib/occurrenceKey";
 import { useEventPreview } from "./EventPreviewCard";
+import { useIsEditor } from "@/lib/roleContext";
 
 interface EventCardProps {
   occurrence: EventOccurrence;
@@ -12,6 +13,7 @@ interface EventCardProps {
 }
 
 export default function EventCard({ occurrence, onClick }: EventCardProps) {
+  const isEditor = useIsEditor();
   const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
     id: occurrenceKey(occurrence),
     data: { occurrence },
@@ -69,12 +71,13 @@ export default function EventCard({ occurrence, onClick }: EventCardProps) {
         }
       }}
       className={[
-        "relative group cursor-grab active:cursor-grabbing rounded-chip hover:brightness-95 transition-[filter] duration-fast",
+        `relative group ${isEditor ? "cursor-grab active:cursor-grabbing" : "cursor-pointer"} rounded-chip hover:brightness-95 transition-[filter] duration-fast`,
         isDragging ? "opacity-30" : "",
       ].join(" ")}
     >
       <EventCardContent occurrence={occurrence} />
       {card}
+      {isEditor && (
       <div
         ref={setStartRef}
         {...startListeners}
@@ -88,6 +91,8 @@ export default function EventCard({ occurrence, onClick }: EventCardProps) {
           isResizingStart ? "opacity-100" : "",
         ].join(" ")}
       />
+      )}
+      {isEditor && (
       <div
         ref={setResizeRef}
         {...resizeListeners}
@@ -101,6 +106,7 @@ export default function EventCard({ occurrence, onClick }: EventCardProps) {
           isResizing ? "opacity-100" : "",
         ].join(" ")}
       />
+      )}
     </div>
   );
 }

@@ -38,7 +38,7 @@ async function updateHolidayImpl(
   values: HolidayFormValues,
   expectedUpdatedAt?: string
 ): Promise<AffectedRow[]> {
-  await requireRole("viewer");
+  await requireRole("editor");
   const before = await fetchRow("holidays", id);
   let query = supabase.from("holidays").update(values).eq("id", id);
   if (expectedUpdatedAt) query = query.eq("updated_at", expectedUpdatedAt);

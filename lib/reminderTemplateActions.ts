@@ -25,7 +25,7 @@ async function updateReminderTemplateImpl(
   values: ReminderTemplateFormValues,
   expectedUpdatedAt?: string
 ): Promise<AffectedRow[]> {
-  await requireRole("viewer");
+  await requireRole("editor");
   const before = await fetchRow("reminder_templates", id);
   let query = supabase.from("reminder_templates").update(values).eq("id", id);
   if (expectedUpdatedAt) query = query.eq("updated_at", expectedUpdatedAt);

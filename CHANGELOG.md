@@ -8,6 +8,12 @@ items (features/fixes) that push contains — a push with 1 item goes up by
 `1.05`). If MINOR would pass `.99`, MAJOR increments and MINOR carries the
 remainder (e.g. `1.99` + 2 items → `2.01`).
 
+## v2.49 — 2026-10-02
+
+- Viewers are now read-only: they can look at everything and post comments and replies in the General Notes and Month Notes sidebars, and nothing else. Eight actions that Viewers could use (ticking an event's checklist, editing holidays, seasons, categories, reminder templates and monthly checklist items, and the Check Calendar log) now need the Editor role; the screens hide or grey out edit controls for Viewers (no dragging, Edit, quick-add, Undo or checklist ticking).
+- Added a test table that lists every action and its required role, so a loosened or new action fails the tests until the table is updated on purpose.
+- Hardened comment posting: only the expected fields are saved, blank comments are refused, and a reply must belong to a top-level comment in the same note.
+
 ## v2.46 — 2026-10-02
 
 - Login is now a signed session cookie instead of storing the passcode in the cookie. Needs a new `EVO_SESSION_SECRET` environment variable (32+ random characters) in Vercel before deploying; without it nobody can log in. Changing a passcode now logs that role out everywhere; changing the secret logs everyone out. Everyone is logged out once on this deploy.
