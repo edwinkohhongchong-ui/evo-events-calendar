@@ -44,11 +44,8 @@ export default function PrintCalendarCard() {
   const summary = summarizeMonthKeys(selected);
 
   return (
-    <Card padding="p-5" className="mt-4 flex flex-col gap-4">
-      <section className="flex flex-col gap-2">
-        <h2 className="text-title text-ink">Print Calendar</h2>
-        <p className="text-body text-ink-2">Pick the months to print. Each month prints on its own landscape page.</p>
-      </section>
+    <Card padding="p-5" className="flex flex-col gap-4">
+      <p className="text-body text-ink-2">Pick the months to print. Each month prints on its own landscape page.</p>
 
       <section className="flex flex-col gap-2">
         <label className="flex w-32 flex-col gap-1">

@@ -1,6 +1,6 @@
 import { MAX_YEAR, MIN_YEAR } from "./dates";
 
-// Helpers for the Export page's "Print Calendar" card and /export/print.
+// Helpers for the Print Calendar page's "Print Calendar" card and /export/print.
 // A month is identified by a "yyyy-MM" key; keys sort chronologically as strings.
 
 export const MAX_PRINT_MONTHS = 24;

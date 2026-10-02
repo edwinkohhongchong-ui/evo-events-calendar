@@ -19,8 +19,8 @@ export default async function PrintCalendarPage({ searchParams }: { searchParams
     return (
       <main className="max-w-2xl mx-auto p-4 sm:p-6">
         <h1 className="text-xl font-semibold text-navy mb-2">Print Calendar</h1>
-        <p className="text-body text-ink-2 mb-4">{parsed.error} Pick the months to print on the Export page.</p>
-        <Link href="/export" className="text-body font-medium text-navy hover:underline">
+        <p className="text-body text-ink-2 mb-4">{parsed.error} Pick the months to print on the Print Calendar page.</p>
+        <Link href="/export/calendar" className="text-body font-medium text-navy hover:underline">
           Back to Export
         </Link>
       </main>

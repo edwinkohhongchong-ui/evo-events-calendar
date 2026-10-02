@@ -8,6 +8,10 @@ items (features/fixes) that push contains — a push with 1 item goes up by
 `1.05`). If MINOR would pass `.99`, MAJOR increments and MINOR carries the
 remainder (e.g. `1.99` + 2 items → `2.01`).
 
+## v2.96 — 2026-10-02
+
+- Print Calendar now has its own menu item under Export, directly below Export Document, and its own page (`/export/calendar`, Editors only). It is removed from the Export Document page, which now holds only the PDF/Word export. The print preview's "Back to Export" link returns to the Print Calendar page.
+
 ## v2.95 — 2026-10-02
 
 - The weekday row (Mon–Sun) on the month calendar is now frozen: it stays visible just under the month bar while you scroll down the weeks (desktop grid only; the phone agenda and the print views are unchanged).

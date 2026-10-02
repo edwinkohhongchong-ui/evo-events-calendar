@@ -1,6 +1,5 @@
 import { getAllLevels } from "@/lib/data";
 import ExportForm from "@/components/ExportForm";
-import PrintCalendarCard from "@/components/PrintCalendarCard";
 import InstructionsPanel from "@/components/InstructionsPanel";
 
 export const dynamic = "force-dynamic";
@@ -20,7 +19,6 @@ export default async function ExportPage() {
       <h1 className="text-display text-navy mb-4">Export Document</h1>
       <InstructionsPanel lines={INSTRUCTIONS} />
       <ExportForm levels={levels} />
-      <PrintCalendarCard />
     </main>
   );
 }

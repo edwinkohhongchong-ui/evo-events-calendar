@@ -214,7 +214,7 @@ describe("api routes are fully covered", () => {
 
   it("keeps a Viewer on the calendar, day pages and the activity feed only", () => {
     for (const p of ["/", "/day/2026-10-01", "/api/activity"]) expect(isPathAllowedForRole(p, "viewer")).toBe(true);
-    for (const p of ["/checklist", "/holidays", "/seasons", "/levels", "/reminders", "/export", "/admin", "/api/admin/backup", "/api/holidays/fetch-year", "/api/reminders/events"]) {
+    for (const p of ["/checklist", "/holidays", "/seasons", "/levels", "/reminders", "/export", "/export/calendar", "/admin", "/api/admin/backup", "/api/holidays/fetch-year", "/api/reminders/events"]) {
       expect(isPathAllowedForRole(p, "viewer")).toBe(false);
     }
   });

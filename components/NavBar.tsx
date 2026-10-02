@@ -25,6 +25,7 @@ import {
   UploadIcon,
   CalendarPlusIcon,
   FileTextIcon,
+  PrinterIcon,
   PlayCircleIcon,
   ChevronIcon,
   UndoIcon,
@@ -79,6 +80,12 @@ const EXPORT: Group = {
       caption: "Pick a date range and categories",
       icon: <FileTextIcon />,
       tour: "nav-export-document",
+    },
+    {
+      href: "/export/calendar",
+      label: "Print Calendar",
+      caption: "Pick months, one per page",
+      icon: <PrinterIcon />,
     },
   ],
 };
