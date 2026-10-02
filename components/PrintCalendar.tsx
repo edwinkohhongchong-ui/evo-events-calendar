@@ -97,6 +97,8 @@ interface PrintCalendarProps {
   levels: LevelRow[];
   checklistProgress: Record<string, EventChecklistProgress>;
   printedOn: string;
+  backHref?: string;
+  backLabel?: string;
 }
 
 /**
@@ -104,7 +106,7 @@ interface PrintCalendarProps {
  * dnd-kit hooks, so a sensor-less DndContext keeps them inert (nothing can be
  * dragged); click handlers are no-ops.
  */
-export default function PrintCalendar({ months, levels, checklistProgress, printedOn }: PrintCalendarProps) {
+export default function PrintCalendar({ months, levels, checklistProgress, printedOn, backHref = "/export/calendar", backLabel = "Back to Export" }: PrintCalendarProps) {
   const colorMap = useMemo(
     () => Object.fromEntries(levels.map((l) => [l.name, resolveLevelColor(l)])),
     [levels]
@@ -121,8 +123,8 @@ export default function PrintCalendar({ months, levels, checklistProgress, print
   return (
     <>
       <div className="print-hide sticky top-[var(--nav-h,50px)] z-30 flex items-center justify-between gap-3 border-b border-line bg-surface px-4 py-2">
-        <Link href="/export/calendar" className="text-body font-medium text-navy hover:underline">
-          Back to Export
+        <Link href={backHref} className="text-body font-medium text-navy hover:underline">
+          {backLabel}
         </Link>
         <span className="hidden text-body text-ink-2 sm:inline">
           {months.length} {months.length === 1 ? "page" : "pages"}, A4 landscape, one month per page

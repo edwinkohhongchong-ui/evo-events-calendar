@@ -12,6 +12,7 @@ import LevelChips from "./LevelChips";
 import Button from "./ui/Button";
 import IconButton from "./ui/IconButton";
 import { useEventSearch } from "@/lib/eventSearchContext";
+import { monthKey, printHref } from "@/lib/printMonths";
 import { ChevronLeftIcon, ChevronRightIcon, PlusIcon, PrinterIcon, SearchIcon, TagPlusIcon, XIcon } from "./icons";
 
 // Prev/next stay real links (middle-click, open in new tab) styled as
@@ -222,10 +223,10 @@ export default function CalendarHeader({ monthStart, levels, onAddClick, openChe
           ) : (
             <IconButton label="Search events (/)" icon={<SearchIcon />} onClick={openSearch} data-tour="search-button" />
           )}
-          {/* Printable month overview (print CSS in globals.css). Hidden on phones
-              to keep the bar one row; shown for Editors and Viewers alike. */}
+          {/* Printable month overview (print CSS in globals.css). Opens the same
+              print preview as Print Calendar. Hidden on phones to keep the bar one row; shown for Editors and Viewers alike. */}
           <span className="hidden sm:inline-flex">
-            <IconButton label="Print this month" icon={<PrinterIcon />} onClick={() => window.print()} />
+            <IconButton label="Print this month" icon={<PrinterIcon />} onClick={() => router.push(`${printHref([monthKey(monthStart.getFullYear(), monthStart.getMonth() + 1)])}&from=calendar`)} />
           </span>
           {isEditor && (
             <>

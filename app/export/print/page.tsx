@@ -13,7 +13,7 @@ export const dynamic = "force-dynamic";
 
 export const metadata = { title: "Print Calendar" };
 
-export default async function PrintCalendarPage({ searchParams }: { searchParams: { months?: string | string[] } }) {
+export default async function PrintCalendarPage({ searchParams }: { searchParams: { months?: string | string[]; from?: string | string[] } }) {
   const parsed = parseMonthsParam(searchParams.months);
   if (!parsed.ok) {
     return (
@@ -62,8 +62,15 @@ export default async function PrintCalendarPage({ searchParams }: { searchParams
     };
   });
 
+  // Opened from the calendar's Print button: "Back" returns to that month.
+  const fromCalendar = searchParams.from === "calendar" && parsed.months.length > 0;
+  const backHref = fromCalendar ? `/?year=${parsed.months[0].year}&month=${parsed.months[0].month}` : "/export/calendar";
+  const backLabel = fromCalendar ? "Back to calendar" : "Back to Export";
+
   return (
     <PrintCalendar
+      backHref={backHref}
+      backLabel={backLabel}
       months={months}
       levels={levels}
       checklistProgress={checklistProgress}

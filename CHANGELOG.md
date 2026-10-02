@@ -8,6 +8,10 @@ items (features/fixes) that push contains — a push with 1 item goes up by
 `1.05`). If MINOR would pass `.99`, MAJOR increments and MINOR carries the
 remainder (e.g. `1.99` + 2 items → `2.01`).
 
+## v2.99 — 2026-10-02
+
+- The Print button on the calendar now opens the same print preview as Print Calendar, for the month you are viewing (one month per A4 landscape page, same layout), instead of printing the live page directly. "Back to calendar" on that preview returns to the month.
+
 ## v2.98 — 2026-10-02
 
 - The top navbar is now frozen: it stays at the top of every page while you scroll, with the month bar frozen directly under it and the Mon–Sun row under that on the calendar. The bar heights are measured live so the three always sit flush; keyboard focus and anchor scrolls leave room for the stacked bars. Printing is unchanged.
