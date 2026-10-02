@@ -112,11 +112,33 @@ export default function NavBar({ generalComments = [] }: { generalComments?: Not
   const [bellOpen, setBellOpen] = useState(false);
   const [notesOpen, setNotesOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
+  const navRef = useRef<HTMLElement>(null);
   const [openGroups, setOpenGroups] = useState<Record<string, boolean>>(() => {
     const g = groupForPath(pathname);
     return g ? { [g]: true } : {};
   });
   const [entered, setEntered] = useState(false);
+
+  // Publish the bar's rendered height (48px row + 2px gold border, plus the
+  // error banner when shown) as --nav-h so the month bar and weekday row can
+  // stack directly beneath this sticky bar. CSS falls back to 50px.
+  useEffect(() => {
+    const el = navRef.current;
+    if (!el) return;
+    const root = document.documentElement;
+    const publish = () => {
+      root.style.setProperty("--nav-h", `${el.getBoundingClientRect().height}px`);
+      window.dispatchEvent(new Event("evo:nav-h"));
+    };
+    publish();
+    if (typeof ResizeObserver === "undefined") return;
+    const ro = new ResizeObserver(publish);
+    ro.observe(el);
+    return () => {
+      ro.disconnect();
+      root.style.removeProperty("--nav-h");
+    };
+  }, []);
 
   // Subtle fade/slide-in after mount.
   useEffect(() => {
@@ -267,7 +289,10 @@ export default function NavBar({ generalComments = [] }: { generalComments?: Not
   const divider = <div className="border-t border-line my-1.5 mx-2" role="separator" />;
 
   return (
-    <nav className="bg-navy text-white border-b-2 border-gold">
+    <nav
+      ref={navRef}
+      className="sticky top-0 z-40 print:hidden print:static bg-navy text-white border-b-2 border-gold"
+    >
       {error && <ErrorBanner message={error} onDismiss={dismissError} />}
       <div className="relative max-w-6xl mx-auto px-4 sm:px-6 flex items-center h-12 gap-2 sm:gap-3">
         <Link

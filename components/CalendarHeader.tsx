@@ -105,13 +105,28 @@ export default function CalendarHeader({ monthStart, levels, onAddClick, openChe
   const sentinelRef = useRef<HTMLDivElement>(null);
   const barRef = useRef<HTMLDivElement>(null);
   const [stuck, setStuck] = useState(false);
+  // The bar sticks `navH - 1` px below the viewport top (under the sticky
+  // navbar), so the sentinel must be judged against that line, not top 0.
+  const [navH, setNavH] = useState(50);
+  useEffect(() => {
+    const read = () => {
+      const v = parseFloat(document.documentElement.style.getPropertyValue("--nav-h"));
+      if (Number.isFinite(v) && v > 0) setNavH(Math.round(v));
+    };
+    read();
+    window.addEventListener("evo:nav-h", read);
+    return () => window.removeEventListener("evo:nav-h", read);
+  }, []);
   useEffect(() => {
     const el = sentinelRef.current;
     if (!el || typeof IntersectionObserver === "undefined") return;
-    const io = new IntersectionObserver(([entry]) => setStuck(!entry.isIntersecting), { threshold: 0 });
+    const io = new IntersectionObserver(([entry]) => setStuck(!entry.isIntersecting), {
+      threshold: 0,
+      rootMargin: `-${Math.max(navH - 1, 0)}px 0px 0px 0px`,
+    });
     io.observe(el);
     return () => io.disconnect();
-  }, []);
+  }, [navH]);
 
   // Publish the bar's rendered height as --month-bar-h so the weekday row in
   // CalendarGrid can stick directly beneath it at any width (the bar wraps or
@@ -137,7 +152,7 @@ export default function CalendarHeader({ monthStart, levels, onAddClick, openChe
       <div
         ref={barRef}
         className={[
-          "print-header sticky top-0 z-30 print:static print:bg-transparent print:backdrop-blur-none -mx-1 mb-1 flex items-center gap-x-2 gap-y-2 sm:flex-wrap sm:gap-x-4 bg-canvas/95 px-1 py-2 backdrop-blur-sm transition-[border-color] duration-fast",
+          "print-header sticky top-[calc(var(--nav-h,50px)-1px)] z-30 print:static print:bg-transparent print:backdrop-blur-none -mx-1 mb-1 flex items-center gap-x-2 gap-y-2 sm:flex-wrap sm:gap-x-4 bg-canvas/95 px-1 py-2 backdrop-blur-sm transition-[border-color] duration-fast",
           "border-b",
           stuck ? "border-line" : "border-transparent",
         ].join(" ")}

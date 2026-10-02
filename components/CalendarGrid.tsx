@@ -46,7 +46,7 @@ export default function CalendarGrid({
           // Sticks just under the month bar (CalendarHeader publishes its height as
           // --month-bar-h; 1px overlap hides any subpixel seam). z-20 < bar's z-30,
           // > day cells/chips (unstacked). Static in print and while html.printing.
-          stickyHeader ? "sticky top-[calc(var(--month-bar-h,56px)-1px)] z-20 print:static" : "",
+          stickyHeader ? "sticky top-[calc(var(--nav-h,50px)+var(--month-bar-h,56px)-2px)] z-20 print:static" : "",
         ].join(" ")}
       >
         {WEEKDAY_LABELS.map((label, i) => (

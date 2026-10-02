@@ -8,6 +8,10 @@ items (features/fixes) that push contains — a push with 1 item goes up by
 `1.05`). If MINOR would pass `.99`, MAJOR increments and MINOR carries the
 remainder (e.g. `1.99` + 2 items → `2.01`).
 
+## v2.98 — 2026-10-02
+
+- The top navbar is now frozen: it stays at the top of every page while you scroll, with the month bar frozen directly under it and the Mon–Sun row under that on the calendar. The bar heights are measured live so the three always sit flush; keyboard focus and anchor scrolls leave room for the stacked bars. Printing is unchanged.
+
 ## v2.97 — 2026-10-02
 
 - Viewers can now use the whole Export group in the menu: Add to Calendar (.ics), Export Document (PDF/Word) and Print Calendar (with its print preview). These only read data Viewers already see. Everything else (Reminders, Backup, holiday import, Seasons, Categories, Checklist, Holidays) is still Editors only, and tests check exactly that split. `CLAUDE.md`, `ONBOARDING.md` and the "Viewer or Editor?" tour step now say Viewers can look, comment in the sidebars and use Export.

@@ -120,7 +120,7 @@ export default function PrintCalendar({ months, levels, checklistProgress, print
 
   return (
     <>
-      <div className="print-hide sticky top-0 z-30 flex items-center justify-between gap-3 border-b border-line bg-surface px-4 py-2">
+      <div className="print-hide sticky top-[var(--nav-h,50px)] z-30 flex items-center justify-between gap-3 border-b border-line bg-surface px-4 py-2">
         <Link href="/export/calendar" className="text-body font-medium text-navy hover:underline">
           Back to Export
         </Link>

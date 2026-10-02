@@ -9,6 +9,15 @@
 
 html {
   scroll-behavior: smooth;
+  /* Keep keyboard-focus / anchor scrolling clear of the stacked sticky bars
+     (navbar + month bar + weekday row ~32px). --month-bar-h only exists on
+     the calendar page, so other pages just get navbar clearance. */
+  scroll-padding-top: calc(var(--nav-h, 50px) + var(--month-bar-h, 0px) + 34px);
+}
+@media print {
+  html {
+    scroll-padding-top: 0;
+  }
 }
 
 body {
