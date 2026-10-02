@@ -524,15 +524,17 @@ function EventModalInner({
     setFormError(null);
     try {
       if (scope === "only") {
-        const affected = unwrap(await detachOccurrence(event, occurrence.originalDate, pendingValues));
+        const affected = unwrap(await detachOccurrence(event, occurrence.originalDate, pendingValues, lockToken));
         record(`Edit "${pendingValues.name}" (only this event)`, affected);
       } else {
-        const affected = unwrap(await splitSeriesFromOccurrence(event, occurrence.originalDate, pendingValues));
+        const affected = unwrap(await splitSeriesFromOccurrence(event, occurrence.originalDate, pendingValues, lockToken));
         record(`Edit "${pendingValues.name}" (this and future events)`, affected);
       }
       onSaved();
     } catch (err) {
-      setFormError(err instanceof Error ? err.message : "Something went wrong saving this event. Check your connection and try again. Your details are still in the form.");
+      const message = err instanceof Error ? err.message : "Something went wrong saving this event. Check your connection and try again. Your details are still in the form.";
+      setConflict(isEventConflict(message));
+      setFormError(message);
       setSaving(false);
     }
   }
@@ -554,6 +556,7 @@ function EventModalInner({
       record(`Delete "${event.name}" (only this event)`, affected);
       onDeleted();
     } catch (err) {
+      setConflict(false);
       setFormError(err instanceof Error ? err.message : "Something went wrong deleting this event.");
       setSaving(false);
     }
@@ -564,11 +567,13 @@ function EventModalInner({
     setSaving(true);
     setFormError(null);
     try {
-      const affected = unwrap(await deleteEvent(event.id));
+      const affected = unwrap(await deleteEvent(event.id, lockToken));
       record(`Delete "${event.name}"`, affected);
       onDeleted();
     } catch (err) {
-      setFormError(err instanceof Error ? err.message : "Something went wrong deleting this event.");
+      const message = err instanceof Error ? err.message : "Something went wrong deleting this event.";
+      setConflict(isEventConflict(message));
+      setFormError(message);
       setSaving(false);
     }
   }
@@ -1190,6 +1195,14 @@ function EventModalInner({
           </div>
 
         </form>
+      )}
+      {/* The dialogs above only show the message; the form has its own Reload. */}
+      {conflict && onReload && (confirmDelete || step === "editScope") && (
+        <div className="mt-3 flex flex-col items-start gap-1">
+          <Button type="button" size="sm" variant="ghost" loading={reloading} onClick={handleReload}>
+            Reload
+          </Button>
+        </div>
       )}
     </ModalShell>
   );

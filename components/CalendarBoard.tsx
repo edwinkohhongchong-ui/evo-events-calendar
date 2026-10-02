@@ -27,6 +27,7 @@ import { buildDayIndex } from "@/lib/dayIndex";
 import { occurrenceKey } from "@/lib/occurrenceKey";
 import { withOptimisticMove } from "@/lib/optimisticMove";
 import { moveOccurrence, extendOccurrenceSpan, moveOccurrenceStart } from "@/lib/actions";
+import { eventLockToken, isEventConflict, rememberEventToken } from "@/lib/eventConflict";
 import { unwrap } from "@/lib/actionResult";
 import { SeasonSegment } from "@/lib/seasonBars";
 import { computeEventBarSegments } from "@/lib/eventBars";
@@ -151,8 +152,13 @@ export default function CalendarBoard({
   // patch of a later gesture whose server call is still in flight (the card
   // would snap back, then reappear) — so only clear when none is in flight.
   const inFlightRef = useRef(0);
+  // Lock tokens returned by this user's own just-completed writes, so a second
+  // drag of the same event before the refresh lands doesn't conflict with the
+  // first. Cleared with the optimistic patches, once fresh props are in.
+  const freshTokensRef = useRef(new Map<string, string>());
   useEffect(() => {
     if (!isPending && inFlightRef.current === 0) {
+      freshTokensRef.current.clear();
       setOptimisticMove({});
       setOptimisticResize({});
       setOptimisticStart({});
@@ -262,13 +268,16 @@ export default function CalendarBoard({
           resizeStartOccurrence.event,
           resizeStartOccurrence.originalDate,
           targetDate,
-          resizeStartOccurrence.spanEndDate
+          resizeStartOccurrence.spanEndDate,
+          eventLockToken(resizeStartOccurrence.event, freshTokensRef.current)
         ));
+        rememberEventToken(freshTokensRef.current, resizeStartOccurrence.event.id, affected);
         record(`Resize "${resizeStartOccurrence.event.name}"`, affected);
         startTransition(() => router.refresh());
       } catch (err) {
         dropKey(setOptimisticStart, occurrenceKey(resizeStartOccurrence));
         setError(err instanceof Error ? err.message : "Couldn't resize that event — it's back where it was. Please try again.");
+        if (err instanceof Error && isEventConflict(err.message)) startTransition(() => router.refresh()); // show their version
       } finally {
         inFlightRef.current--;
       }
@@ -285,18 +294,24 @@ export default function CalendarBoard({
         const affected = unwrap(await extendOccurrenceSpan(
           resizeOccurrence.event,
           resizeOccurrence.originalDate,
-          targetDate
+          targetDate,
+          eventLockToken(resizeOccurrence.event, freshTokensRef.current)
         ));
+        const nextToken = rememberEventToken(freshTokensRef.current, resizeOccurrence.event.id, affected);
         record(`Resize "${resizeOccurrence.event.name}"`, affected);
         startTransition(() => router.refresh());
         // Open straight into editing so time/other details can be filled in
         // right after resizing — the resized occurrence's own spanEndDate
         // isn't reflected in the (not-yet-refreshed) occurrence object, so
         // it's patched in here rather than waiting on the refresh to land.
-        setModal({ type: "edit", occurrence: { ...resizeOccurrence, spanEndDate: targetDate } });
+        // A non-recurring resize rewrote the event row, so the modal needs
+        // the new lock token or its first Save would conflict with this resize.
+        const event = nextToken ? { ...resizeOccurrence.event, updated_at: nextToken } : resizeOccurrence.event;
+        setModal({ type: "edit", occurrence: { ...resizeOccurrence, event, spanEndDate: targetDate } });
       } catch (err) {
         dropKey(setOptimisticResize, occurrenceKey(resizeOccurrence));
         setError(err instanceof Error ? err.message : "Couldn't resize that event — it's back where it was. Please try again.");
+        if (err instanceof Error && isEventConflict(err.message)) startTransition(() => router.refresh()); // show their version
       } finally {
         inFlightRef.current--;
       }
@@ -310,12 +325,19 @@ export default function CalendarBoard({
     setKey(setOptimisticMove, occurrenceKey(occurrence), targetDate);
     inFlightRef.current++;
     try {
-      const affected = unwrap(await moveOccurrence(occurrence.event, occurrence.originalDate, targetDate));
+      const affected = unwrap(await moveOccurrence(
+        occurrence.event,
+        occurrence.originalDate,
+        targetDate,
+        eventLockToken(occurrence.event, freshTokensRef.current)
+      ));
+      rememberEventToken(freshTokensRef.current, occurrence.event.id, affected);
       record(`Move "${occurrence.event.name}"`, affected);
       startTransition(() => router.refresh());
     } catch (err) {
       dropKey(setOptimisticMove, occurrenceKey(occurrence));
       setError(err instanceof Error ? err.message : "Couldn't move that event — it's back where it was. Please try again.");
+        if (err instanceof Error && isEventConflict(err.message)) startTransition(() => router.refresh()); // show their version
     } finally {
       inFlightRef.current--;
     }

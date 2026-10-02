@@ -17,6 +17,7 @@ import EventModal from "./EventModal";
 import { useIsEditor } from "@/lib/roleContext";
 import ErrorBanner from "./ErrorBanner";
 import { retimeOccurrence } from "@/lib/actions";
+import { eventLockToken, isEventConflict, rememberEventToken } from "@/lib/eventConflict";
 import { unwrap } from "@/lib/actionResult";
 import { occurrenceKey } from "@/lib/occurrenceKey";
 import { computeDuration, minutesToTimeStr, timeStrToMinutes } from "@/lib/timeMath";
@@ -61,8 +62,15 @@ export default function DayView({ occurrences, levels }: DayViewProps) {
   const [activeOcc, setActiveOcc] = useState<EventOccurrence | null>(null);
   const isDraggingRef = useRef(false);
 
+  // Lock tokens from this user's own just-completed retimes, so two quick
+  // drags of one event don't conflict with each other. Cleared once fresh
+  // props have landed.
+  const freshTokensRef = useRef(new Map<string, string>());
   useEffect(() => {
-    if (!isPending) setOptimisticStart(null);
+    if (!isPending) {
+      setOptimisticStart(null);
+      freshTokensRef.current.clear();
+    }
   }, [isPending]);
 
   const displayOccurrences = useMemo(() => {
@@ -114,12 +122,19 @@ export default function DayView({ occurrences, levels }: DayViewProps) {
 
     setOptimisticStart({ key: occurrenceKey(occurrence), startTime: newStart });
     try {
-      const affected = unwrap(await retimeOccurrence(occurrence.event, occurrence.originalDate, newStart));
+      const affected = unwrap(await retimeOccurrence(
+        occurrence.event,
+        occurrence.originalDate,
+        newStart,
+        eventLockToken(occurrence.event, freshTokensRef.current)
+      ));
+      rememberEventToken(freshTokensRef.current, occurrence.event.id, affected);
       record(`Retime "${occurrence.event.name}"`, affected);
       startTransition(() => router.refresh());
     } catch (err) {
       setOptimisticStart(null);
       setError(err instanceof Error ? err.message : "Couldn't retime that event — it's back where it was. Please try again.");
+        if (err instanceof Error && isEventConflict(err.message)) startTransition(() => router.refresh()); // show their version
     }
   }
 

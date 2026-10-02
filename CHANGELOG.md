@@ -8,6 +8,10 @@ items (features/fixes) that push contains — a push with 1 item goes up by
 `1.05`). If MINOR would pass `.99`, MAJOR increments and MINOR carries the
 remainder (e.g. `1.99` + 2 items → `2.01`).
 
+## v2.109 — 2026-10-02
+
+- Edit-conflict protection now also covers deleting an event, saving "only this event" or "this and future events" on a recurring event, and dragging, resizing or retiming a non-recurring event: if someone else changed the event meanwhile you see the same plain message ("Someone else changed this event while you were editing. Reload to see their changes.") with a Reload button, and a dragged event rolls back to their version. Your own back-to-back drags never conflict with themselves. Recurring-event drags (which only add one-date overrides) are not locked, because they never change the event row.
+
 ## v2.108 — 2026-10-02
 
 - Viewer Export access is now an exact list of pages (`/export`, `/export/calendar`, `/export/print`) and the two download routes, instead of everything under `/export/*`; a test fails if a new Export page is added without a deliberate decision. Added regression tests for encoded, traversal and look-alike addresses.

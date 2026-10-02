@@ -15,6 +15,54 @@ import { EVENT_CONFLICT_MESSAGE } from "./eventConflict";
 import { pickEventColumns } from "./pickColumns";
 import { OWNER_MIGRATION_HINT, isMissingOwnerColumn, withOwner } from "./owner";
 
+// Optimistic-lock helpers shared by the event writes below. Every
+// `expectedUpdatedAt` is optional: omitted, the write is unconditional, exactly
+// as before. The token is compared as the PostgREST timestamptz string, the
+// same way updateEventImpl does.
+
+// UPDATE on the events row guarded by the token. Returns the updated row. A
+// zero-row match with a token means conflict (row still there) or not found;
+// without a token it keeps the caller's own generic failure message.
+async function updateEventRowGuarded(
+  id: string,
+  patch: Record<string, unknown>,
+  expectedUpdatedAt: string | undefined,
+  failMessage: string,
+  before: { updated_at?: unknown } | null
+): Promise<AffectedRow["after"] & Record<string, unknown>> {
+  let query = supabase.from("events").update(patch).eq("id", id);
+  if (expectedUpdatedAt) query = query.eq("updated_at", expectedUpdatedAt);
+  const { data, error } = await query.select();
+  if (error) {
+    console.error(error);
+    throw new Error(failMessage);
+  }
+  if (!data || data.length === 0) {
+    if (!expectedUpdatedAt) throw new Error(failMessage);
+    throw new Error(before ? EVENT_CONFLICT_MESSAGE : "Event not found.");
+  }
+  return data[0];
+}
+
+// Read-only check for writes that leave the events row itself untouched
+// (detach, split pre-check): throws the conflict / not-found message unless
+// the row still carries the token. Not atomic with the writes that follow.
+async function assertEventUnchanged(id: string, expectedUpdatedAt: string | undefined): Promise<void> {
+  if (!expectedUpdatedAt) return;
+  const { data, error } = await supabase
+    .from("events")
+    .select("id")
+    .eq("id", id)
+    .eq("updated_at", expectedUpdatedAt)
+    .maybeSingle();
+  if (error) {
+    console.error(error);
+    throw new Error("Something went wrong saving this event. Check your connection and try again. Your details are still in the form.");
+  }
+  if (data) return;
+  throw new Error((await fetchRow("events", id)) ? EVENT_CONFLICT_MESSAGE : "Event not found.");
+}
+
 // Moves a single occurrence to newDate. Never touches new_time/new_end_date —
 // the upsert below only ever sends event_id/original_date/new_date, so
 // PostgREST's merge-duplicates upsert leaves an existing new_time (set by a
@@ -32,21 +80,23 @@ import { OWNER_MIGRATION_HINT, isMissingOwnerColumn, withOwner } from "./owner";
 async function moveOccurrenceImpl(
   event: EventRow,
   originalDate: string,
-  newDate: string
+  newDate: string,
+  expectedUpdatedAt?: string
 ): Promise<AffectedRow[]> {
   await requireRole("editor");
+  // Only the non-recurring branch modifies the events row, so only it takes
+  // the lock; the recurring branch writes event_overrides alone (which never
+  // bumps events.updated_at), so repeated drags of one occurrence can't
+  // self-conflict and a token there is deliberately ignored.
   if (event.recurring === "None") {
     const before = await fetchRow("events", event.id);
-    const { data, error } = await supabase
-      .from("events")
-      .update({ event_date: newDate })
-      .eq("id", event.id)
-      .select()
-      .single();
-    if (error) {
-      console.error(error);
-      throw new Error("Something went wrong moving this event. Please try again.");
-    }
+    const data = await updateEventRowGuarded(
+      event.id,
+      { event_date: newDate },
+      expectedUpdatedAt,
+      "Something went wrong moving this event. Please try again.",
+      before
+    );
     await logActivity({ action: "moved", entity: "event", entityId: event.id, label: event.name, itemDate: newDate });
     return [{ table: "events", id: event.id, before, after: data }];
   }
@@ -107,25 +157,24 @@ async function moveOccurrenceImpl(
 async function retimeOccurrenceImpl(
   event: EventRow,
   originalDate: string,
-  newTime: string
+  newTime: string,
+  expectedUpdatedAt?: string
 ): Promise<AffectedRow[]> {
   await requireRole("editor");
+  // Lock only where the events row is written (see moveOccurrenceImpl).
   if (event.recurring === "None") {
     const before = await fetchRow("events", event.id);
-    const { data, error } = await supabase
-      .from("events")
-      .update({
+    const data = await updateEventRowGuarded(
+      event.id,
+      {
         event_time: newTime,
         end_time:
           event.duration_minutes != null ? computeEndTime(newTime, event.duration_minutes) : null,
-      })
-      .eq("id", event.id)
-      .select()
-      .single();
-    if (error) {
-      console.error(error);
-      throw new Error("Something went wrong retiming this event. Please try again.");
-    }
+      },
+      expectedUpdatedAt,
+      "Something went wrong retiming this event. Please try again.",
+      before
+    );
     await logActivity({ action: "edited", entity: "event", entityId: event.id, label: event.name, itemDate: originalDate });
     return [{ table: "events", id: event.id, before, after: data }];
   }
@@ -280,7 +329,11 @@ async function updateEventImpl(
 // back, not just the base row. For a recurring event this deletes the whole
 // series — the confirmation UI is responsible for making that unambiguous
 // before calling this.
-async function deleteEventImpl(id: string): Promise<AffectedRow[]> {
+//
+// `expectedUpdatedAt` (optional) makes the delete conditional on the event not
+// having been edited since the modal opened. The children are captured first
+// as before; a conflict deletes nothing, so the captured rows are discarded.
+async function deleteEventImpl(id: string, expectedUpdatedAt?: string): Promise<AffectedRow[]> {
   await requireRole("editor");
   const before = await fetchRow("events", id);
   const { data: overrides, error: overridesError } = await supabase
@@ -311,10 +364,15 @@ async function deleteEventImpl(id: string): Promise<AffectedRow[]> {
     throw new Error("Something went wrong deleting this event. Please try again.");
   }
 
-  const { error } = await supabase.from("events").delete().eq("id", id);
+  let deleteQuery = supabase.from("events").delete().eq("id", id);
+  if (expectedUpdatedAt) deleteQuery = deleteQuery.eq("updated_at", expectedUpdatedAt);
+  const { data: deleted, error } = await deleteQuery.select("id");
   if (error) {
     console.error(error);
     throw new Error("Something went wrong deleting this event. Please try again.");
+  }
+  if (expectedUpdatedAt && (!deleted || deleted.length === 0)) {
+    throw new Error(before ? EVENT_CONFLICT_MESSAGE : "Event not found.");
   }
 
   const affected: AffectedRow[] = [];
@@ -341,9 +399,13 @@ async function deleteEventImpl(id: string): Promise<AffectedRow[]> {
 async function detachOccurrenceImpl(
   event: EventRow,
   originalDate: string,
-  values: EventFormValues
+  values: EventFormValues,
+  expectedUpdatedAt?: string
 ): Promise<AffectedRow[]> {
   await requireRole("editor");
+  // The series row isn't modified here (only an exception is added), so the
+  // lock is a check-then-write rather than an atomic guard.
+  await assertEventUnchanged(event.id, expectedUpdatedAt);
   const row = withOwner(pickEventColumns(values));
   const { data: inserted, error: insertError } = await supabase
     .from("events")
@@ -417,14 +479,18 @@ async function detachOccurrenceImpl(
 async function splitSeriesFromOccurrenceImpl(
   event: EventRow,
   originalDate: string,
-  values: EventFormValues
+  values: EventFormValues,
+  expectedUpdatedAt?: string
 ): Promise<AffectedRow[]> {
   await requireRole("editor");
   // Editing the very first occurrence "and all future" has nothing to
   // preserve before it — same as editing the whole series in place.
   if (originalDate === event.event_date) {
-    return updateEventImpl(event.id, values);
+    return updateEventImpl(event.id, values, expectedUpdatedAt);
   }
+  // Fail before inserting the new series; the guarded shorten update below is
+  // the atomic check, and rollbackSplit removes the new series if it loses.
+  await assertEventUnchanged(event.id, expectedUpdatedAt);
 
   const affected: AffectedRow[] = [];
 
@@ -450,16 +516,13 @@ async function splitSeriesFromOccurrenceImpl(
   try {
     const cutoff = toDateStr(subDays(parseDateStr(originalDate), 1));
     const beforeShorten = await fetchRow("events", event.id);
-    const { data: shortened, error: shortenError } = await supabase
-      .from("events")
-      .update({ repeat_until: cutoff })
-      .eq("id", event.id)
-      .select()
-      .single();
-    if (shortenError) {
-      console.error(shortenError);
-      throw new Error("Something went wrong saving this event series. Check your connection and try again. Your details are still in the form.");
-    }
+    const shortened = await updateEventRowGuarded(
+      event.id,
+      { repeat_until: cutoff },
+      expectedUpdatedAt,
+      "Something went wrong saving this event series. Check your connection and try again. Your details are still in the form.",
+      beforeShorten
+    );
     affected.push({ table: "events", id: event.id, before: beforeShorten, after: shortened });
 
     const { data: overridesBefore, error: overridesBeforeError } = await supabase
@@ -566,21 +629,20 @@ async function rollbackSplit(affected: AffectedRow[]): Promise<void> {
 async function extendOccurrenceSpanImpl(
   event: EventRow,
   originalDate: string,
-  newEndDate: string
+  newEndDate: string,
+  expectedUpdatedAt?: string
 ): Promise<AffectedRow[]> {
   await requireRole("editor");
+  // Lock only where the events row is written (see moveOccurrenceImpl).
   if (event.recurring === "None") {
     const before = await fetchRow("events", event.id);
-    const { data, error } = await supabase
-      .from("events")
-      .update({ end_date: newEndDate === event.event_date ? null : newEndDate })
-      .eq("id", event.id)
-      .select()
-      .single();
-    if (error) {
-      console.error(error);
-      throw new Error("Something went wrong resizing this event. Please try again.");
-    }
+    const data = await updateEventRowGuarded(
+      event.id,
+      { end_date: newEndDate === event.event_date ? null : newEndDate },
+      expectedUpdatedAt,
+      "Something went wrong resizing this event. Please try again.",
+      before
+    );
     await logActivity({ action: "edited", entity: "event", entityId: event.id, label: event.name, itemDate: originalDate });
     return [{ table: "events", id: event.id, before, after: data }];
   }
@@ -661,7 +723,8 @@ async function moveOccurrenceStartImpl(
   event: EventRow,
   originalDate: string,
   newStartDate: string,
-  endDate: string
+  endDate: string,
+  expectedUpdatedAt?: string
 ): Promise<AffectedRow[]> {
   await requireRole("editor");
   if (newStartDate > endDate) {
@@ -669,16 +732,14 @@ async function moveOccurrenceStartImpl(
   }
   if (event.recurring === "None") {
     const before = await fetchRow("events", event.id);
-    const { data, error } = await supabase
-      .from("events")
-      .update({ event_date: newStartDate, end_date: endDate === newStartDate ? null : endDate })
-      .eq("id", event.id)
-      .select()
-      .single();
-    if (error) {
-      console.error(error);
-      throw new Error("Something went wrong resizing this event. Please try again.");
-    }
+    // Lock only where the events row is written (see moveOccurrenceImpl).
+    const data = await updateEventRowGuarded(
+      event.id,
+      { event_date: newStartDate, end_date: endDate === newStartDate ? null : endDate },
+      expectedUpdatedAt,
+      "Something went wrong resizing this event. Please try again.",
+      before
+    );
     await logActivity({ action: "edited", entity: "event", entityId: event.id, label: event.name, itemDate: newStartDate });
     return [{ table: "events", id: event.id, before, after: data }];
   }
