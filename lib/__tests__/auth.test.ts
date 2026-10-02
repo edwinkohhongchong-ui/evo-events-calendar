@@ -24,6 +24,21 @@ describe("isPathAllowedForRole", () => {
       expect(isPathAllowedForRole(p, "viewer"), p).toBe(false);
     }
   });
+  it("allows only the exact Export pages, not future sub-paths", () => {
+    for (const p of ["/export/admin", "/export/calendar/x", "/export/print/x", "/api/export/ics/x", "/api/export/document/x"]) {
+      expect(isPathAllowedForRole(p, "viewer"), p).toBe(false);
+      expect(isPathAllowedForRole(p, "editor"), p).toBe(true);
+    }
+  });
+  it("treats one trailing slash like Next does, nothing more", () => {
+    expect(isPathAllowedForRole("/export/", "viewer")).toBe(true);
+    expect(isPathAllowedForRole("/api/export/ics/", "viewer")).toBe(true);
+    expect(isPathAllowedForRole("/export//", "viewer")).toBe(false);
+    expect(isPathAllowedForRole("/Export", "viewer")).toBe(false);
+    expect(isPathAllowedForRole("/export/../reminders", "viewer")).toBe(false);
+    expect(isPathAllowedForRole("/export%2Freminders", "viewer")).toBe(false);
+    expect(isPathAllowedForRole("/export/%2Freminders", "viewer")).toBe(false);
+  });
 });
 
 describe("schedule import is Editor-only", () => {

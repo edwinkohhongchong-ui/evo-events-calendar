@@ -80,6 +80,14 @@ export function listRouteFiles(): string[] {
     .sort();
 }
 
+// URL paths of every page under app/export (e.g. "/export/calendar").
+export function listExportPages(): string[] {
+  return walk(join(ROOT, "app", "export"))
+    .filter((f) => /[\\/]page\.tsx$/.test(f))
+    .map((f) => "/" + relative(ROOT, f).replace(/\\/g, "/").replace(/^app\//, "").replace(/\/page\.tsx$/, ""))
+    .sort();
+}
+
 // Returns the text between the braces of the body of `function <name>(...)`,
 // or null if it can't be found/parsed. Expects comment-stripped source.
 export function functionBody(code: string, name: string): string | null {

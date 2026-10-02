@@ -8,6 +8,11 @@ items (features/fixes) that push contains — a push with 1 item goes up by
 `1.05`). If MINOR would pass `.99`, MAJOR increments and MINOR carries the
 remainder (e.g. `1.99` + 2 items → `2.01`).
 
+## v2.108 — 2026-10-02
+
+- Viewer Export access is now an exact list of pages (`/export`, `/export/calendar`, `/export/print`) and the two download routes, instead of everything under `/export/*`; a test fails if a new Export page is added without a deliberate decision. Added regression tests for encoded, traversal and look-alike addresses.
+- PDF/Word export is capped at 2,000 events per file with a plain message ("That range has too many events to export at once. Choose a shorter date range."), since Viewers can now trigger it.
+
 ## v2.107 — 2026-10-02
 
 - The schedule import preview now cross-checks every public holiday against Calendarific (the same service Start a New Year uses): green "Verified: Calendarific", amber "Calendarific says <name> on <date>" when the date differs (expected for moon-sighting holidays), or grey "Not found in Calendarific", with a summary line and a list of Calendarific holidays the document doesn't mention. It is advisory only (it never ticks or edits rows), a failed lookup never blocks the import (the preview says "Holiday check unavailable. Check manually."), and the results are included in "Copy list for web check". The holiday lookup was moved into a shared module; Start a New Year behaves as before.

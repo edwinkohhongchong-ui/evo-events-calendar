@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getCalendarData } from "@/lib/data";
 import { expandEvents } from "@/lib/recurrence";
 import { applyOverrides } from "@/lib/overrides";
+import { EXPORT_TOO_MANY_EVENTS_MESSAGE, exceedsExportOccurrenceCap } from "@/lib/exportLimits";
 import { isValidDateStr, parseDateStr } from "@/lib/dates";
 
 const MAX_EXPORT_YEARS = 5;
@@ -80,6 +81,10 @@ export async function POST(request: NextRequest) {
       (a, b) =>
         a.occurrenceDate.localeCompare(b.occurrenceDate) || (a.startTime ?? "").localeCompare(b.startTime ?? "")
     );
+
+    if (exceedsExportOccurrenceCap(occurrences.length)) {
+      return NextResponse.json({ error: EXPORT_TOO_MANY_EVENTS_MESSAGE }, { status: 400 });
+    }
 
     const range = { startDate, endDate };
 

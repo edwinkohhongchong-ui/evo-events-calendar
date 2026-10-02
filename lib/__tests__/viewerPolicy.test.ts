@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { isPathAllowedForRole } from "../auth";
+import { isPathAllowedForRole, VIEWER_EXPORT_PATHS } from "../auth";
 import {
   exportViolations,
   exportedAsyncFunctions,
@@ -7,6 +7,7 @@ import {
   functionBody,
   isExactWrapper,
   leadingRole,
+  listExportPages,
   listInlineUseServer,
   listRouteFiles,
   listUseServerFiles,
@@ -346,5 +347,18 @@ describe("policy checkers detect violations", () => {
     expect(s).toContain("https://x.y");
     expect(s).not.toContain("note");
     expect(s).not.toContain("block");
+  });
+});
+
+describe("Viewer Export allow-list", () => {
+  it("every page under app/export is a deliberate Viewer decision", () => {
+    // Adding a page under app/export fails here until it is added to
+    // VIEWER_EXPORT_PATHS (Viewer-visible) or this expectation is updated
+    // (and the page is then Editor-only by default).
+    expect(listExportPages()).toEqual(["/export", "/export/calendar", "/export/print"]);
+    for (const page of listExportPages()) {
+      expect(VIEWER_EXPORT_PATHS, page).toContain(page);
+      expect(isPathAllowedForRole(page, "viewer"), page).toBe(true);
+    }
   });
 });

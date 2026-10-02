@@ -122,6 +122,25 @@ describe("middleware with a session", () => {
     }
   });
 
+  it("blocks Viewer traversal / encoding / case tricks around Export", async () => {
+    // Outcomes asserted against the real middleware; WHATWG URL parsing may
+    // collapse some of these to "/reminders" before the allow-list sees them.
+    for (const p of [
+      "/export/%2e%2e/reminders", "/export//", "/Export", "/export/../reminders",
+      "/export%2Freminders", "/export/%2Freminders", "/api/export/icsx", "/export/admin",
+    ]) {
+      const res = await middleware(await req(p, "viewer"));
+      expect(isNext(res), p).toBe(false);
+      expect(new URL(location(res)!).searchParams.get("notice"), p).toBe("editors-only");
+    }
+  });
+
+  it("treats a single trailing slash on an allowed Export route as that route", async () => {
+    for (const p of ["/export/", "/api/export/ics/"]) {
+      expect(isNext(await middleware(await req(p, "viewer"))), p).toBe(true);
+    }
+  });
+
   it("lets an Editor reach /reminders, /api/admin/backup and the schedule import", async () => {
     for (const p of ["/reminders", "/api/admin/backup", "/seasons/import", "/api/schedules/parse"]) {
       expect(isNext(await middleware(await req(p, "editor"))), p).toBe(true);
