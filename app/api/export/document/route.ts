@@ -19,7 +19,7 @@ interface RequestBody {
 }
 
 export async function POST(request: NextRequest) {
-  const denied = await requireRoleRoute("editor");
+  const denied = await requireRoleRoute("viewer");
   if (denied) return denied;
 
   const body = (await request.json().catch(() => null)) as RequestBody | null;

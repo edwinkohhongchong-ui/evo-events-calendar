@@ -132,7 +132,7 @@ export const TOUR_STEPS: TourStep[] = [
   // --- Part 5 of 6: Editor vs. Viewer access ---
   {
     title: "Viewer or Editor?",
-    body: "Viewers can look around and comment in the sidebars (General Notes and Month Notes) only. Only Editors can add, edit, tick, move or delete anything, use Undo, or open the other tabs in the ☰ menu. If a button is missing for you, that's expected.",
+    body: "Viewers can look around, comment in the sidebars (General Notes and Month Notes) and use Export to download or print. Only Editors can add, edit, tick, move or delete anything, use Undo, or open the other tabs in the ☰ menu. If a button is missing for you, that's expected.",
     route: "/",
     targetSelector: '[data-tour="hamburger-menu-panel"]',
     requiresMenuOpen: true,

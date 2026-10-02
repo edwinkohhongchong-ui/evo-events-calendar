@@ -11,7 +11,7 @@ export const dynamic = "force-dynamic";
 // so Apple/Google Calendar handle "repeats weekly" the same way this app
 // does rather than importing hundreds of flat one-off entries.
 export async function GET() {
-  const denied = await requireRoleRoute("editor");
+  const denied = await requireRoleRoute("viewer");
   if (denied) return denied;
 
   const [eventsRes, overridesRes, exceptionsRes] = await Promise.all([

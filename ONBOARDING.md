@@ -14,7 +14,7 @@ not public-facing.
 
 ## Secrets and environment variables
 The app has two logins, **Editor** (full access) and **Viewer** (look and
-comment in the sidebars only — no adding, editing, ticking or deleting). Their passcodes live in the
+comment in the sidebars, and use Export to download or print — no adding, editing, ticking or deleting). Their passcodes live in the
 `EVO_PASSCODE_EDITOR` and `EVO_PASSCODE_VIEWER` environment variables (the old
 single `EVO_PASSCODE` is no longer read). Values marked "Sensitive" in Vercel
 can never be viewed again, so keep every real value in a password manager.

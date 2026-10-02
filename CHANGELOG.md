@@ -8,6 +8,10 @@ items (features/fixes) that push contains — a push with 1 item goes up by
 `1.05`). If MINOR would pass `.99`, MAJOR increments and MINOR carries the
 remainder (e.g. `1.99` + 2 items → `2.01`).
 
+## v2.97 — 2026-10-02
+
+- Viewers can now use the whole Export group in the menu: Add to Calendar (.ics), Export Document (PDF/Word) and Print Calendar (with its print preview). These only read data Viewers already see. Everything else (Reminders, Backup, holiday import, Seasons, Categories, Checklist, Holidays) is still Editors only, and tests check exactly that split. `CLAUDE.md`, `ONBOARDING.md` and the "Viewer or Editor?" tour step now say Viewers can look, comment in the sidebars and use Export.
+
 ## v2.96 — 2026-10-02
 
 - Print Calendar now has its own menu item under Export, directly below Export Document, and its own page (`/export/calendar`, Editors only). It is removed from the Export Document page, which now holds only the PDF/Word export. The print preview's "Back to Export" link returns to the Print Calendar page.

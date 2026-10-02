@@ -121,6 +121,7 @@ describe("server action files are fully covered", () => {
 
 type RouteKind =
   | { kind: "editor"; methods: string[] } // requireRoleRoute("editor") first, before any db/network access
+  | { kind: "viewer-read"; methods: string[] } // requireRoleRoute("viewer") first; read-only export, must not write
   | { kind: "session"; methods: string[] } // verifySessionToken gate before any data access (any role)
   | { kind: "token"; methods: string[] } // secret-URL token compared before any data access
   | { kind: "public-login"; methods: string[] } // issues sessions; public in middleware
@@ -128,9 +129,9 @@ type RouteKind =
 
 const ROUTES: Record<string, RouteKind> = {
   "app/api/holidays/fetch-year/route.ts": { kind: "editor", methods: ["POST"] },
-  "app/api/export/ics/route.ts": { kind: "editor", methods: ["GET"] },
+  "app/api/export/ics/route.ts": { kind: "viewer-read", methods: ["GET"] },
   "app/api/admin/backup/route.ts": { kind: "editor", methods: ["GET"] },
-  "app/api/export/document/route.ts": { kind: "editor", methods: ["POST"] },
+  "app/api/export/document/route.ts": { kind: "viewer-read", methods: ["POST"] },
   "app/api/reminders/events/route.ts": { kind: "editor", methods: ["GET"] },
   "app/api/activity/route.ts": { kind: "session", methods: ["GET"] },
   "app/api/calendar-feed/[token]/route.ts": { kind: "token", methods: ["GET"] },
@@ -169,6 +170,27 @@ describe("api routes are fully covered", () => {
             const access = b.search(DATA_ACCESS);
             expect(gate).toBeGreaterThanOrEqual(0);
             if (access >= 0) expect(gate).toBeLessThan(access);
+          });
+        }
+
+        if (spec.kind === "viewer-read") {
+          it(`${method}: requireRoleRoute("viewer") is the first statement and returns on denial`, () => {
+            expect(body(), "handler body not found").not.toBeNull();
+            expect(squash(body()!)).toMatch(/^const denied = await requireRoleRoute\("viewer"\); if \(denied\) return denied;/);
+            expect(code).not.toContain('requireRoleRoute("editor")');
+          });
+
+          it(`${method}: the role check precedes any supabase / fetch( / .from( access`, () => {
+            const b = body()!;
+            const gate = b.indexOf('requireRoleRoute("viewer")');
+            const access = b.search(DATA_ACCESS);
+            expect(gate).toBeGreaterThanOrEqual(0);
+            if (access >= 0) expect(gate).toBeLessThan(access);
+          });
+
+          it("is read-only: no insert/update/upsert/delete and no activity logging", () => {
+            expect(code).not.toMatch(/\.(insert|update|upsert|delete)\s*\(/);
+            expect(code).not.toMatch(/activity|logActivity|revalidate/i);
           });
         }
 
@@ -212,10 +234,20 @@ describe("api routes are fully covered", () => {
     });
   }
 
-  it("keeps a Viewer on the calendar, day pages and the activity feed only", () => {
-    for (const p of ["/", "/day/2026-10-01", "/api/activity"]) expect(isPathAllowedForRole(p, "viewer")).toBe(true);
-    for (const p of ["/checklist", "/holidays", "/seasons", "/levels", "/reminders", "/export", "/export/calendar", "/admin", "/api/admin/backup", "/api/holidays/fetch-year", "/api/reminders/events"]) {
+  it("keeps a Viewer on the calendar, day pages, the activity feed and Export only", () => {
+    for (const p of ["/", "/day/2026-10-01", "/api/activity", "/export", "/export/calendar", "/export/print", "/api/export/ics", "/api/export/document"]) {
+      expect(isPathAllowedForRole(p, "viewer"), p).toBe(true);
+    }
+    for (const p of ["/checklist", "/holidays", "/seasons", "/levels", "/reminders", "/exportx", "/admin", "/api/admin/backup", "/api/holidays/fetch-year", "/api/reminders/events"]) {
       expect(isPathAllowedForRole(p, "viewer")).toBe(false);
+    }
+  });
+
+  it("every viewer-read route path is reachable by a Viewer via the path policy", () => {
+    for (const [file, spec] of Object.entries(ROUTES)) {
+      if (spec.kind !== "viewer-read") continue;
+      const path = "/" + file.replace(/^app\//, "").replace(/\/route\.ts$/, "");
+      expect(isPathAllowedForRole(path, "viewer"), path).toBe(true);
     }
   });
 

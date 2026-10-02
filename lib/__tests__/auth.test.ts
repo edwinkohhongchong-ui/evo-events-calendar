@@ -6,10 +6,13 @@ describe("isPathAllowedForRole", () => {
     expect(isPathAllowedForRole("/checklist", "editor")).toBe(true);
     expect(isPathAllowedForRole("/api/export/ics", "editor")).toBe(true);
   });
-  it("limits viewers to the calendar and the activity feed", () => {
+  it("limits viewers to the calendar, the activity feed and Export", () => {
     expect(isPathAllowedForRole("/", "viewer")).toBe(true);
     expect(isPathAllowedForRole("/day/2026-10-01", "viewer")).toBe(true);
     expect(isPathAllowedForRole("/api/activity", "viewer")).toBe(true);
+    for (const p of ["/export", "/export/calendar", "/export/print", "/api/export/ics", "/api/export/document"]) {
+      expect(isPathAllowedForRole(p, "viewer"), p).toBe(true);
+    }
   });
   it("still blocks every other viewer route, including other /api paths", () => {
     expect(isPathAllowedForRole("/checklist", "viewer")).toBe(false);
@@ -17,6 +20,8 @@ describe("isPathAllowedForRole", () => {
     expect(isPathAllowedForRole("/reminders", "editor")).toBe(true);
     expect(isPathAllowedForRole("/api/activity/extra", "viewer")).toBe(false);
     expect(isPathAllowedForRole("/api/admin/backup", "viewer")).toBe(false);
-    expect(isPathAllowedForRole("/api/export/ics", "viewer")).toBe(false);
+    for (const p of ["/exportx", "/export-evil", "/api/exportx", "/api/export", "/api/export/other", "/api/export/icsx", "/api/export/documentx"]) {
+      expect(isPathAllowedForRole(p, "viewer"), p).toBe(false);
+    }
   });
 });

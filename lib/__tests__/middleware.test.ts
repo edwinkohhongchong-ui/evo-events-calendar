@@ -113,6 +113,15 @@ describe("middleware with a session", () => {
     }
   });
 
+  it("lets a Viewer reach the Export pages and their API routes, but not look-alikes", async () => {
+    for (const p of ["/export", "/export/calendar", "/export/print", "/api/export/ics", "/api/export/document"]) {
+      expect(isNext(await middleware(await req(p, "viewer"))), p).toBe(true);
+    }
+    for (const p of ["/exportx", "/reminders", "/admin/backup", "/api/admin/backup", "/api/holidays/fetch-year", "/api/reminders/events"]) {
+      expect(isNext(await middleware(await req(p, "viewer"))), p).toBe(false);
+    }
+  });
+
   it("lets an Editor reach /reminders and /api/admin/backup", async () => {
     for (const p of ["/reminders", "/api/admin/backup"]) {
       expect(isNext(await middleware(await req(p, "editor"))), p).toBe(true);

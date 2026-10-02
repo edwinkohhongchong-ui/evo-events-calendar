@@ -190,8 +190,8 @@ export default function NavBar({ generalComments = [] }: { generalComments?: Not
 
   if (pathname === "/login") return null;
 
-  // Viewer role: Calendar + Replay tour only; no Undo/Redo, Tools, Checklist,
-  // Admin or Export (same gating as before).
+  // Viewer role: Calendar, Export + Replay tour only; no Undo/Redo, Tools,
+  // Checklist or Admin.
   const toggleGroup = (id: string) =>
     setOpenGroups((prev) => ({ ...prev, [id]: !prev[id] }));
 
@@ -397,9 +397,9 @@ export default function NavBar({ generalComments = [] }: { generalComments?: Not
                     {divider}
                     {renderGroup(ADMIN)}
                     {divider}
-                    {renderGroup(EXPORT)}
                   </>
                 )}
+                {renderGroup(EXPORT)}
 
                 {divider}
                 <button
