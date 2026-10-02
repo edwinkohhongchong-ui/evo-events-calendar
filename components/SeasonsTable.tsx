@@ -15,7 +15,7 @@ import { TABLE_CARD, TABLE, TH, TD, TR, EMPTY_CELL, ROW_ACTION, TOOLBAR_SELECT }
 import Button, { buttonClass } from "./ui/Button";
 import IconButton from "./ui/IconButton";
 import { PlusIcon, TrashIcon } from "./icons";
-import { LEVEL_DOT_CLASSES } from "@/lib/constants";
+import { dotStyle } from "@/lib/colorStyle";
 import { resolveSeasonColor } from "@/lib/seasonColor";
 
 type ModalState = { type: "closed" } | { type: "add" } | { type: "edit"; season: SeasonRow };
@@ -127,7 +127,8 @@ export default function SeasonsTable({ seasons }: { seasons: SeasonRow[] }) {
                 <td className={`${TD} font-medium`}>
                   <span className="flex items-center gap-2">
                     <span
-                      className={`h-2.5 w-2.5 shrink-0 rounded-full ${LEVEL_DOT_CLASSES[resolveSeasonColor(season)]}`}
+                      className={`h-2.5 w-2.5 shrink-0 rounded-full ${dotStyle(resolveSeasonColor(season)).className}`}
+                      style={dotStyle(resolveSeasonColor(season)).style}
                       aria-hidden="true"
                     />
                     {season.name}

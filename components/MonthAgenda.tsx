@@ -9,7 +9,7 @@ import { FlagIcon } from "./icons";
 import { DayData } from "@/lib/dayIndex";
 import { SeasonSegment } from "@/lib/seasonBars";
 import { resolveSeasonColor } from "@/lib/seasonColor";
-import { SEASON_BAR_COLORS } from "@/lib/constants";
+import { seasonBarStyle } from "@/lib/colorStyle";
 import { parseDateStr, todayStr, toDateStr } from "@/lib/dates";
 import { occurrenceKey } from "@/lib/occurrenceKey";
 import { useEventSearch } from "@/lib/eventSearchContext";
@@ -87,16 +87,20 @@ export default function MonthAgenda({
     <div className="flex flex-col gap-3" onTouchStart={onTouchStart} onTouchEnd={onTouchEnd}>
       {seasons.size > 0 && (
         <div className="flex flex-wrap gap-1.5">
-          {Array.from(seasons.values()).map((season) => (
-            <button
-              key={season.id}
-              type="button"
-              onClick={() => onSeasonClick(season)}
-              className={`max-w-full truncate rounded-pill border px-2.5 py-0.5 text-micro ${SEASON_BAR_COLORS[resolveSeasonColor(season)]}`}
-            >
-              {season.name}
-            </button>
-          ))}
+          {Array.from(seasons.values()).map((season) => {
+            const bar = seasonBarStyle(resolveSeasonColor(season));
+            return (
+              <button
+                key={season.id}
+                type="button"
+                onClick={() => onSeasonClick(season)}
+                className={`max-w-full truncate rounded-pill border px-2.5 py-0.5 text-micro ${bar.className}`}
+                style={bar.style}
+              >
+                {season.name}
+              </button>
+            );
+          })}
         </div>
       )}
 

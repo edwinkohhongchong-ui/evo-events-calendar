@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useRef, useState, type FocusEvent, type PointerEvent } from "react";
 import { createPortal } from "react-dom";
 import { EventOccurrence } from "@/lib/types";
-import { LEVEL_DOT_CLASSES } from "@/lib/constants";
+import { dotStyle } from "@/lib/colorStyle";
 import { useLevelColor } from "@/lib/levelColorContext";
 import { formatDateDisplay, formatEventTimeRange } from "@/lib/dates";
 import { CheckSquareIcon, ClockIcon, MapPinIcon, RepeatIcon, StickyNoteIcon } from "./icons";
@@ -101,7 +101,7 @@ function PreviewCard({ occurrence, anchor }: { occurrence: EventOccurrence; anch
       className="pointer-events-none fixed z-[60] flex flex-col gap-1.5 rounded-card bg-surface p-3.5 text-body text-ink shadow-pop"
     >
       <div className="flex items-center gap-1.5 text-micro font-medium text-ink-2">
-        <span className={`h-2 w-2 rounded-full ${LEVEL_DOT_CLASSES[color]}`} aria-hidden="true" />
+        <span className={`h-2 w-2 rounded-full ${dotStyle(color).className}`} style={dotStyle(color).style} aria-hidden="true" />
         {event.level}
         <span className="text-ink-3">· {event.event_type}</span>
       </div>

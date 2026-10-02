@@ -103,13 +103,13 @@ export type SeasonCategory =
 export interface LevelRow {
   id: string;
   name: string;
-  color_key: SeasonColorKey; // shares Seasons' 10-key palette — see lib/constants.ts
+  color_key: ColorValue; // named palette key or "#rrggbb" — see lib/colorStyle.ts
   sort_order: number;
 }
 
 export interface LevelFormValues {
   name: string;
-  color_key: SeasonColorKey;
+  color_key: ColorValue;
   sort_order: number;
 }
 
@@ -129,6 +129,10 @@ export type SeasonColorKey =
   | "blue"
   | "green";
 
+// A stored colour: a named palette key (Tailwind classes) or a custom
+// "#rrggbb" hex (rendered via inline styles). See lib/colorStyle.ts.
+export type ColorValue = SeasonColorKey | `#${string}`;
+
 export interface SeasonRow {
   id: string;
   name: string;
@@ -136,7 +140,7 @@ export interface SeasonRow {
   start_date: string; // yyyy-MM-dd
   end_date: string; // yyyy-MM-dd
   notes: string | null;
-  color: SeasonColorKey | null; // null = use the auto-suggested color for this name
+  color: ColorValue | null; // null = use the auto-suggested color for this name
 }
 
 export type ChecklistStatus = "Not Started" | "In Progress" | "Done";
@@ -214,7 +218,7 @@ export interface SeasonFormValues {
   start_date: string;
   end_date: string;
   notes: string | null;
-  color: SeasonColorKey | null;
+  color: ColorValue | null;
 }
 
 // One institution's entered exam/term dates for one year — see migration

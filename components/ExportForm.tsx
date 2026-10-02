@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { todayDate, toDateStr } from "@/lib/dates";
 import { LevelRow } from "@/lib/types";
-import { LEVEL_DOT_CLASSES } from "@/lib/constants";
+import { dotStyle } from "@/lib/colorStyle";
 import { resolveLevelColor } from "@/lib/levelColor";
 import Button from "./ui/Button";
 import Card from "./ui/Card";
@@ -221,7 +221,8 @@ export default function ExportForm({ levels }: { levels: LevelRow[] }) {
                 ].join(" ")}
               >
                 <span
-                  className={`h-2 w-2 rounded-full ${on ? LEVEL_DOT_CLASSES[resolveLevelColor(level)] : "bg-line-strong"}`}
+                  className={`h-2 w-2 rounded-full ${on ? dotStyle(resolveLevelColor(level)).className : "bg-line-strong"}`}
+                  style={on ? dotStyle(resolveLevelColor(level)).style : undefined}
                   aria-hidden="true"
                 />
                 {level.name}

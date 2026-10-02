@@ -1,12 +1,12 @@
 import { EventOccurrence } from "@/lib/types";
-import { LEVEL_CHIP_CLASSES } from "@/lib/constants";
+import { chipStyle } from "@/lib/colorStyle";
 import { useLevelColor } from "@/lib/levelColorContext";
 import { formatEventTimeRange } from "@/lib/dates";
 import { endsNextDay } from "@/lib/timeMath";
 
 export default function DayViewEventContent({ occurrence }: { occurrence: EventOccurrence }) {
   const { event } = occurrence;
-  const colorKey = useLevelColor(event.level);
+  const chip = chipStyle(useLevelColor(event.level));
   const time = formatEventTimeRange(occurrence.startTime, occurrence.endTime);
   const nextDay =
     !!occurrence.startTime &&
@@ -19,8 +19,9 @@ export default function DayViewEventContent({ occurrence }: { occurrence: EventO
     <div
       className={[
         "h-full overflow-hidden rounded-chip py-0.5 pl-2 pr-1.5 text-chip",
-        LEVEL_CHIP_CLASSES[colorKey],
+        chip.className,
       ].join(" ")}
+      style={chip.style}
       title={[event.name, subtitle].filter(Boolean).join(" — ")}
     >
       <div className="font-medium truncate">{event.name}</div>

@@ -1,5 +1,5 @@
 import { LEVEL_COLOR_KEYS } from "./constants";
-import { SeasonColorKey } from "./types";
+import { ColorValue, SeasonColorKey } from "./types";
 import { hashString } from "./colorHash";
 
 // Same palette/hash approach as Seasons (see lib/seasonColor.ts) — Tailwind's
@@ -12,6 +12,6 @@ export function suggestLevelColor(name: string): SeasonColorKey {
 
 // Resolves the color actually used for rendering: the stored color if set,
 // otherwise the live auto-suggestion.
-export function resolveLevelColor(level: { name: string; color_key: SeasonColorKey | null }): SeasonColorKey {
+export function resolveLevelColor(level: { name: string; color_key: ColorValue | null }): ColorValue {
   return level.color_key ?? suggestLevelColor(level.name);
 }

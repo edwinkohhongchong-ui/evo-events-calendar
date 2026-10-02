@@ -1,8 +1,8 @@
 "use client";
 
 import { useState, FormEvent } from "react";
-import { SeasonRow, SeasonCategory, SeasonColorKey } from "@/lib/types";
-import { SEASON_BAR_COLORS, SEASON_CATEGORIES, SEASON_COLOR_KEYS } from "@/lib/constants";
+import { SeasonRow, SeasonCategory, ColorValue } from "@/lib/types";
+import { SEASON_CATEGORIES } from "@/lib/constants";
 import { createSeason, updateSeason, deleteSeason } from "@/lib/seasonActions";
 import { suggestSeasonColor } from "@/lib/seasonColor";
 import { useUndo } from "@/lib/undo/UndoProvider";
@@ -11,6 +11,7 @@ import { useEscapeKey } from "@/lib/useEscapeKey";
 import ConfirmDialog from "./ConfirmDialog";
 import { unwrap } from "@/lib/actionResult";
 import ModalShell from "./ui/ModalShell";
+import ColorPicker from "./ui/ColorPicker";
 import Button from "./ui/Button";
 import { INPUT, TEXTAREA, LABEL } from "./ui/fieldStyles";
 
@@ -30,7 +31,7 @@ export default function SeasonModal({ mode, season, onClose, onSaved, onDeleted 
   const [startDate, setStartDate] = useState(season?.start_date ?? "");
   const [endDate, setEndDate] = useState(season?.end_date ?? "");
   const [notes, setNotes] = useState(season?.notes ?? "");
-  const [color, setColor] = useState<SeasonColorKey>(season?.color ?? suggestSeasonColor(name));
+  const [color, setColor] = useState<ColorValue>(season?.color ?? suggestSeasonColor(name));
   // Once the user explicitly picks a swatch, stop following the name-based
   // suggestion — an existing stored color counts as already "touched".
   const [colorTouched, setColorTouched] = useState(!!season?.color);
@@ -47,7 +48,7 @@ export default function SeasonModal({ mode, season, onClose, onSaved, onDeleted 
     }
   }
 
-  function handleColorPick(key: SeasonColorKey) {
+  function handleColorPick(key: ColorValue) {
     setColor(key);
     setColorTouched(true);
   }
@@ -153,22 +154,7 @@ export default function SeasonModal({ mode, season, onClose, onSaved, onDeleted 
             </label>
             <div className="flex flex-col gap-1">
               <span className={LABEL}>Color</span>
-              <div className="flex flex-wrap gap-2">
-                {SEASON_COLOR_KEYS.map((key) => (
-                  <button
-                    key={key}
-                    type="button"
-                    onClick={() => handleColorPick(key)}
-                    className={[
-                      "w-7 h-7 rounded-full border-2",
-                      SEASON_BAR_COLORS[key],
-                      color === key ? "ring-2 ring-offset-1 ring-navy" : "",
-                    ].join(" ")}
-                    aria-label={key}
-                    title={key}
-                  />
-                ))}
-              </div>
+              <ColorPicker value={color} onChange={handleColorPick} />
             </div>
             <label className="flex flex-col gap-1">
               <span className={LABEL}>Category</span>

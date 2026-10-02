@@ -490,3 +490,44 @@ html.printing .print-footer {
     text-align: right;
   }
 }
+
+/* ==========================================================================
+   PRINT CALENDAR (/export/print): one month per sheet.
+   Each month is a `.print-page[data-print-page]` holding header, legend,
+   a PrintFit-wrapped grid and footer; PrintFit fits each page independently.
+   The page has NO padding/margin of its own while printing or measuring
+   (html.printing), so the measured height equals the printed height; the
+   card look below applies on screen only.
+   ========================================================================== */
+@media print {
+  .print-page {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+  .print-page:not(:last-child) {
+    break-after: page;
+    page-break-after: always;
+  }
+  .print-page .print-legend span[aria-hidden="true"] {
+    border: 1px solid rgba(0, 0, 0, 0.35);
+    print-color-adjust: exact;
+    -webkit-print-color-adjust: exact;
+  }
+}
+@media screen {
+  html:not(.printing) .print-pages {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 20px;
+    padding: 20px 16px 40px;
+  }
+  html:not(.printing) .print-page {
+    width: 100%;
+    max-width: 1100px;
+    background: #fff;
+    border-radius: 12px;
+    padding: 20px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
+  }
+}

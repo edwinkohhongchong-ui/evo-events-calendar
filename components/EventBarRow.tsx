@@ -2,7 +2,7 @@
 
 import { useDraggable } from "@dnd-kit/core";
 import { EventBarSegment } from "@/lib/eventBars";
-import { LEVEL_COLOR_CLASSES } from "@/lib/constants";
+import { barStyle } from "@/lib/colorStyle";
 import { useIsDimmed } from "@/lib/eventSearchContext";
 import { useLevelColor } from "@/lib/levelColorContext";
 import { occurrenceKey } from "@/lib/occurrenceKey";
@@ -17,7 +17,7 @@ function SegmentBlock({
   segment: EventBarSegment;
   onClick: () => void;
 }) {
-  const colorKey = useLevelColor(segment.occurrence.event.level);
+  const bar = barStyle(useLevelColor(segment.occurrence.event.level));
   const dimmed = useIsDimmed(segment.occurrence.event.id);
   const isEditor = useIsEditor();
   // Same resize-handle mechanism as EventCard's single-day cards — only on
@@ -51,12 +51,13 @@ function SegmentBlock({
       onPointerDownCapture={hide}
       className={[
         "relative group text-chip font-medium leading-[20px] border",
-        LEVEL_COLOR_CLASSES[colorKey],
+        bar.className,
         segment.isSpanStart ? "rounded-l-full" : "border-l-0",
         segment.isSpanEnd ? "rounded-r-full" : "border-r-0",
         dimmed ? "opacity-30" : "",
       ].join(" ")}
       style={{
+        ...bar.style,
         gridColumn: `${segment.startCol + 1} / ${segment.endCol + 2}`,
         gridRow: segment.laneIndex + 1,
       }}

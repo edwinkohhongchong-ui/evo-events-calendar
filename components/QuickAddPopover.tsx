@@ -5,7 +5,7 @@ import { createPortal } from "react-dom";
 import type { LevelRow } from "@/lib/types";
 import { createEvent } from "@/lib/actions";
 import { unwrap } from "@/lib/actionResult";
-import { LEVEL_DOT_CLASSES } from "@/lib/constants";
+import { dotStyle } from "@/lib/colorStyle";
 import { formatDateDisplay, isValidDateStr } from "@/lib/dates";
 import { useLevelColor } from "@/lib/levelColorContext";
 import { useUndo } from "@/lib/undo/UndoProvider";
@@ -47,8 +47,8 @@ interface QuickAddPopoverProps {
 const WIDTH = 320;
 
 function CategoryDot({ levelName }: { levelName: string }) {
-  const color = useLevelColor(levelName);
-  return <span className={`h-2 w-2 shrink-0 rounded-full ${LEVEL_DOT_CLASSES[color]}`} aria-hidden="true" />;
+  const dot = dotStyle(useLevelColor(levelName));
+  return <span className={`h-2 w-2 shrink-0 rounded-full ${dot.className}`} style={dot.style} aria-hidden="true" />;
 }
 
 function useIsDesktop(): boolean {

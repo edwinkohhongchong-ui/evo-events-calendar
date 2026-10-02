@@ -1,8 +1,7 @@
 "use client";
 
 import { useState, FormEvent } from "react";
-import { LevelRow, SeasonColorKey } from "@/lib/types";
-import { LEVEL_COLOR_CLASSES, LEVEL_COLOR_KEYS } from "@/lib/constants";
+import { LevelRow, ColorValue } from "@/lib/types";
 import { createLevel, updateLevel, deleteLevel } from "@/lib/levelActions";
 import { suggestLevelColor } from "@/lib/levelColor";
 import { useUndo } from "@/lib/undo/UndoProvider";
@@ -10,6 +9,7 @@ import { useEscapeKey } from "@/lib/useEscapeKey";
 import ConfirmDialog from "./ConfirmDialog";
 import { unwrap } from "@/lib/actionResult";
 import ModalShell from "./ui/ModalShell";
+import ColorPicker from "./ui/ColorPicker";
 import Button from "./ui/Button";
 import { INPUT, LABEL } from "./ui/fieldStyles";
 import { useIsEditor } from "@/lib/roleContext";
@@ -34,7 +34,7 @@ export default function LevelModal({
   const { record } = useUndo();
   const isEditor = useIsEditor();
   const [name, setName] = useState(level?.name ?? "");
-  const [colorKey, setColorKey] = useState<SeasonColorKey>(level?.color_key ?? suggestLevelColor(name));
+  const [colorKey, setColorKey] = useState<ColorValue>(level?.color_key ?? suggestLevelColor(name));
   // Once the user explicitly picks a swatch, stop following the name-based
   // suggestion — an existing stored color counts as already "touched".
   const [colorTouched, setColorTouched] = useState(!!level?.color_key);
@@ -52,7 +52,7 @@ export default function LevelModal({
     }
   }
 
-  function handleColorPick(key: SeasonColorKey) {
+  function handleColorPick(key: ColorValue) {
     setColorKey(key);
     setColorTouched(true);
   }
@@ -141,22 +141,7 @@ export default function LevelModal({
             </label>
             <div className="flex flex-col gap-1">
               <span className={LABEL}>Color</span>
-              <div className="flex flex-wrap gap-2">
-                {LEVEL_COLOR_KEYS.map((key) => (
-                  <button
-                    key={key}
-                    type="button"
-                    onClick={() => handleColorPick(key)}
-                    className={[
-                      "w-7 h-7 rounded-full border-2",
-                      LEVEL_COLOR_CLASSES[key],
-                      colorKey === key ? "ring-2 ring-offset-1 ring-navy" : "",
-                    ].join(" ")}
-                    aria-label={key}
-                    title={key}
-                  />
-                ))}
-              </div>
+              <ColorPicker value={colorKey} onChange={handleColorPick} />
             </div>
             <label className="flex flex-col gap-1">
               <span className={LABEL}>Order in legend/list</span>

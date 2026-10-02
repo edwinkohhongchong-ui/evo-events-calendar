@@ -19,6 +19,12 @@ const STEP = 0.02;
  * print layout rules (globals.css) on screen, and forces body to PAGE_W wide.
  * Screen layout and drag-and-drop are untouched; everything is undone on
  * `afterprint`.
+ *
+ * Multi-page print (/export/print): put each month in an ancestor marked
+ * `data-print-page` and give it its own PrintFit. The footer is then looked up
+ * inside that page and the height is measured from the page's top, so each
+ * month is fitted to one sheet independently of the others. Without such an
+ * ancestor (the home page) behaviour is the original document-level measure.
  */
 export default function PrintFit({ className, children }: { className?: string; children: ReactNode }) {
   const outerRef = useRef<HTMLDivElement>(null);
@@ -51,7 +57,8 @@ export default function PrintFit({ className, children }: { className?: string; 
       const width = outer.clientWidth;
       if (width <= 0 || inner.scrollHeight <= 0) return; // grid not shown (e.g. phone agenda)
 
-      const footer = document.querySelector<HTMLElement>(".print-footer");
+      const page = outer.closest<HTMLElement>("[data-print-page]");
+      const footer = (page ?? document).querySelector<HTMLElement>(".print-footer");
       outer.style.overflow = "hidden";
       inner.style.transformOrigin = "top left";
 
@@ -62,7 +69,8 @@ export default function PrintFit({ className, children }: { className?: string; 
         inner.style.transform = `scale(${z})`;
         outer.style.height = `${Math.ceil(inner.scrollHeight * z)}px`;
         const endEl = footer && footer.offsetParent !== null ? footer : outer;
-        return endEl.getBoundingClientRect().bottom + window.scrollY;
+        const origin = page ? page.getBoundingClientRect().top + window.scrollY : 0;
+        return endEl.getBoundingClientRect().bottom + window.scrollY - origin;
       };
 
       const z = findFitScale(measure, PAGE_H - SAFETY, FLOOR, STEP);

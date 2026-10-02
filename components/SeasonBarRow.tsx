@@ -1,6 +1,6 @@
 import { SeasonSegment } from "@/lib/seasonBars";
 import { resolveSeasonColor } from "@/lib/seasonColor";
-import { SEASON_BAR_COLORS } from "@/lib/constants";
+import { seasonBarStyle } from "@/lib/colorStyle";
 import { SeasonRow } from "@/lib/types";
 
 interface SeasonBarRowProps {
@@ -20,7 +20,7 @@ export default function SeasonBarRow({ segments, onSeasonClick }: SeasonBarRowPr
   return (
     <div className="print-season-row grid grid-cols-7" style={{ gridAutoRows: "18px" }}>
       {segments.map((segment) => {
-        const colorKey = resolveSeasonColor(segment.season);
+        const bar = seasonBarStyle(resolveSeasonColor(segment.season));
         return (
           <button
             key={`${segment.season.id}-w${segment.weekIndex}`}
@@ -32,11 +32,12 @@ export default function SeasonBarRow({ segments, onSeasonClick }: SeasonBarRowPr
             }}
             className={[
               "text-micro leading-[18px] px-1.5 truncate border text-left hover:brightness-95",
-              SEASON_BAR_COLORS[colorKey],
+              bar.className,
               segment.isSeasonStart ? "rounded-l-full" : "border-l-0",
               segment.isSeasonEnd ? "rounded-r-full" : "border-r-0",
             ].join(" ")}
             style={{
+              ...bar.style,
               gridColumn: `${segment.startCol + 1} / ${segment.endCol + 2}`,
               gridRow: segment.laneIndex + 1,
             }}

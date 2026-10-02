@@ -4,7 +4,7 @@ import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import EventModal from "./EventModal";
 import { EventOccurrence, LevelRow } from "@/lib/types";
-import { LEVEL_CHIP_CLASSES } from "@/lib/constants";
+import { chipStyle } from "@/lib/colorStyle";
 import Pill from "./ui/Pill";
 import Button from "./ui/Button";
 import { ChevronIcon, PlusIcon } from "./icons";
@@ -83,9 +83,7 @@ export default function CategoryListView({ occurrences, levels, defaultAddDate }
       {Array.from(grouped.entries()).map(([name, occs]) => {
         const level = levels.find((l) => l.name === name);
         const isCollapsed = collapsed.has(name);
-        const colorClass = LEVEL_CHIP_CLASSES[
-          level ? resolveLevelColor(level) : resolveLevelColor({ name, color_key: null })
-        ];
+        const chip = chipStyle(level ? resolveLevelColor(level) : resolveLevelColor({ name, color_key: null }));
 
         return (
           <div key={name} className="bg-surface rounded-card overflow-hidden">
@@ -95,7 +93,7 @@ export default function CategoryListView({ occurrences, levels, defaultAddDate }
               className="w-full flex items-center justify-between gap-2 px-4 py-2.5 hover:bg-fill text-ui font-semibold text-navy transition-colors duration-fast"
             >
               <span className="flex items-center gap-2">
-                <span className={["text-chip font-medium rounded-chip pl-1.5 pr-2 py-0.5", colorClass].join(" ")}>
+                <span className={["text-chip font-medium rounded-chip pl-1.5 pr-2 py-0.5", chip.className].join(" ")} style={chip.style}>
                   {name}
                 </span>
                 <Pill>{occs.length}</Pill>

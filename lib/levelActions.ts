@@ -7,13 +7,28 @@ import { fetchRow } from "./undo/capture";
 import { requireRole } from "./authz";
 import { runAction } from "./actionResult";
 import { logActivity } from "./activity";
+import { CUSTOM_COLOR_MIGRATION_MESSAGE, isHexColor, normaliseColor } from "./colorStyle";
 
-async function createLevelImpl(values: LevelFormValues): Promise<AffectedRow[]> {
+// Accepts a named palette key or "#rrggbb"; stores hex lowercased.
+function checkedLevelValues(values: LevelFormValues): LevelFormValues {
+  const color_key = normaliseColor(values.color_key);
+  if (!color_key) throw new Error("Pick a valid colour.");
+  return { ...values, color_key };
+}
+
+// Before migration 026 the DB check constraint rejects hex colours (23514).
+function saveError(code: string | undefined, values: LevelFormValues): Error {
+  if (code === "23514" && isHexColor(values.color_key)) return new Error(CUSTOM_COLOR_MIGRATION_MESSAGE);
+  return new Error("Something went wrong saving this category. Please try again.");
+}
+
+async function createLevelImpl(input: LevelFormValues): Promise<AffectedRow[]> {
   await requireRole("editor");
+  const values = checkedLevelValues(input);
   const { data, error } = await supabase.from("levels").insert(values).select().single();
   if (error) {
     console.error(error);
-    throw new Error("Something went wrong saving this category. Please try again.");
+    throw saveError(error.code, values);
   }
   await logActivity({ action: "added", entity: "category", entityId: data.id, label: values.name, itemDate: null });
   return [{ table: "levels", id: data.id, before: null, after: data }];
@@ -28,17 +43,18 @@ async function createLevelImpl(values: LevelFormValues): Promise<AffectedRow[]> 
 // limitation that no call site wires it through yet.
 async function updateLevelImpl(
   id: string,
-  values: LevelFormValues,
+  input: LevelFormValues,
   expectedUpdatedAt?: string
 ): Promise<AffectedRow[]> {
   await requireRole("editor");
+  const values = checkedLevelValues(input);
   const before = await fetchRow("levels", id);
   let query = supabase.from("levels").update(values).eq("id", id);
   if (expectedUpdatedAt) query = query.eq("updated_at", expectedUpdatedAt);
   const { data, error } = await query.select();
   if (error) {
     console.error(error);
-    throw new Error("Something went wrong saving this category. Please try again.");
+    throw saveError(error.code, values);
   }
   if (!data || data.length === 0) {
     throw new Error(

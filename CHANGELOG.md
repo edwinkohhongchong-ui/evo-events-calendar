@@ -8,6 +8,11 @@ items (features/fixes) that push contains — a push with 1 item goes up by
 `1.05`). If MINOR would pass `.99`, MAJOR increments and MINOR carries the
 remainder (e.g. `1.99` + 2 items → `2.01`).
 
+## v2.58 — 2026-10-02
+
+- Added Print Calendar on the Export page (Editors only): pick months (any year, quick buttons for This month, Next 3 months, Whole year), and Print opens a view with one month per A4 landscape page, each month sized to fit its own page.
+- Added many more colours for Seasons and Categories: the 14 existing colours, a 216-colour web-safe palette, a custom colour wheel and a hex field, with automatic readable text. Existing colours look exactly as before. Custom colours need migration 026 (`supabase_migration_026_custom_colors.sql`) run in Supabase; until then saving one shows a plain "run migration 026" message.
+
 ## v2.56 — 2026-10-02
 
 - Print month now auto-sizes to one A4 landscape page: print styles are compacted (small season/multi-day bars and chips) and the page scales itself down to fit when you print (button or Cmd/Ctrl+P), down to a 40% floor.

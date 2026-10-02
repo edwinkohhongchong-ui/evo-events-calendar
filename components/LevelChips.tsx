@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { LEVEL_DOT_CLASSES } from "@/lib/constants";
+import { dotStyle } from "@/lib/colorStyle";
 import { PencilIcon, XIcon } from "./icons";
 import { resolveLevelColor } from "@/lib/levelColor";
 import { useEventFilter } from "@/lib/eventFilterContext";
@@ -62,7 +62,7 @@ export default function LevelChips({ levels, onEdit }: LevelChipsProps) {
       <div className="flex flex-wrap gap-1.5 items-center">
         {levels.map((level) => {
           const visible = isVisible(level.name);
-          const colorKey = resolveLevelColor(level);
+          const dot = dotStyle(resolveLevelColor(level));
           return (
             <span
               key={level.id}
@@ -80,9 +80,10 @@ export default function LevelChips({ levels, onEdit }: LevelChipsProps) {
               >
                 <span
                   aria-hidden="true"
+                  style={visible ? dot.style : undefined}
                   className={[
                     "h-2.5 w-2.5 shrink-0 rounded-full",
-                    visible ? LEVEL_DOT_CLASSES[colorKey] : "border-[1.5px] border-ink-3 bg-transparent",
+                    visible ? dot.className : "border-[1.5px] border-ink-3 bg-transparent",
                   ].join(" ")}
                 />
                 {level.name}

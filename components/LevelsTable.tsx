@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import LevelModal from "./LevelModal";
 import { LevelRow } from "@/lib/types";
-import { LEVEL_CHIP_CLASSES, LEVEL_DOT_CLASSES } from "@/lib/constants";
+import { chipStyle, dotStyle } from "@/lib/colorStyle";
 import { resolveLevelColor } from "@/lib/levelColor";
 import { TABLE_CARD, TABLE, TH, TD, TR, EMPTY_CELL } from "./ui/tableStyles";
 import Button from "./ui/Button";
@@ -38,28 +38,32 @@ export default function LevelsTable({ levels }: { levels: LevelRow[] }) {
             </tr>
           </thead>
           <tbody>
-            {levels.map((level) => (
-              <tr key={level.id} onClick={() => setModal({ type: "edit", level })} className={TR}>
-                <td className={TD}>
-                  <span
-                    className={[
-                      "inline-block rounded-chip px-2 py-0.5 text-chip font-medium",
-                      LEVEL_CHIP_CLASSES[resolveLevelColor(level)],
-                    ].join(" ")}
-                  >
-                    {level.name}
-                  </span>
-                </td>
-                <td className={TD}>
-                  <span
-                    className={`inline-block h-3.5 w-3.5 rounded-full ${LEVEL_DOT_CLASSES[resolveLevelColor(level)]}`}
-                    title={resolveLevelColor(level)}
-                    aria-label={resolveLevelColor(level)}
-                  />
-                </td>
-                <td className={`${TD} text-ink-2`}>{level.sort_order}</td>
-              </tr>
-            ))}
+            {levels.map((level) => {
+              const color = resolveLevelColor(level);
+              const chip = chipStyle(color);
+              const dot = dotStyle(color);
+              return (
+                <tr key={level.id} onClick={() => setModal({ type: "edit", level })} className={TR}>
+                  <td className={TD}>
+                    <span
+                      className={["inline-block rounded-chip px-2 py-0.5 text-chip font-medium", chip.className].join(" ")}
+                      style={chip.style}
+                    >
+                      {level.name}
+                    </span>
+                  </td>
+                  <td className={TD}>
+                    <span
+                      className={`inline-block h-3.5 w-3.5 rounded-full ${dot.className}`}
+                      style={dot.style}
+                      title={color}
+                      aria-label={color}
+                    />
+                  </td>
+                  <td className={`${TD} text-ink-2`}>{level.sort_order}</td>
+                </tr>
+              );
+            })}
             {levels.length === 0 && (
               <tr>
                 <td colSpan={3} className={EMPTY_CELL}>

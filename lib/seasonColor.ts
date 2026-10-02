@@ -1,5 +1,5 @@
 import { SEASON_COLOR_KEYS } from "./constants";
-import { SeasonColorKey } from "./types";
+import { ColorValue, SeasonColorKey } from "./types";
 import { hashString } from "./colorHash";
 
 // Hashes on name, not category — two seasons in the same category (e.g.
@@ -13,6 +13,6 @@ export function suggestSeasonColor(name: string): SeasonColorKey {
 // Resolves the color actually used for rendering: the stored color if set,
 // otherwise the live auto-suggestion. A null color is not a gap to backfill —
 // the suggestion computed here IS the answer for uncolored seasons.
-export function resolveSeasonColor(season: { name: string; color: SeasonColorKey | null }): SeasonColorKey {
+export function resolveSeasonColor(season: { name: string; color: ColorValue | null }): ColorValue {
   return season.color ?? suggestSeasonColor(season.name);
 }

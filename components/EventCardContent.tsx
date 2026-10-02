@@ -1,5 +1,5 @@
 import { EventOccurrence } from "@/lib/types";
-import { LEVEL_CHIP_CLASSES } from "@/lib/constants";
+import { chipStyle } from "@/lib/colorStyle";
 import { useLevelColor } from "@/lib/levelColorContext";
 import { formatEventTimeRange } from "@/lib/dates";
 import { endsNextDay } from "@/lib/timeMath";
@@ -18,7 +18,7 @@ export default function EventCardContent({
 }) {
   const { event } = occurrence;
   const dimmed = useIsDimmed(event.id) && !lifted;
-  const colorKey = useLevelColor(event.level);
+  const chip = chipStyle(useLevelColor(event.level));
   const checklist = useEventChecklistProgress(event.id);
   const checklistOverdue = checklist ? progressOverdue(checklist, event.event_date, todayStr()) : false;
   // Effective time (post-override), not event.event_time/event.end_time
@@ -57,10 +57,11 @@ export default function EventCardContent({
     <div
       className={[
         "leading-tight rounded-chip pl-1.5 pr-1 py-0.5",
-        LEVEL_CHIP_CLASSES[colorKey],
+        chip.className,
         lifted ? "shadow-pop scale-[1.03] cursor-grabbing" : "",
         dimmed ? "opacity-30" : "",
       ].join(" ")}
+      style={chip.style}
     >
       <div className="text-chip font-medium truncate">
         {event.name}
