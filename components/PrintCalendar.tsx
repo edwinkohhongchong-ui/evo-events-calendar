@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { CSSProperties, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { format } from "date-fns";
 import { DndContext } from "@dnd-kit/core";
@@ -8,6 +8,21 @@ import CalendarGrid from "./CalendarGrid";
 import PrintFit, { PRINT_FIT_EVENT } from "./PrintFit";
 import Button from "./ui/Button";
 import { PrinterIcon } from "./icons";
+import {
+  DEFAULT_ORIENT,
+  DEFAULT_PAPER,
+  ORIENTS,
+  Orient,
+  PAPER_IDS,
+  PAPERS,
+  PaperId,
+  pageRule,
+  parseOrient,
+  parsePaper,
+  printableArea,
+  readStoredPaper,
+  writeStoredPaper,
+} from "@/lib/paper";
 import { buildDayIndex } from "@/lib/dayIndex";
 import { computeEventBarSegments } from "@/lib/eventBars";
 import { dotStyle } from "@/lib/colorStyle";
@@ -57,7 +72,19 @@ function PrintLegend({ levels }: { levels: LevelRow[] }) {
   );
 }
 
-function PrintMonthPage({ month, levels, printedOn }: { month: PrintMonthData; levels: LevelRow[]; printedOn: string }) {
+function PrintMonthPage({
+  month,
+  levels,
+  printedOn,
+  paper,
+  orient,
+}: {
+  month: PrintMonthData;
+  levels: LevelRow[];
+  printedOn: string;
+  paper: PaperId;
+  orient: Orient;
+}) {
   const { weeks, monthStart, occurrences, holidays, dayNotes, seasonSegmentsByWeek } = month;
   const dayIndex = useMemo(
     () => buildDayIndex(weeks.flat(), occurrences, holidays, monthStart, dayNotes),
@@ -69,12 +96,16 @@ function PrintMonthPage({ month, levels, printedOn }: { month: PrintMonthData; l
   );
 
   return (
-    <section data-print-page className="print-page">
+    <section
+      data-print-page
+      className="print-page"
+      style={{ "--print-page-h": `${printableArea(paper, orient).height}px` } as CSSProperties}
+    >
       <div className="print-header mb-1 flex items-center">
         <h1 className="text-display text-navy">{format(monthStart, "MMMM yyyy")}</h1>
       </div>
       <PrintLegend levels={levels} />
-      <PrintFit>
+      <PrintFit paper={paper} orient={orient}>
         <CalendarGrid
           weeks={weeks}
           monthStart={monthStart}
@@ -99,6 +130,9 @@ interface PrintCalendarProps {
   printedOn: string;
   backHref?: string;
   backLabel?: string;
+  /** Validated from the URL; null = not in the URL, so the remembered choice (or A4 landscape) applies. */
+  initialPaper?: PaperId | null;
+  initialOrient?: Orient | null;
 }
 
 /**
@@ -106,11 +140,32 @@ interface PrintCalendarProps {
  * dnd-kit hooks, so a sensor-less DndContext keeps them inert (nothing can be
  * dragged); click handlers are no-ops.
  */
-export default function PrintCalendar({ months, levels, checklistProgress, printedOn, backHref = "/export/calendar", backLabel = "Back to Export" }: PrintCalendarProps) {
+export default function PrintCalendar({ months, levels, checklistProgress, printedOn, backHref = "/export/calendar", backLabel = "Back to Export", initialPaper = null, initialOrient = null }: PrintCalendarProps) {
   const colorMap = useMemo(
     () => Object.fromEntries(levels.map((l) => [l.name, resolveLevelColor(l)])),
     [levels]
   );
+
+  const [paper, setPaper] = useState<PaperId>(initialPaper ?? DEFAULT_PAPER);
+  const [orient, setOrient] = useState<Orient>(initialOrient ?? DEFAULT_ORIENT);
+  // Nothing in the URL: fall back to the choice remembered on this device.
+  useEffect(() => {
+    if (initialPaper && initialOrient) return;
+    const stored = readStoredPaper();
+    if (!stored) return;
+    if (!initialPaper) setPaper(stored.paper);
+    if (!initialOrient) setOrient(stored.orient);
+  }, [initialPaper, initialOrient]);
+
+  function choose(nextPaper: PaperId, nextOrient: Orient) {
+    setPaper(nextPaper);
+    setOrient(nextOrient);
+    writeStoredPaper(nextPaper, nextOrient);
+    const url = new URL(window.location.href);
+    url.searchParams.set("paper", nextPaper);
+    url.searchParams.set("orient", nextOrient);
+    window.history.replaceState(window.history.state, "", url);
+  }
 
   // PrintFit flags a month it had to clip at the minimum scale.
   const [tooBusy, setTooBusy] = useState(false);
@@ -122,13 +177,44 @@ export default function PrintCalendar({ months, levels, checklistProgress, print
 
   return (
     <>
+      <style>{pageRule(paper, orient)}</style>
       <div className="print-hide sticky top-[var(--nav-h,50px)] z-30 flex items-center justify-between gap-3 border-b border-line bg-surface px-4 py-2">
         <Link href={backHref} className="text-body font-medium text-navy hover:underline">
           {backLabel}
         </Link>
-        <span className="hidden text-body text-ink-2 sm:inline">
-          {months.length} {months.length === 1 ? "page" : "pages"}, A4 landscape, one month per page
-        </span>
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-body text-ink-2">
+          <span className="hidden sm:inline">
+            {months.length} {months.length === 1 ? "page" : "pages"}, one month per page
+          </span>
+          <label className="inline-flex items-center gap-1.5">
+            Paper
+            <select
+              value={paper}
+              onChange={(e) => choose(parsePaper(e.target.value) ?? DEFAULT_PAPER, orient)}
+              className="rounded-ctl border border-line bg-surface px-2 py-1 text-ink"
+            >
+              {PAPER_IDS.map((id) => (
+                <option key={id} value={id}>
+                  {PAPERS[id].label}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="inline-flex items-center gap-1.5">
+            Orientation
+            <select
+              value={orient}
+              onChange={(e) => choose(paper, parseOrient(e.target.value) ?? DEFAULT_ORIENT)}
+              className="rounded-ctl border border-line bg-surface px-2 py-1 text-ink"
+            >
+              {ORIENTS.map((o) => (
+                <option key={o} value={o}>
+                  {o === "landscape" ? "Landscape" : "Portrait"}
+                </option>
+              ))}
+            </select>
+          </label>
+        </div>
         <Button size="sm" icon={<PrinterIcon className="!h-4 !w-4" />} onClick={() => window.print()}>
           Print
         </Button>
@@ -143,7 +229,7 @@ export default function PrintCalendar({ months, levels, checklistProgress, print
           <EventChecklistProvider progress={checklistProgress}>
             <DndContext id="print-dnd" sensors={[]}>
               {months.map((m) => (
-                <PrintMonthPage key={m.key} month={m} levels={levels} printedOn={printedOn} />
+                <PrintMonthPage key={m.key} month={m} levels={levels} printedOn={printedOn} paper={paper} orient={orient} />
               ))}
             </DndContext>
           </EventChecklistProvider>

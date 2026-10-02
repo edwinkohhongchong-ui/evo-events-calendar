@@ -5,6 +5,7 @@ import { expandEvents } from "@/lib/recurrence";
 import { applyOverrides } from "@/lib/overrides";
 import { computeSeasonSegments } from "@/lib/seasonBars";
 import { formatDateDisplay, todayStr, toDateStr } from "@/lib/dates";
+import { parseOrient, parsePaper } from "@/lib/paper";
 import { parseMonthsParam } from "@/lib/printMonths";
 import PrintCalendar, { type PrintMonthData } from "@/components/PrintCalendar";
 
@@ -13,7 +14,7 @@ export const dynamic = "force-dynamic";
 
 export const metadata = { title: "Print Calendar" };
 
-export default async function PrintCalendarPage({ searchParams }: { searchParams: { months?: string | string[]; from?: string | string[] } }) {
+export default async function PrintCalendarPage({ searchParams }: { searchParams: { months?: string | string[]; from?: string | string[]; paper?: string | string[]; orient?: string | string[] } }) {
   const parsed = parseMonthsParam(searchParams.months);
   if (!parsed.ok) {
     return (
@@ -71,6 +72,8 @@ export default async function PrintCalendarPage({ searchParams }: { searchParams
     <PrintCalendar
       backHref={backHref}
       backLabel={backLabel}
+      initialPaper={parsePaper(searchParams.paper)}
+      initialOrient={parseOrient(searchParams.orient)}
       months={months}
       levels={levels}
       checklistProgress={checklistProgress}

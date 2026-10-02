@@ -13,6 +13,7 @@ import Button from "./ui/Button";
 import IconButton from "./ui/IconButton";
 import { useEventSearch } from "@/lib/eventSearchContext";
 import { monthKey, printHref } from "@/lib/printMonths";
+import { storedPaperQuery } from "@/lib/paper";
 import { ChevronLeftIcon, ChevronRightIcon, PlusIcon, PrinterIcon, SearchIcon, TagPlusIcon, XIcon } from "./icons";
 
 // Prev/next stay real links (middle-click, open in new tab) styled as
@@ -226,7 +227,7 @@ export default function CalendarHeader({ monthStart, levels, onAddClick, openChe
           {/* Printable month overview (print CSS in globals.css). Opens the same
               print preview as Print Calendar. Hidden on phones to keep the bar one row; shown for Editors and Viewers alike. */}
           <span className="hidden sm:inline-flex">
-            <IconButton label="Print this month" icon={<PrinterIcon />} onClick={() => router.push(`${printHref([monthKey(monthStart.getFullYear(), monthStart.getMonth() + 1)])}&from=calendar`)} />
+            <IconButton label="Print this month" icon={<PrinterIcon />} onClick={() => router.push(`${printHref([monthKey(monthStart.getFullYear(), monthStart.getMonth() + 1)])}&from=calendar${storedPaperQuery()}`)} />
           </span>
           {isEditor && (
             <>

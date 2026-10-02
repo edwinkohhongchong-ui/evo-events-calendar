@@ -8,6 +8,11 @@ items (features/fixes) that push contains — a push with 1 item goes up by
 `1.05`). If MINOR would pass `.99`, MAJOR increments and MINOR carries the
 remainder (e.g. `1.99` + 2 items → `2.01`).
 
+## v2.101 — 2026-10-02
+
+- Print preview no longer cuts off the bottom of a month: it fits to about 92% of the page height, re-checks after layout, and only clips (with a warning) in the extreme case where even the smallest size won't fit. Cause: the height was measured from the on-screen layout, which came out slightly shorter than the real print layout.
+- Added a Paper and Orientation choice to the print preview (A4 default, A3, A5, Letter, Legal, Tabloid; landscape or portrait). Each month is fitted to the chosen sheet, scaling up on larger paper so A3 fills the sheet, and the choice is remembered and carried by the Print button.
+
 ## v2.99 — 2026-10-02
 
 - The Print button on the calendar now opens the same print preview as Print Calendar, for the month you are viewing (one month per A4 landscape page, same layout), instead of printing the live page directly. "Back to calendar" on that preview returns to the month.

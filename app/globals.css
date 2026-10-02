@@ -131,9 +131,10 @@ h1, h2, h3, h4 {
   margin: 8mm;
 }
 
-/* While measuring on screen, mimic the printable width (A4 landscape - 2x8mm). */
+/* The static @page above is only the fallback: PrintFit / PrintCalendar inject
+   the chosen paper's rule later. While measuring on screen, PrintFit sets the
+   body width inline to the printable width of that paper. */
 html.printing body {
-  width: 1062px;
   max-width: none;
   min-height: 0;
 }
@@ -512,6 +513,10 @@ html.printing .print-footer {
   .print-page {
     break-inside: avoid;
     page-break-inside: avoid;
+    /* One sheet per month, even a short one. --print-page-h is the printable
+       height set inline by PrintCalendar; -4px keeps rounding from spilling a
+       blank page. */
+    min-height: calc(var(--print-page-h, 0px) - 4px);
   }
   .print-page:not(:last-child) {
     break-after: page;

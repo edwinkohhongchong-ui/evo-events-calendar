@@ -13,6 +13,7 @@ import {
   printHref,
   summarizeMonthKeys,
 } from "@/lib/printMonths";
+import { storedPaperQuery } from "@/lib/paper";
 import Button from "./ui/Button";
 import Card from "./ui/Card";
 import { INPUT, LABEL } from "./ui/fieldStyles";
@@ -115,7 +116,7 @@ export default function PrintCalendarCard() {
         <Button
           disabled={selected.size === 0 || tooMany}
           icon={<PrinterIcon className="!h-4 !w-4" />}
-          onClick={() => router.push(printHref(selected))}
+          onClick={() => router.push(`${printHref(selected)}${storedPaperQuery()}`)}
         >
           Open print preview
         </Button>
