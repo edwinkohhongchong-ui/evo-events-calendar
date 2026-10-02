@@ -8,6 +8,10 @@ items (features/fixes) that push contains — a push with 1 item goes up by
 `1.05`). If MINOR would pass `.99`, MAJOR increments and MINOR carries the
 remainder (e.g. `1.99` + 2 items → `2.01`).
 
+## v2.93 — 2026-10-02
+
+- Colour picker fixed: it now opens collapsed (greys and vivid colours only), and "More colours / Fewer colours" really toggles (the extra rows were never hidden because a layout class overrode the hidden attribute). The THEME section is removed, and Custom (the "+", colour wheel and hex field) appears only in the expanded view. A colour that isn't in the palette (an older named colour or a custom hex) shows as a "Current" swatch so the selection is never hidden; existing categories and seasons keep their colours.
+
 ## v2.92 — 2026-10-02
 
 - Saves for events, categories, seasons, holidays, reminder templates and monthly checklist items now accept only their known fields (explicit allow-lists, checked by tests so a new form field can't be left out), so a crafted request can't set id, created or updated times.
