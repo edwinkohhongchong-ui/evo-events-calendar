@@ -8,6 +8,10 @@ items (features/fixes) that push contains — a push with 1 item goes up by
 `1.05`). If MINOR would pass `.99`, MAJOR increments and MINOR carries the
 remainder (e.g. `1.99` + 2 items → `2.01`).
 
+## v2.103 — 2026-10-02
+
+- Long holiday names and season bars that are cut off in the month grid now show a hover card (and a keyboard-focus card) with the full details: holiday name, date with weekday and type; season name, date range, category and notes. It behaves like the event hover preview (short delay, hides on scroll, drag and Escape) and never prints. Clicking a holiday or season still opens its window as before.
+
 ## v2.102 — 2026-10-02
 
 - Viewers can now tick and untick the items on an event's checklist when they open the event. Everything else about checklists stays Editor-only: applying, changing or removing a template, adding or removing items, and owners. The tick is validated on the server (id, true/false, name up to 60 characters) and updates only that one item. `CLAUDE.md`, `ONBOARDING.md` and the "Viewer or Editor?" tour step now say Viewers can look, comment, tick checklist items and use Export.

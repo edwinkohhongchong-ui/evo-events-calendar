@@ -6,6 +6,7 @@ import Link from "next/link";
 import EventCard from "./EventCard";
 import DayNotes from "./DayNotes";
 import { FlagIcon } from "./icons";
+import { useHolidayPreview } from "./InfoPreviewCard";
 import { DayData } from "@/lib/dayIndex";
 import { todayStr, toDateStr } from "@/lib/dates";
 import { occurrenceKey } from "@/lib/occurrenceKey";
@@ -87,22 +88,7 @@ export default function DayCell({
           {dayNumber}
         </Link>
         {dayData?.holidays.map((holiday) => (
-          <button
-            key={holiday.id}
-            type="button"
-            onClick={(e) => {
-              e.stopPropagation();
-              onHolidayClick(holiday);
-            }}
-            className={[
-              "inline-flex max-w-full min-w-0 items-center gap-0.5 text-micro hover:underline",
-              isCurrentMonth ? "text-ink-2" : "text-ink-3/60",
-            ].join(" ")}
-            title={`Edit "${holiday.name}"`}
-          >
-            <FlagIcon className="!h-3 !w-3 text-danger/70" />
-            <span className="truncate">{holiday.name}</span>
-          </button>
+          <HolidayLabel key={holiday.id} holiday={holiday} isCurrentMonth={isCurrentMonth} onHolidayClick={onHolidayClick} />
         ))}
       </div>
 
@@ -133,5 +119,40 @@ export default function DayCell({
         </button>
       )}
     </div>
+  );
+}
+
+// Holiday label in a day cell: truncated text, full details in a hover/focus card.
+function HolidayLabel({
+  holiday,
+  isCurrentMonth,
+  onHolidayClick,
+}: {
+  holiday: HolidayRow;
+  isCurrentMonth: boolean;
+  onHolidayClick: (holiday: HolidayRow) => void;
+}) {
+  const { bind, card, hide } = useHolidayPreview(holiday);
+  return (
+    <>
+      <button
+        type="button"
+        {...bind}
+        onClick={(e) => {
+          e.stopPropagation();
+          hide();
+          onHolidayClick(holiday);
+        }}
+        aria-label={`${holiday.name}, ${holiday.type}`}
+        className={[
+          "inline-flex max-w-full min-w-0 items-center gap-0.5 text-micro hover:underline",
+          isCurrentMonth ? "text-ink-2" : "text-ink-3/60",
+        ].join(" ")}
+      >
+        <FlagIcon className="!h-3 !w-3 text-danger/70" />
+        <span className="truncate">{holiday.name}</span>
+      </button>
+      {card}
+    </>
   );
 }

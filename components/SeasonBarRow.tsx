@@ -2,6 +2,7 @@ import { SeasonSegment } from "@/lib/seasonBars";
 import { resolveSeasonColor } from "@/lib/seasonColor";
 import { seasonBarStyle } from "@/lib/colorStyle";
 import { SeasonRow } from "@/lib/types";
+import { useSeasonPreview } from "./InfoPreviewCard";
 
 interface SeasonBarRowProps {
   segments: SeasonSegment[];
@@ -19,40 +20,46 @@ export default function SeasonBarRow({ segments, onSeasonClick }: SeasonBarRowPr
 
   return (
     <div className="print-season-row grid grid-cols-7" style={{ gridAutoRows: "18px" }}>
-      {segments.map((segment) => {
-        const bar = seasonBarStyle(resolveSeasonColor(segment.season));
-        return (
-          <button
-            key={`${segment.season.id}-w${segment.weekIndex}`}
-            type="button"
-            data-season-id={segment.season.id}
-            onClick={(e) => {
-              e.stopPropagation();
-              onSeasonClick(segment.season);
-            }}
-            className={[
-              "text-micro leading-[18px] px-1.5 truncate border text-left hover:brightness-95",
-              bar.className,
-              segment.isSeasonStart ? "rounded-l-full" : "border-l-0",
-              segment.isSeasonEnd ? "rounded-r-full" : "border-r-0",
-            ].join(" ")}
-            style={{
-              ...bar.style,
-              gridColumn: `${segment.startCol + 1} / ${segment.endCol + 2}`,
-              gridRow: segment.laneIndex + 1,
-            }}
-            title={`Edit "${segment.season.name}"`}
-          >
-            {/* Repeats the name at the start of every week this bar crosses
-                (startCol 0 = Monday), not just the season's true start —
-                see the same fix in EventBarRow. Non-breaking space (not a
-                plain " ") on the empty-label branch — JSX/Tailwind can
-                collapse a plain-space-only text node, which would shrink
-                the bar's clickable row to zero height. */}
-            {segment.isSeasonStart || segment.startCol === 0 ? segment.season.name : " "}
-          </button>
-        );
-      })}
+      {segments.map((segment) => (
+        <SeasonBar key={`${segment.season.id}-w${segment.weekIndex}`} segment={segment} onSeasonClick={onSeasonClick} />
+      ))}
     </div>
+  );
+}
+
+function SeasonBar({ segment, onSeasonClick }: { segment: SeasonSegment; onSeasonClick: (season: SeasonRow) => void }) {
+  const bar = seasonBarStyle(resolveSeasonColor(segment.season));
+  const { bind, card, hide } = useSeasonPreview(segment.season);
+  return (
+    <>
+      <button
+        type="button"
+        data-season-id={segment.season.id}
+        {...bind}
+        onClick={(e) => {
+          e.stopPropagation();
+          hide();
+          onSeasonClick(segment.season);
+        }}
+        className={[
+          "text-micro leading-[18px] px-1.5 truncate border text-left hover:brightness-95",
+          bar.className,
+          segment.isSeasonStart ? "rounded-l-full" : "border-l-0",
+          segment.isSeasonEnd ? "rounded-r-full" : "border-r-0",
+        ].join(" ")}
+        style={{
+          ...bar.style,
+          gridColumn: `${segment.startCol + 1} / ${segment.endCol + 2}`,
+          gridRow: segment.laneIndex + 1,
+        }}
+        aria-label={segment.season.name}
+      >
+        {/* Repeats the name at the start of every week this bar crosses
+            (startCol 0 = Monday), not just the season's true start. Non-breaking
+            space on the empty-label branch so the bar keeps its row height. */}
+        {segment.isSeasonStart || segment.startCol === 0 ? segment.season.name : "\u00a0"}
+      </button>
+      {card}
+    </>
   );
 }
