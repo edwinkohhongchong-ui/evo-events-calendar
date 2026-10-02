@@ -1,6 +1,7 @@
 import { cookies } from "next/headers";
 import { supabase } from "./supabase";
-import { AUTH_COOKIE_NAME, Role, parseAuthCookie } from "./auth";
+import { Role } from "./auth";
+import { SESSION_COOKIE_NAME, verifySessionToken } from "./session";
 import { activityHref, canRoleSeeEntity, hrefForRole, summaryFor, truncateLabel, VIEWER_ENTITIES } from "./activityFormat";
 import { ActivityAction, ActivityEntity, ActivityItem } from "./types";
 
@@ -25,12 +26,12 @@ export interface LogActivityInput {
 // change.
 export async function logActivity(input: LogActivityInput): Promise<void> {
   try {
-    const parsed = parseAuthCookie((await cookies()).get(AUTH_COOKIE_NAME)?.value);
-    if (!parsed) return;
+    const role = await verifySessionToken((await cookies()).get(SESSION_COOKIE_NAME)?.value);
+    if (!role) return;
     const itemDate = input.itemDate ?? null;
     const entityId = input.entityId ?? null;
     const { error } = await supabase.from("activity_log").insert({
-      actor_role: parsed.role,
+      actor_role: role,
       action: input.action,
       entity: input.entity,
       entity_id: entityId,

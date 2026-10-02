@@ -8,6 +8,11 @@ items (features/fixes) that push contains — a push with 1 item goes up by
 `1.05`). If MINOR would pass `.99`, MAJOR increments and MINOR carries the
 remainder (e.g. `1.99` + 2 items → `2.01`).
 
+## v2.46 — 2026-10-02
+
+- Login is now a signed session cookie instead of storing the passcode in the cookie. Needs a new `EVO_SESSION_SECRET` environment variable (32+ random characters) in Vercel before deploying; without it nobody can log in. Changing a passcode now logs that role out everywhere; changing the secret logs everyone out. Everyone is logged out once on this deploy.
+- Hardened the middleware: it now covers every path except static assets, and always strips any client-sent role header.
+
 ## v2.44 — 2026-10-01
 
 - Viewers can no longer see or use checklist templates: saving or reading templates now requires the Editor role on the server, and the Reminders page no longer loads them for non-Editors. Viewers can still see and tick an event's own checklist.

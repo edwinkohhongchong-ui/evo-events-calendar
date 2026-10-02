@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { AUTH_COOKIE_NAME, expectedPasscodeFor, Role, serializeAuthCookie } from "@/lib/auth";
+import { expectedPasscodeFor, Role } from "@/lib/auth";
+import { SESSION_COOKIE_NAME, createSessionToken, getSessionSecret, sessionCookieOptions } from "@/lib/session";
 import { safeEqual } from "@/lib/safeEqual";
 
 // Best-effort brute-force throttle: failures per client IP in a sliding
@@ -37,6 +38,12 @@ export async function POST(request: NextRequest) {
   }
   const typedRole = role as Role;
 
+  // Fail closed: without a usable signing secret no session can be issued.
+  if (!getSessionSecret()) {
+    console.error("Login unavailable: EVO_SESSION_SECRET is missing or shorter than 32 characters.");
+    return NextResponse.json({ error: "Login is temporarily unavailable." }, { status: 500 });
+  }
+
   const expected = expectedPasscodeFor(typedRole);
   if (!expected) {
     return NextResponse.json(
@@ -53,13 +60,12 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Incorrect passcode." }, { status: 401 });
   }
 
+  const token = await createSessionToken(typedRole);
+  if (!token) {
+    console.error("Login failed: could not create a session token.");
+    return NextResponse.json({ error: "Login is temporarily unavailable." }, { status: 500 });
+  }
   const response = NextResponse.json({ ok: true });
-  response.cookies.set(AUTH_COOKIE_NAME, serializeAuthCookie(typedRole, passcode), {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
-    sameSite: "lax",
-    maxAge: 60 * 60 * 24 * 30,
-    path: "/",
-  });
+  response.cookies.set(SESSION_COOKIE_NAME, token, sessionCookieOptions());
   return response;
 }

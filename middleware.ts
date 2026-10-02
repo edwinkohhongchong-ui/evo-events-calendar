@@ -1,18 +1,28 @@
 import { NextRequest, NextResponse } from "next/server";
-import { AUTH_COOKIE_NAME, expectedPasscodeFor, isPathAllowedForRole, parseAuthCookie } from "@/lib/auth";
-import { safeEqual } from "@/lib/safeEqual";
+import { isPathAllowedForRole } from "@/lib/auth";
+import { SESSION_COOKIE_NAME, verifySessionToken } from "@/lib/session";
 
 // Page-level deterrent only — this does not (and cannot) restrict the
 // Supabase REST API itself, which is governed by RLS policies independently
 // of anything in this app. See PROJECT decision: acceptable for v1. The
 // Viewer role's Add/Delete restriction is enforced the same way (hidden in
 // the UI, not via RLS) — see lib/roleContext.tsx call sites.
-export function middleware(request: NextRequest) {
-  const parsed = parseAuthCookie(request.cookies.get(AUTH_COOKIE_NAME)?.value);
-  const expected = parsed ? expectedPasscodeFor(parsed.role) : undefined;
+const PUBLIC_PREFIXES = ["/login", "/api/login", "/api/calendar-feed"];
 
-  if (parsed && expected && safeEqual(parsed.passcode, expected)) {
-    if (!isPathAllowedForRole(request.nextUrl.pathname, parsed.role)) {
+export async function middleware(request: NextRequest) {
+  // Public routes skip auth, but still never trust a client-supplied role
+  // header (app/layout.tsx reads x-evo-role on /login too).
+  const { pathname } = request.nextUrl;
+  if (PUBLIC_PREFIXES.some((p) => pathname === p || pathname.startsWith(p + "/"))) {
+    const requestHeaders = new Headers(request.headers);
+    requestHeaders.delete("x-evo-role");
+    return NextResponse.next({ request: { headers: requestHeaders } });
+  }
+
+  const role = await verifySessionToken(request.cookies.get(SESSION_COOKIE_NAME)?.value);
+
+  if (role) {
+    if (!isPathAllowedForRole(request.nextUrl.pathname, role)) {
       return NextResponse.redirect(new URL("/", request.url));
     }
 
@@ -20,7 +30,8 @@ export function middleware(request: NextRequest) {
     // next/headers) so the UI can gate Add/Delete controls without every
     // page re-deriving it from the cookie itself.
     const requestHeaders = new Headers(request.headers);
-    requestHeaders.set("x-evo-role", parsed.role);
+    requestHeaders.delete("x-evo-role");
+    requestHeaders.set("x-evo-role", role);
     return NextResponse.next({ request: { headers: requestHeaders } });
   }
 
@@ -38,5 +49,5 @@ export function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/((?!login|api/login|api/calendar-feed|_next/static|_next/image|favicon.ico).*)"],
+  matcher: ["/((?!_next/static|_next/image|favicon.ico).*)"],
 };

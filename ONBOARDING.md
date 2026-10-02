@@ -20,6 +20,11 @@ single `EVO_PASSCODE` is no longer read). Values marked "Sensitive" in Vercel
 can never be viewed again, so keep every real value in a password manager.
 After changing any variable in Vercel, redeploy for it to take effect.
 
+Logins are kept as a signed cookie, signed with `EVO_SESSION_SECRET` (a random
+value of 32+ characters; create one with `openssl rand -base64 32`). If that
+variable is missing nobody can log in. Changing a passcode logs that role out
+everywhere; changing `EVO_SESSION_SECRET` logs everyone out.
+
 ## Getting set up locally
 1. Clone the repo (`gh repo clone edwinkohhongchong-ui/evo-events-calendar`) —
    use `gh`/git, not GitHub's "Download ZIP" button, since a ZIP has no git
@@ -31,6 +36,7 @@ After changing any variable in Vercel, redeploy for it to take effect.
    NEXT_PUBLIC_SUPABASE_ANON_KEY=...
    EVO_PASSCODE_EDITOR=...
    EVO_PASSCODE_VIEWER=...
+   EVO_SESSION_SECRET=...
    CALENDARIFIC_API_KEY=...
    CALENDAR_FEED_TOKEN=...
    ```

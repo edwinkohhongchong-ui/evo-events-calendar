@@ -6,8 +6,16 @@ vi.mock("next/headers", () => ({ cookies: () => cookiesMock() }));
 vi.mock("../supabase", () => ({ supabase: { from: () => ({ insert }) } }));
 
 import { logActivity } from "../activity";
+import { createSessionToken } from "../session";
 
-beforeEach(() => {
+const tokens = { editor: "", viewer: "" };
+
+beforeEach(async () => {
+  process.env.EVO_SESSION_SECRET = "test-secret-test-secret-test-secret-1234";
+  process.env.EVO_PASSCODE_EDITOR = "editor-pw";
+  process.env.EVO_PASSCODE_VIEWER = "viewer-pw";
+  tokens.editor = (await createSessionToken("editor"))!;
+  tokens.viewer = (await createSessionToken("viewer"))!;
   insert.mockReset();
   cookiesMock.mockReset();
   vi.spyOn(console, "error").mockImplementation(() => {});
@@ -17,12 +25,12 @@ const input = { action: "added", entity: "event", entityId: "e1", label: "Youth 
 
 describe("logActivity never throws", () => {
   it("swallows a missing/failed table", async () => {
-    cookiesMock.mockResolvedValue({ get: () => ({ value: "editor:pw" }) });
+    cookiesMock.mockResolvedValue({ get: () => ({ value: tokens.editor }) });
     insert.mockResolvedValue({ error: { message: 'relation "activity_log" does not exist' } });
     await expect(logActivity(input)).resolves.toBeUndefined();
   });
   it("swallows a thrown client error", async () => {
-    cookiesMock.mockResolvedValue({ get: () => ({ value: "viewer:pw" }) });
+    cookiesMock.mockResolvedValue({ get: () => ({ value: tokens.viewer }) });
     insert.mockRejectedValue(new Error("network"));
     await expect(logActivity(input)).resolves.toBeUndefined();
   });
@@ -32,7 +40,7 @@ describe("logActivity never throws", () => {
     expect(insert).not.toHaveBeenCalled();
   });
   it("inserts role, computed href and truncated label on success", async () => {
-    cookiesMock.mockResolvedValue({ get: () => ({ value: "viewer:pw" }) });
+    cookiesMock.mockResolvedValue({ get: () => ({ value: tokens.viewer }) });
     insert.mockResolvedValue({ error: null });
     await logActivity(input);
     expect(insert).toHaveBeenCalledWith(
