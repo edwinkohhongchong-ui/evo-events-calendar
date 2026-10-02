@@ -1,7 +1,7 @@
 "use client";
 
 import { ReactNode } from "react";
-import Button from "./ui/Button";
+import Button, { ButtonVariant } from "./ui/Button";
 
 interface ConfirmDialogProps {
   message: ReactNode;
@@ -9,6 +9,8 @@ interface ConfirmDialogProps {
   busyLabel?: string;
   error?: string | null;
   busy?: boolean;
+  /** Defaults to "danger" (the dialog's original use: confirming a delete). */
+  confirmVariant?: ButtonVariant;
   onCancel: () => void;
   onConfirm: () => void;
 }
@@ -19,6 +21,7 @@ export default function ConfirmDialog({
   busyLabel = "Deleting…",
   error,
   busy,
+  confirmVariant = "danger",
   onCancel,
   onConfirm,
 }: ConfirmDialogProps) {
@@ -30,7 +33,7 @@ export default function ConfirmDialog({
         <Button variant="ghost" onClick={onCancel}>
           Cancel
         </Button>
-        <Button variant="danger" onClick={onConfirm} loading={busy}>
+        <Button variant={confirmVariant} onClick={onConfirm} loading={busy}>
           {busy ? busyLabel : confirmLabel}
         </Button>
       </div>

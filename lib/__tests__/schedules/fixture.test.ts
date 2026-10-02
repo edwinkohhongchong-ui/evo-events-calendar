@@ -44,9 +44,11 @@ describe("real 2026 education-schedules document", () => {
       expect(h("2026-11-08")?.name).toBe("Deepavali");
       expect(h("2026-11-09")?.name).toBe("Deepavali (In-Lieu)");
     });
-    it("marks Hari Raya Puasa and Haji tentative / provisional", () => {
+    it("marks Hari Raya Puasa and Haji tentative by the provisional type only (no name suffix)", () => {
+      expect(h("2026-03-21")?.name).toBe("Hari Raya Puasa");
+      expect(h("2026-05-27")?.name).toBe("Hari Raya Haji");
       for (const d of ["2026-03-21", "2026-05-27"]) {
-        expect(h(d)?.name).toMatch(/\(tentative\)$/);
+        expect(h(d)?.name).not.toMatch(/tentative/i);
         expect(h(d)?.type).toBe("National (SG Public Holiday, provisional)");
         expect(h(d)?.tentative).toBe(true);
       }
@@ -63,18 +65,26 @@ describe("real 2026 education-schedules document", () => {
   });
 
   describe("school holidays", () => {
-    it("Primary has 4 ranges including the one into 2027", () => {
-      expect(ranges("Primary School Holidays")).toEqual([
-        "2026-03-14..2026-03-22",
-        "2026-05-30..2026-06-28",
-        "2026-09-05..2026-09-13",
-        "2026-11-21..2027-01-02",
+    const holidayRanges = (prefix: string) =>
+      planned.seasons.filter((s) => s.name.startsWith(prefix)).map((s) => `${s.name} ${s.start_date}..${s.end_date}`);
+    it("Primary has 4 ranges named by month, including the one into 2027", () => {
+      expect(holidayRanges("Primary School Holidays")).toEqual([
+        "Primary School Holidays (March) 2026-03-14..2026-03-22",
+        "Primary School Holidays (June) 2026-05-30..2026-06-28", // 2 days in May, 28 in June
+        "Primary School Holidays (September) 2026-09-05..2026-09-13",
+        "Primary School Holidays (November-December) 2026-11-21..2027-01-02",
       ]);
     });
-    it("Secondary and JC are named separately; JC ends the year a week later", () => {
-      expect(season("Secondary School Holidays")).toHaveLength(4);
-      expect(ranges("JC Holidays")[3]).toBe("2026-11-28..2027-01-02");
-      expect(season("JC Holidays")[0].category).toBe("School Schedule");
+    it("Secondary and JC are named separately and by month too; JC ends the year a week later", () => {
+      expect(holidayRanges("Secondary School Holidays")).toHaveLength(4);
+      expect(holidayRanges("Secondary School Holidays")[3]).toContain("(November-December)");
+      expect(holidayRanges("JC Holidays")).toEqual([
+        "JC Holidays (March) 2026-03-14..2026-03-22",
+        "JC Holidays (June) 2026-05-30..2026-06-28",
+        "JC Holidays (September) 2026-09-05..2026-09-13",
+        "JC Holidays (November-December) 2026-11-28..2027-01-02",
+      ]);
+      expect(season("JC Holidays (March)")[0].category).toBe("School Schedule");
     });
   });
 
@@ -114,7 +124,8 @@ describe("real 2026 education-schedules document", () => {
       expect(season("Poly Holidays (NP, TP, NYP)")).toHaveLength(4);
     });
     it("separates SP from RP", () => {
-      expect(ranges("Poly Mid Semester Test (SP)")).toEqual(["2026-06-01..2026-06-05", "2026-12-07..2026-12-11"]);
+      expect(ranges("Poly Mid Semester Test (SP)")).toEqual(["2026-06-01..2026-06-05"]);
+      expect(ranges("Poly Mid Semester Test (SP, RP)")).toEqual(["2026-12-07..2026-12-11"]);
       expect(ranges("Poly Mid Semester Test (RP)")).toEqual(["2025-06-09..2025-06-15"]);
       expect(ranges("Poly Examinations (SP)")).toEqual(["2026-08-24..2026-09-04"]);
       expect(ranges("Poly Examinations (RP)")).toEqual(["2025-08-18..2025-09-02"]);
@@ -124,12 +135,12 @@ describe("real 2026 education-schedules document", () => {
       expect(rp2025).toHaveLength(3);
       for (const s of rp2025) expect(codes(s.flags)).toContain("year-mismatch");
     });
-    it("treats unlabelled rows after RP's cut-off as SP only, flagged", () => {
+    it("applies unlabelled rows after RP's cut-off to BOTH SP and RP, still flagged not-published", () => {
       const notPublished = planned.seasons.filter((s) => codes(s.flags).includes("not-published"));
       expect(notPublished.map((s) => s.start_date)).toEqual([
         "2026-04-20", "2026-09-05", "2026-10-19", "2026-12-07", "2026-12-12",
       ]);
-      expect(notPublished.every((s) => s.name.endsWith("(SP)"))).toBe(true);
+      expect(notPublished.every((s) => s.name.endsWith("(SP, RP)"))).toBe(true);
     });
     it("semester week-1 markers are single-day School Schedule rows without the label's stray year", () => {
       const w = planned.seasons.find((s) => s.start_date === "2026-01-05" && s.name.includes("NP"));
@@ -154,10 +165,15 @@ describe("real 2026 education-schedules document", () => {
       expect(ranges("SMU Revision and Examination")).toEqual(["2026-04-20..2026-05-03", "2026-11-23..2026-12-06"]);
       expect(ranges("SMU Orientation")).toEqual(["2026-08-10..2026-08-16"]);
     });
-    it("mid-term guidance windows are kept as tentative, not as real dates", () => {
+    it("mid-term guidance windows are kept as tentative Exam Periods but default to unticked", () => {
       const mt = season("NTU Mid-terms");
       expect(mt).toHaveLength(2);
       expect(mt[0].tentative).toBe(true);
+      expect(mt[0].category).toBe("Exam Period");
+      const all = planned.seasons.filter((s) => s.name.endsWith("Mid-terms"));
+      expect(all).toHaveLength(5);
+      expect(all.every((s) => s.defaultSelected === false)).toBe(true);
+      expect(planned.seasons.filter((s) => s.defaultSelected === false)).toHaveLength(5);
       expect(mt[0].notes).toMatch(/expected window/);
     });
     it("NTU's 2024 label typo does not produce any flag", () => {

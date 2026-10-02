@@ -25,3 +25,12 @@ describe("isPathAllowedForRole", () => {
     }
   });
 });
+
+describe("schedule import is Editor-only", () => {
+  it("blocks Viewers from the import page and its parse endpoint, allows Editors", () => {
+    for (const p of ["/seasons/import", "/api/schedules/parse"]) {
+      expect(isPathAllowedForRole(p, "viewer"), p).toBe(false);
+      expect(isPathAllowedForRole(p, "editor"), p).toBe(true);
+    }
+  });
+});

@@ -8,7 +8,8 @@ import { pickSeasonColumns } from "./pickColumns";
 import { requireRole } from "./authz";
 import { runAction } from "./actionResult";
 import { logActivity } from "./activity";
-import { CUSTOM_COLOR_MIGRATION_MESSAGE, isHexColor, normaliseColor } from "./colorStyle";
+import { normaliseColor } from "./colorStyle";
+import { insertSeasonRow, updateSeasonRow } from "./rowWrites";
 
 // Accepts a named palette key, "#rrggbb" or null (auto colour); hex is lowercased.
 function checkedSeasonValues(values: SeasonFormValues): SeasonFormValues {
@@ -19,25 +20,12 @@ function checkedSeasonValues(values: SeasonFormValues): SeasonFormValues {
   return { ...picked, color };
 }
 
-// Before migration 026 the DB check constraint rejects hex colours (23514).
-function saveError(code: string | undefined, values: SeasonFormValues): Error {
-  if (code === "23514" && isHexColor(values.color)) {
-    console.error("Custom colour rejected by check constraint: run migration 026.");
-    return new Error(CUSTOM_COLOR_MIGRATION_MESSAGE);
-  }
-  return new Error("Something went wrong saving this season. Check your connection and try again. Your details are still in the form.");
-}
-
 async function createSeasonImpl(input: SeasonFormValues): Promise<AffectedRow[]> {
   await requireRole("editor");
   const values = checkedSeasonValues(input);
-  const { data, error } = await supabase.from("seasons").insert(values).select().single();
-  if (error) {
-    console.error(error);
-    throw saveError(error.code, values);
-  }
-  await logActivity({ action: "added", entity: "season", entityId: data.id, label: values.name, itemDate: values.start_date });
-  return [{ table: "seasons", id: data.id, before: null, after: data }];
+  const { id, affected } = await insertSeasonRow(values);
+  await logActivity({ action: "added", entity: "season", entityId: id, label: values.name, itemDate: values.start_date });
+  return affected;
 }
 
 // See updateHoliday in lib/holidayActions.ts for the full explanation of the
@@ -50,23 +38,9 @@ async function updateSeasonImpl(
 ): Promise<AffectedRow[]> {
   await requireRole("editor");
   const values = checkedSeasonValues(input);
-  const before = await fetchRow("seasons", id);
-  let query = supabase.from("seasons").update(values).eq("id", id);
-  if (expectedUpdatedAt) query = query.eq("updated_at", expectedUpdatedAt);
-  const { data, error } = await query.select();
-  if (error) {
-    console.error(error);
-    throw saveError(error.code, values);
-  }
-  if (!data || data.length === 0) {
-    throw new Error(
-      expectedUpdatedAt
-        ? "Someone else changed this since you loaded it — please refresh and try again."
-        : "Season not found."
-    );
-  }
+  const affected = await updateSeasonRow(id, values, expectedUpdatedAt);
   await logActivity({ action: "edited", entity: "season", entityId: id, label: values.name, itemDate: values.start_date });
-  return [{ table: "seasons", id, before, after: data[0] }];
+  return affected;
 }
 
 async function deleteSeasonImpl(id: string): Promise<AffectedRow[]> {

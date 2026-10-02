@@ -121,6 +121,36 @@ preview cards, Duplicate event, a phone agenda layout, Seasons "Update Calendar"
 changelog is the full record. The app is currently at **CHANGELOG.md v2.23** —
 check that file's top entry for the exact current version and what's in it.
 
+### Import schedules from Word (Editor only)
+
+Menu → Tools → "Import schedules (Word)" (also a button on the Seasons page,
+`/seasons/import`). Upload the yearly education schedule as a `.docx` (5 MB
+max); the file is read in memory only and never stored. The page shows a
+preview of what would be added or changed in Holidays and Seasons, and nothing
+is saved until you click Apply; one Undo reverses the whole import.
+
+The reader (`lib/schedules/`) expects the document's layout, not any Word file:
+- A title line with the year, e.g. "Education Schedules 2026".
+- Section headings: Public Holidays, Primary School, Secondary School, Junior
+  College, Polytechnic, University.
+- Optional group headings under a section (School Holidays, PSLE, N Level,
+  O Level, A Level, or institution codes such as "NP, TP, NYP:" / "SP, RP:").
+- Rows written "Label: dates", e.g. "Examination: 16 February 2026 - 8 March 2026",
+  or bare date lines under "School Holidays". Dates are "D Month YYYY", ranges
+  with a dash, lists with commas or "and". "(tentative ...)" and "(subject to
+  confirmation)" mark a row tentative; "(this is a Sunday, <date> will be PH)"
+  adds the "(In-Lieu)" holiday; "(SP)" / "(RP)" scopes a date to one institution.
+- Lines it cannot place are listed under "Lines I couldn't place" rather than
+  guessed. Typos such as an end date before the start date are flagged and must
+  be fixed in the preview (Edit) before the row can be applied.
+
+Naming follows the calendar's existing rows ("Poly Examinations (NP, TP, NYP)",
+"Primary School Holidays (June)"). A tentative public holiday keeps its normal
+name and is marked by the provisional holiday type. "(Mid-terms should fall
+between ...)" lines come in as tentative Exam Periods but start unticked.
+Code: parse endpoint `app/api/schedules/parse/route.ts`, save action
+`lib/scheduleImportActions.ts`, preview `components/ScheduleImportPreview.tsx`.
+
 ## Key design decisions worth knowing before changing things
 - **Time wraps within a day; multi-day is a separate feature.** An event
   whose time ends "after midnight" just wraps within the 24-hour clock display.

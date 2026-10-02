@@ -105,6 +105,13 @@ export default function SeasonsTable({ seasons }: { seasons: SeasonRow[] }) {
           <Link href="/seasons/new-year" className={buttonClass("secondary", "sm")}>
             Start a New Year
           </Link>
+          <Link
+            href="/seasons/import"
+            className={buttonClass("secondary", "sm")}
+            title="Upload the yearly education schedule (Word) and review what it would add or change"
+          >
+            Import from Word
+          </Link>
           <Button size="sm" icon={<PlusIcon className="!h-4 !w-4" />} onClick={() => setModal({ type: "add" })}>
             Add Season
           </Button>

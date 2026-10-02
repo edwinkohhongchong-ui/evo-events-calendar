@@ -4,20 +4,16 @@ import { supabase } from "./supabase";
 import { HolidayFormValues } from "./types";
 import { AffectedRow } from "./undo/types";
 import { fetchRow } from "./undo/capture";
-import { pickHolidayColumns } from "./pickColumns";
+import { insertHolidayRow, updateHolidayRow } from "./rowWrites";
 import { requireRole } from "./authz";
 import { runAction } from "./actionResult";
 import { logActivity } from "./activity";
 
 async function createHolidayImpl(values: HolidayFormValues): Promise<AffectedRow[]> {
   await requireRole("editor");
-  const { data, error } = await supabase.from("holidays").insert(pickHolidayColumns(values)).select().single();
-  if (error) {
-    console.error(error);
-    throw new Error("Something went wrong saving this holiday. Check your connection and try again. Your details are still in the form.");
-  }
-  await logActivity({ action: "added", entity: "holiday", entityId: data.id, label: values.name, itemDate: values.holiday_date });
-  return [{ table: "holidays", id: data.id, before: null, after: data }];
+  const { id, affected } = await insertHolidayRow(values);
+  await logActivity({ action: "added", entity: "holiday", entityId: id, label: values.name, itemDate: values.holiday_date });
+  return affected;
 }
 
 // `expectedUpdatedAt` (optional, backward-compatible) is an optimistic-lock
@@ -40,23 +36,9 @@ async function updateHolidayImpl(
   expectedUpdatedAt?: string
 ): Promise<AffectedRow[]> {
   await requireRole("editor");
-  const before = await fetchRow("holidays", id);
-  let query = supabase.from("holidays").update(pickHolidayColumns(values)).eq("id", id);
-  if (expectedUpdatedAt) query = query.eq("updated_at", expectedUpdatedAt);
-  const { data, error } = await query.select();
-  if (error) {
-    console.error(error);
-    throw new Error("Something went wrong saving this holiday. Check your connection and try again. Your details are still in the form.");
-  }
-  if (!data || data.length === 0) {
-    throw new Error(
-      expectedUpdatedAt
-        ? "Someone else changed this since you loaded it — please refresh and try again."
-        : "Holiday not found."
-    );
-  }
+  const affected = await updateHolidayRow(id, values, expectedUpdatedAt);
   await logActivity({ action: "edited", entity: "holiday", entityId: id, label: values.name, itemDate: values.holiday_date });
-  return [{ table: "holidays", id, before, after: data[0] }];
+  return affected;
 }
 
 async function deleteHolidayImpl(id: string): Promise<AffectedRow[]> {

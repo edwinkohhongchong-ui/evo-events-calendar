@@ -1,13 +1,15 @@
 import type { ColorValue, HolidayType, SeasonCategory } from "../types";
-import { addDays, eachDay } from "./dateText";
+import { addDays, daysBetween, eachDay, monthName } from "./dateText";
 import { labelKind } from "./labels";
+import { ImportLimitError, MAX_HOLIDAY_DAYS_PER_RANGE, MAX_PLAN_ROWS } from "./limits";
 import type { Flag, ParsedItem, ParsedSchedule, ScheduleSection } from "./types";
 
 // Naming follows what the app already uses (supabase_schema.sql seed + the
 // exam-source groups): holidays "Chinese New Year (Day 1)", "Vesak Day (In-Lieu)",
 // "Christmas Day"; seasons "Poly Holidays", "Poly Examinations", "Uni ...".
 export const OBSERVED_SUFFIX = "In-Lieu";
-export const TENTATIVE_SUFFIX = "tentative";
+// A month needs at least this many days of a school-holiday range to appear in its name.
+const MONTH_LABEL_MIN_DAYS = 3;
 
 const HOLIDAY_ALIASES: Record<string, string> = {
   christmas: "Christmas Day",
@@ -32,6 +34,8 @@ export interface PlannedHoliday extends PlannedBase {
 
 export interface PlannedSeason extends PlannedBase {
   kind: "season";
+  /** False for rows that are only guidance (mid-term windows): shown, but not ticked by default. */
+  defaultSelected?: boolean;
   name: string;
   category: SeasonCategory;
   start_date: string;
@@ -92,19 +96,23 @@ function hasError(flags: Flag[]): boolean {
 
 function classifyHolidays(item: ParsedItem): PlannedHoliday[] {
   const base = publicHolidayName(item.label);
-  const suffix = item.tentative ? ` (${TENTATIVE_SUFFIX})` : "";
   const type: HolidayType = item.tentative
     ? "National (SG Public Holiday, provisional)"
     : "National (SG Public Holiday)";
+  if (item.end >= item.start && daysBetween(item.start, item.end) >= MAX_HOLIDAY_DAYS_PER_RANGE) {
+    throw new ImportLimitError(
+      `A public holiday on line ${item.sourceLine} runs for more than ${MAX_HOLIDAY_DAYS_PER_RANGE} days; check it is the right file.`
+    );
+  }
   const days = item.end >= item.start ? eachDay(item.start, item.end) : [item.start];
   const make = (date: string, name: string): PlannedHoliday => {
-    const full = `${name}${suffix}`;
+    // Tentative is shown by the provisional type only; the name stays as the existing row's.
     return {
       kind: "holiday",
       date,
-      name: full,
+      name,
       type,
-      key: holidayKey(full, date),
+      key: holidayKey(name, date),
       source: { line: item.sourceLine, text: item.sourceText },
       tentative: item.tentative,
       flags: item.flags,
@@ -129,14 +137,32 @@ function instSuffix(item: ParsedItem): string {
   return item.institutions?.length ? ` (${item.institutions.join(", ")})` : "";
 }
 
+/** "(March)" / "(June)" / "(November-December)": the months holding at least 3 days of
+ *  the range, first to last; if none does (a short range split across two months), the
+ *  month with the most days (earlier one on a tie). 30 May - 28 Jun -> June (May has 2). */
+export function holidayMonthLabel(start: string, end: string): string {
+  const counts = new Map<string, number>();
+  for (const d of eachDay(start, end >= start ? end : start)) {
+    const ym = d.slice(0, 7);
+    counts.set(ym, (counts.get(ym) ?? 0) + 1);
+  }
+  const months = Array.from(counts.entries()).sort(([a], [b]) => a.localeCompare(b));
+  let picked = months.filter(([, n]) => n >= MONTH_LABEL_MIN_DAYS).map(([ym]) => ym);
+  if (picked.length === 0) {
+    picked = [months.reduce((best, cur) => (cur[1] > best[1] ? cur : best))[0]];
+  }
+  const label = (ym: string) => monthName(Number(ym.slice(5, 7)));
+  return `(${picked.length === 1 ? label(picked[0]) : `${label(picked[0])}-${label(picked[picked.length - 1])}`})`;
+}
+
 function seasonNameAndCategory(item: ParsedItem): { name: string; category: SeasonCategory } {
   const kind = labelKind(item.label);
   const label = tidyLabel(item.label);
   const sectionPrefix = item.section ? SECTION_PREFIX[item.section] : "";
 
   if (item.group === "School Holidays") {
-    const name = item.section === "Junior College" ? "JC Holidays" : `${sectionPrefix} Holidays`;
-    return { name, category: "School Schedule" };
+    const base = item.section === "Junior College" ? "JC Holidays" : `${sectionPrefix} Holidays`;
+    return { name: `${base} ${holidayMonthLabel(item.start, item.end)}`, category: "School Schedule" };
   }
   if (item.group && ["PSLE", "N Level", "O Level", "A Level"].includes(item.group)) {
     return { name: `${item.group} ${label}`, category: "Exam Period" };
@@ -218,7 +244,11 @@ export function classifySchedule(parsed: ParsedSchedule): PlannedSchedule {
       tentative: item.tentative,
       flags: item.flags,
       invalid: hasError(item.flags),
+      ...(item.label === "Mid-terms" ? { defaultSelected: false } : {}),
     });
+  }
+  if (holidays.length + seasons.length > MAX_PLAN_ROWS) {
+    throw new ImportLimitError(`This document produced more than ${MAX_PLAN_ROWS} rows; check it is the right file.`);
   }
   return { docYear: parsed.docYear, holidays, seasons };
 }

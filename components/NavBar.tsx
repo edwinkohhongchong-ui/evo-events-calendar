@@ -60,6 +60,7 @@ const ADMIN: Group = {
   items: [
     { href: "/reminders", label: "Reminders", icon: <BellIcon /> },
     { href: "/admin/backup", label: "Backup", icon: <DatabaseIcon /> },
+    { href: "/seasons/import", label: "Import schedules (Word)", caption: "Upload the yearly exam schedule", icon: <UploadIcon /> },
   ],
 };
 const EXPORT: Group = {

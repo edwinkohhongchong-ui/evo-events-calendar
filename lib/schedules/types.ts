@@ -13,7 +13,8 @@ export type FlagCode =
   | "invalid-date"
   | "unparsed-text"
   | "no-section"
-  | "sunday-mismatch";
+  | "sunday-mismatch"
+  | "weak-match";
 
 export interface Flag {
   code: FlagCode;

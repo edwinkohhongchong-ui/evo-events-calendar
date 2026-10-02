@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import JSZip from "jszip";
-import { DocxReadError, MAX_DOCX_BYTES, paragraphsFromDocumentXml, readDocxParagraphs } from "../../schedules/readDocx";
+import { DocxReadError, MAX_DOC_XML_BYTES, MAX_DOCX_BYTES, paragraphsFromDocumentXml, readDocxParagraphs } from "../../schedules/readDocx";
 
 const W = 'xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"';
 const p = (...runs: string[]) => `<w:p><w:pPr><w:pStyle w:val="Body"/></w:pPr>${runs.map((r) => `<w:r><w:t xml:space="preserve">${r}</w:t></w:r>`).join("")}</w:p>`;
@@ -82,5 +82,106 @@ describe("readDocxParagraphs", () => {
     const err = await readDocxParagraphs(bomb).catch((e) => e);
     expect(err).toBeInstanceOf(DocxReadError);
     expect(err.message).toMatch(/too large to read safely/);
+  });
+});
+
+describe("hostile XML finishes quickly and fails or returns safely (ReDoS)", () => {
+  const timed = (fn: () => unknown) => {
+    const t = Date.now();
+    let outcome: unknown;
+    try {
+      outcome = fn();
+    } catch (e) {
+      outcome = e;
+    }
+    return { ms: Date.now() - t, outcome };
+  };
+  const okOrReadError = (o: unknown) => expect(!(o instanceof Error) || o instanceof DocxReadError).toBe(true);
+
+  it('"<a" repeated 200000 times with no ">"', () => {
+    const { ms, outcome } = timed(() => paragraphsFromDocumentXml("<a".repeat(200000)));
+    expect(ms).toBeLessThan(1000);
+    okOrReadError(outcome);
+  });
+  it('"<a" repeated with one ">" at the very end (the cached-terminator case)', () => {
+    const { ms, outcome } = timed(() => paragraphsFromDocumentXml("<a".repeat(200000) + ">"));
+    expect(ms).toBeLessThan(1000);
+    okOrReadError(outcome);
+  });
+  it("an unclosed comment", () => {
+    const { ms, outcome } = timed(() => paragraphsFromDocumentXml(`<w:p><w:r><w:t>Hi</w:t></w:r></w:p><!--${"<!--".repeat(200000)}`));
+    expect(ms).toBeLessThan(1000);
+    expect(outcome).toEqual(["Hi"]);
+  });
+  it("an unclosed processing instruction", () => {
+    const { ms, outcome } = timed(() => paragraphsFromDocumentXml(`<w:p><w:r><w:t>Hi</w:t></w:r></w:p>${"<?x ".repeat(200000)}`));
+    expect(ms).toBeLessThan(1000);
+    expect(outcome).toEqual(["Hi"]);
+  });
+  it("many unclosed comments / PIs interleaved", () => {
+    const { ms } = timed(() => paragraphsFromDocumentXml("<!-- <? <![CDATA[ ".repeat(100000)));
+    expect(ms).toBeLessThan(1000);
+  });
+  it("a document with a very large number of tags is refused instead of grinding", () => {
+    const { ms, outcome } = timed(() => paragraphsFromDocumentXml("<w:br/>".repeat(1_600_000)));
+    expect(ms).toBeLessThan(3000);
+    expect(outcome).toBeInstanceOf(DocxReadError);
+  });
+  it("a normal-sized many-tag document still reads", () => {
+    const xml = doc(Array.from({ length: 5000 }, (_, i) => p(`Line ${i}`)).join(""));
+    const { ms, outcome } = timed(() => paragraphsFromDocumentXml(xml));
+    expect(ms).toBeLessThan(1000);
+    expect((outcome as string[]).length).toBe(5000);
+  });
+  it("through the zip reader too: an 8 MB+ document.xml is refused", async () => {
+    const big = await docx(doc(p("x".repeat(MAX_DOC_XML_BYTES + 1024))));
+    expect(big.byteLength).toBeLessThan(MAX_DOCX_BYTES);
+    const err = await readDocxParagraphs(big).catch((e) => e);
+    expect(err).toBeInstanceOf(DocxReadError);
+    expect(err.message).toMatch(/too large to read safely/);
+  });
+  it("through the zip reader: hostile document.xml returns or fails fast", async () => {
+    const t = Date.now();
+    const bytes = await docx("<a".repeat(200000));
+    const out = await readDocxParagraphs(bytes).catch((e) => e);
+    expect(Date.now() - t).toBeLessThan(2000);
+    okOrReadError(out);
+  });
+  it("refuses a document with an absurd number of lines", async () => {
+    const bytes = await docx(doc(Array.from({ length: 5001 }, (_, i) => p(`L${i}`)).join("")));
+    const err = await readDocxParagraphs(bytes).catch((e) => e);
+    expect(err).toBeInstanceOf(DocxReadError);
+    expect(err.message).toMatch(/more than 5000 lines/);
+  });
+});
+
+describe("text hygiene while reading", () => {
+  it("drops control, zero-width and bidi characters (including ones written as entities)", () => {
+    const xml = doc(p("Lab\u200bour &#8238;Day&#7; \u202e1\u0000 May"));
+    expect(paragraphsFromDocumentXml(xml)).toEqual(["Labour Day 1 May"]);
+  });
+  it("does not choke on stray < and unusual tags", () => {
+    expect(paragraphsFromDocumentXml(`<w:p><w:r><w:t>a < b <> c</w:t></w:r></w:p>`)).toEqual(["a b c"]);
+  });
+});
+
+describe("nested table hardening", () => {
+  it("160k nested cell/row levels fail fast with DocxReadError", () => {
+    const xml = "<w:tc><w:p><w:t>ab</w:t></w:p><w:tr>".repeat(160_000);
+    expect(xml.length).toBeLessThan(MAX_DOC_XML_BYTES);
+    const t = Date.now();
+    expect(() => paragraphsFromDocumentXml(xml)).toThrow(DocxReadError);
+    expect(() => paragraphsFromDocumentXml(xml)).toThrow("too complex");
+    expect(Date.now() - t).toBeLessThan(1000);
+  });
+
+  it("a cell holding more than ~50 KB of text is refused", () => {
+    const big = `<w:tr><w:tc>${("<w:p><w:t>" + "x".repeat(900) + "</w:t></w:p>").repeat(80)}</w:tc></w:tr>`;
+    expect(() => paragraphsFromDocumentXml(big)).toThrow(DocxReadError);
+  });
+
+  it("ordinary tables (and a table inside a cell) still read", () => {
+    const xml = "<w:tbl><w:tr><w:tc><w:p><w:t>A</w:t></w:p></w:tc><w:tc><w:tbl><w:tr><w:tc><w:p><w:t>B</w:t></w:p></w:tc></w:tr></w:tbl></w:tc></w:tr></w:tbl>";
+    expect(paragraphsFromDocumentXml(xml).join("|")).toContain("A");
   });
 });

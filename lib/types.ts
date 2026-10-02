@@ -63,6 +63,8 @@ export interface HolidayRow {
   holiday_date: string; // yyyy-MM-dd
   name: string;
   type: HolidayType;
+  // Optimistic-lock token (migration 020).
+  updated_at?: string;
 }
 
 // A short freeform tag attached to one calendar date — shown as plain green
@@ -141,6 +143,8 @@ export interface SeasonRow {
   end_date: string; // yyyy-MM-dd
   notes: string | null;
   color: ColorValue | null; // null = use the auto-suggested color for this name
+  // Optimistic-lock token (migration 020).
+  updated_at?: string;
 }
 
 export type ChecklistStatus = "Not Started" | "In Progress" | "Done";

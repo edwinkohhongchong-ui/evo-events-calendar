@@ -10,6 +10,7 @@ import {
   ScanToken,
 } from "./dateText";
 import { labelKind } from "./labels";
+import { cleanText } from "./text";
 import {
   Flag,
   FlagCode,
@@ -336,16 +337,17 @@ function parseRow(entry: Entry, state: State, items: ParsedItem[], issues: Flag[
 
   for (const s of scoped) {
     const flags: Flag[] = [...rowFlags];
-    let institutions: string[] | undefined = s.insts.length ? s.insts : inGroup?.institutions;
+    const institutions: string[] | undefined = s.insts.length ? s.insts : inGroup?.institutions;
     if (!s.insts.length && inGroup?.unpublished) {
       const { institution, from } = inGroup.unpublished;
       if (institutions?.includes(institution) && (!from || s.e.start >= from)) {
-        institutions = institutions.filter((i) => i !== institution);
+        // The row stays attached to every institution in the group (it applies to both
+        // SP and RP until the missing one publishes); the flag tells the reviewer.
         flags.push(
           mkFlag(
             "not-published",
             "warn",
-            `The document says ${institution} had not published its dates${from ? " from " + from.slice(0, 7) + " onwards" : ""}, so this row is treated as ${institutions.join(", ")} only. Confirm before importing.`,
+            `The document says ${institution} had not published its dates${from ? " from " + from.slice(0, 7) + " onwards" : ""}. This row is applied to ${institutions.join(" and ")} for now - check ${institution}'s own calendar once it publishes.`,
             entry.line
           )
         );
@@ -454,7 +456,9 @@ function finaliseFlags(item: ParsedItem, docYear: number | null): void {
 }
 
 export function parseScheduleLines(lines: string[], opts: { defaultYear?: number } = {}): ParsedSchedule {
-  const entries = joinWrapped(lines);
+  // Same text hygiene as the reader, so every name, note and source line downstream is clean
+  // even when the lines did not come from readDocx. Line numbers are unchanged.
+  const entries = joinWrapped(lines.map(cleanText));
   const { title, year: titleYear } = detectTitleYear(entries);
   const items: ParsedItem[] = [];
   const ignoredLines: IgnoredLine[] = [];

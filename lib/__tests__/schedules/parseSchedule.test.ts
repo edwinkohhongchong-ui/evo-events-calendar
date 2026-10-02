@@ -144,7 +144,7 @@ describe("notes, Sunday rule, institutions", () => {
     expect(r.items[0].notes).toEqual(["NP ends earlier at 1 March 2026"]);
     expect(r.items[0].institutions).toEqual(["NP", "TP", "NYP"]);
   });
-  it("RP unpublished note: later unlabelled rows are SP only and flagged", () => {
+  it("RP unpublished note: later unlabelled rows stay SP + RP and are flagged", () => {
     const r = parseScheduleLines([
       "Education Schedules 2026",
       "Polytechnic",
@@ -153,7 +153,7 @@ describe("notes, Sunday rule, institutions", () => {
       "Vacation: 5 September 2026 - 18 October 2026",
     ]);
     expect(r.items[0].institutions).toEqual(["SP", "RP"]);
-    expect(r.items[1].institutions).toEqual(["SP"]);
+    expect(r.items[1].institutions).toEqual(["SP", "RP"]);
     expect(r.items[1].flags.map((f) => f.code)).toContain("not-published");
     expect(r.items[0].flags.map((f) => f.code)).not.toContain("not-published");
   });
