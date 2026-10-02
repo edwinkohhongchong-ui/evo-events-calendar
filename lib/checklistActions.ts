@@ -4,16 +4,17 @@ import { supabase } from "./supabase";
 import { ChecklistFormValues, ChecklistStatus } from "./types";
 import { AffectedRow } from "./undo/types";
 import { fetchRow } from "./undo/capture";
+import { pickChecklistColumns } from "./pickColumns";
 import { requireRole } from "./authz";
 import { runAction } from "./actionResult";
 import { logActivity } from "./activity";
 
 async function createChecklistItemImpl(values: ChecklistFormValues): Promise<AffectedRow[]> {
   await requireRole("editor");
-  const { data, error } = await supabase.from("checklist").insert(values).select().single();
+  const { data, error } = await supabase.from("checklist").insert(pickChecklistColumns(values)).select().single();
   if (error) {
     console.error(error);
-    throw new Error("Something went wrong saving this checklist item. Please try again.");
+    throw new Error("Something went wrong saving this checklist item. Check your connection and try again. Your details are still in the form.");
   }
   await logActivity({ action: "added", entity: "checklist", entityId: data.id, label: values.item });
   return [{ table: "checklist", id: data.id, before: null, after: data }];
@@ -31,12 +32,12 @@ async function updateChecklistItemImpl(
 ): Promise<AffectedRow[]> {
   await requireRole("editor");
   const before = await fetchRow("checklist", id);
-  let query = supabase.from("checklist").update(values).eq("id", id);
+  let query = supabase.from("checklist").update(pickChecklistColumns(values)).eq("id", id);
   if (expectedUpdatedAt) query = query.eq("updated_at", expectedUpdatedAt);
   const { data, error } = await query.select();
   if (error) {
     console.error(error);
-    throw new Error("Something went wrong saving this checklist item. Please try again.");
+    throw new Error("Something went wrong saving this checklist item. Check your connection and try again. Your details are still in the form.");
   }
   if (!data || data.length === 0) {
     throw new Error(

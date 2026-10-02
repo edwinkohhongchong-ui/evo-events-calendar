@@ -89,7 +89,7 @@ export default function SeasonModal({ mode, season, onClose, onSaved, onDeleted 
       }
       onSaved();
     } catch (err) {
-      setFormError(err instanceof Error ? err.message : "Something went wrong saving this season.");
+      setFormError(err instanceof Error ? err.message : "Something went wrong saving this season. Check your connection and try again. Your details are still in the form.");
       setSaving(false);
     }
   }

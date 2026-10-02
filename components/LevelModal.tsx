@@ -82,7 +82,7 @@ export default function LevelModal({
       }
       onSaved();
     } catch (err) {
-      setFormError(err instanceof Error ? err.message : "Something went wrong saving this category.");
+      setFormError(err instanceof Error ? err.message : "Something went wrong saving this category. Check your connection and try again. Your details are still in the form.");
       setSaving(false);
     }
   }

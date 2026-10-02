@@ -12,6 +12,7 @@ import { requireRole } from "./authz";
 import { logActivity } from "./activity";
 import { runAction } from "./actionResult";
 import { EVENT_CONFLICT_MESSAGE } from "./eventConflict";
+import { pickEventColumns } from "./pickColumns";
 import { OWNER_MIGRATION_HINT, isMissingOwnerColumn, withOwner } from "./owner";
 
 // Moves a single occurrence to newDate. Never touches new_time/new_end_date —
@@ -223,7 +224,7 @@ export interface EventFormValues {
 
 async function createEventImpl(values: EventFormValues): Promise<AffectedRow[]> {
   await requireRole("editor");
-  const row = withOwner(values);
+  const row = withOwner(pickEventColumns(values));
   const { data, error } = await supabase.from("events").insert(row).select().single();
   if (error) {
     console.error(error);
@@ -231,7 +232,7 @@ async function createEventImpl(values: EventFormValues): Promise<AffectedRow[]> 
     if (error.code === "23503") {
       throw new Error("That event type's category doesn't exist any more. Add it under Categories, then try again.");
     }
-    throw new Error("Something went wrong saving this event. Please try again.");
+    throw new Error("Something went wrong saving this event. Check your connection and try again. Your details are still in the form.");
   }
   await logActivity({ action: "added", entity: "event", entityId: data.id, label: values.name, itemDate: values.event_date });
   // Undo deletes the event (its checklist cascades away); redo recreates the
@@ -252,7 +253,7 @@ async function updateEventImpl(
   const before = await fetchRow("events", id);
   // `before` has an owner key only once migration 025 exists, which is also
   // the only time sending owner: null (to clear it) is safe.
-  const row = withOwner(values, !!before && "owner" in before);
+  const row = withOwner(pickEventColumns(values), !!before && "owner" in before);
   let query = supabase.from("events").update(row).eq("id", id);
   if (expectedUpdatedAt) query = query.eq("updated_at", expectedUpdatedAt);
   const { data, error } = await query.select();
@@ -262,7 +263,7 @@ async function updateEventImpl(
     if (error.code === "23503") {
       throw new Error("That event type's category doesn't exist any more. Add it under Categories, then try again.");
     }
-    throw new Error("Something went wrong saving this event. Please try again.");
+    throw new Error("Something went wrong saving this event. Check your connection and try again. Your details are still in the form.");
   }
   if (!data || data.length === 0) {
     // The row still exists, so the zero-row match was the updated_at guard.
@@ -343,7 +344,7 @@ async function detachOccurrenceImpl(
   values: EventFormValues
 ): Promise<AffectedRow[]> {
   await requireRole("editor");
-  const row = withOwner(values);
+  const row = withOwner(pickEventColumns(values));
   const { data: inserted, error: insertError } = await supabase
     .from("events")
     .insert({ ...row, recurring: "None", repeat_until: null })
@@ -352,7 +353,7 @@ async function detachOccurrenceImpl(
   if (insertError) {
     console.error(insertError);
     if ("owner" in row && isMissingOwnerColumn(insertError)) throw new Error(OWNER_MIGRATION_HINT);
-    throw new Error("Something went wrong saving this event. Please try again.");
+    throw new Error("Something went wrong saving this event. Check your connection and try again. Your details are still in the form.");
   }
   const affected: AffectedRow[] = [{ table: "events", id: inserted.id, before: null, after: inserted }];
 
@@ -371,7 +372,7 @@ async function detachOccurrenceImpl(
       .single();
     if (exceptionError) {
       console.error(exceptionError);
-      throw new Error("Something went wrong saving this event. Please try again.");
+      throw new Error("Something went wrong saving this event. Check your connection and try again. Your details are still in the form.");
     }
     affected.push({ table: "event_exceptions", id: exception.id, before: existingException ?? null, after: exception });
 
@@ -390,7 +391,7 @@ async function detachOccurrenceImpl(
         .eq("id", existingOverride.id);
       if (deleteOverrideError) {
         console.error(deleteOverrideError);
-        throw new Error("Something went wrong saving this event. Please try again.");
+        throw new Error("Something went wrong saving this event. Check your connection and try again. Your details are still in the form.");
       }
       affected.push({ table: "event_overrides", id: existingOverride.id, before: existingOverride, after: null });
     }
@@ -432,7 +433,7 @@ async function splitSeriesFromOccurrenceImpl(
   // overrides/exceptions; if any later step fails, rollbackSplit puts back
   // whatever was already applied (best effort), so the worst case is "no
   // change" rather than a truncated series with nothing replacing it.
-  const row = withOwner(values);
+  const row = withOwner(pickEventColumns(values));
   const { data: inserted, error: insertError } = await supabase
     .from("events")
     .insert(row)
@@ -441,7 +442,7 @@ async function splitSeriesFromOccurrenceImpl(
   if (insertError) {
     console.error(insertError);
     if ("owner" in row && isMissingOwnerColumn(insertError)) throw new Error(OWNER_MIGRATION_HINT);
-    throw new Error("Something went wrong saving this event series. Please try again.");
+    throw new Error("Something went wrong saving this event series. Check your connection and try again. Your details are still in the form.");
   }
   const newEventId = inserted.id as string;
   affected.push({ table: "events", id: newEventId, before: null, after: inserted });
@@ -457,7 +458,7 @@ async function splitSeriesFromOccurrenceImpl(
       .single();
     if (shortenError) {
       console.error(shortenError);
-      throw new Error("Something went wrong saving this event series. Please try again.");
+      throw new Error("Something went wrong saving this event series. Check your connection and try again. Your details are still in the form.");
     }
     affected.push({ table: "events", id: event.id, before: beforeShorten, after: shortened });
 
@@ -468,7 +469,7 @@ async function splitSeriesFromOccurrenceImpl(
       .gt("original_date", originalDate);
     if (overridesBeforeError) {
       console.error(overridesBeforeError);
-      throw new Error("Something went wrong saving this event series. Please try again.");
+      throw new Error("Something went wrong saving this event series. Check your connection and try again. Your details are still in the form.");
     }
     if (overridesBefore && overridesBefore.length > 0) {
       const { data: overridesAfter, error: overrideMigrateError } = await supabase
@@ -479,7 +480,7 @@ async function splitSeriesFromOccurrenceImpl(
         .select();
       if (overrideMigrateError) {
         console.error(overrideMigrateError);
-        throw new Error("Something went wrong saving this event series. Please try again.");
+        throw new Error("Something went wrong saving this event series. Check your connection and try again. Your details are still in the form.");
       }
       const afterById = new Map((overridesAfter ?? []).map((row) => [row.id, row]));
       for (const row of overridesBefore) {
@@ -500,7 +501,7 @@ async function splitSeriesFromOccurrenceImpl(
         .eq("id", overrideOnSplitDate.id);
       if (overrideDeleteError) {
         console.error(overrideDeleteError);
-        throw new Error("Something went wrong saving this event series. Please try again.");
+        throw new Error("Something went wrong saving this event series. Check your connection and try again. Your details are still in the form.");
       }
       affected.push({ table: "event_overrides", id: overrideOnSplitDate.id, before: overrideOnSplitDate, after: null });
     }
@@ -512,7 +513,7 @@ async function splitSeriesFromOccurrenceImpl(
       .gt("original_date", originalDate);
     if (exceptionsBeforeError) {
       console.error(exceptionsBeforeError);
-      throw new Error("Something went wrong saving this event series. Please try again.");
+      throw new Error("Something went wrong saving this event series. Check your connection and try again. Your details are still in the form.");
     }
     if (exceptionsBefore && exceptionsBefore.length > 0) {
       const { data: exceptionsAfter, error: exceptionMigrateError } = await supabase
@@ -523,7 +524,7 @@ async function splitSeriesFromOccurrenceImpl(
         .select();
       if (exceptionMigrateError) {
         console.error(exceptionMigrateError);
-        throw new Error("Something went wrong saving this event series. Please try again.");
+        throw new Error("Something went wrong saving this event series. Check your connection and try again. Your details are still in the form.");
       }
       const afterById = new Map((exceptionsAfter ?? []).map((row) => [row.id, row]));
       for (const row of exceptionsBefore) {

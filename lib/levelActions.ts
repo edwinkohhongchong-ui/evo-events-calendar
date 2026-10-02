@@ -4,6 +4,7 @@ import { supabase } from "./supabase";
 import { LevelFormValues } from "./types";
 import { AffectedRow } from "./undo/types";
 import { fetchRow } from "./undo/capture";
+import { pickLevelColumns } from "./pickColumns";
 import { requireRole } from "./authz";
 import { runAction } from "./actionResult";
 import { logActivity } from "./activity";
@@ -13,7 +14,7 @@ import { CUSTOM_COLOR_MIGRATION_MESSAGE, isHexColor, normaliseColor } from "./co
 function checkedLevelValues(values: LevelFormValues): LevelFormValues {
   const color_key = normaliseColor(values.color_key);
   if (!color_key) throw new Error("Pick a valid colour.");
-  return { ...values, color_key };
+  return { ...pickLevelColumns(values), color_key };
 }
 
 // Before migration 026 the DB check constraint rejects hex colours (23514).
@@ -22,7 +23,7 @@ function saveError(code: string | undefined, values: LevelFormValues): Error {
     console.error("Custom colour rejected by check constraint: run migration 026.");
     return new Error(CUSTOM_COLOR_MIGRATION_MESSAGE);
   }
-  return new Error("Something went wrong saving this category. Please try again.");
+  return new Error("Something went wrong saving this category. Check your connection and try again. Your details are still in the form.");
 }
 
 async function createLevelImpl(input: LevelFormValues): Promise<AffectedRow[]> {

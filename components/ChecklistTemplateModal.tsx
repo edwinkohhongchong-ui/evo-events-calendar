@@ -96,7 +96,7 @@ export default function ChecklistTemplateModal({
       record(`${mode === "add" ? "Add" : "Edit"} checklist template "${name.trim()}"`, affected);
       onSaved();
     } catch (err) {
-      setFormError(err instanceof Error ? err.message : "Something went wrong saving this template.");
+      setFormError(err instanceof Error ? err.message : "Something went wrong saving this template. Check your connection and try again. Your details are still in the form.");
       setSaving(false);
     }
   }

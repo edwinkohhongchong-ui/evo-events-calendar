@@ -182,7 +182,7 @@ export default function QuickAddPopover({ date: initialDate, anchor, levels, onC
       writeLastQuickLevel(level);
       onSaved();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Something went wrong saving this event.");
+      setError(err instanceof Error ? err.message : "Something went wrong saving this event. Check your connection and try again. Your details are still in the form.");
       setSaving(false);
     }
   }

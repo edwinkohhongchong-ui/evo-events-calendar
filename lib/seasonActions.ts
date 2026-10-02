@@ -4,6 +4,7 @@ import { supabase } from "./supabase";
 import { SeasonFormValues } from "./types";
 import { AffectedRow } from "./undo/types";
 import { fetchRow } from "./undo/capture";
+import { pickSeasonColumns } from "./pickColumns";
 import { requireRole } from "./authz";
 import { runAction } from "./actionResult";
 import { logActivity } from "./activity";
@@ -11,10 +12,11 @@ import { CUSTOM_COLOR_MIGRATION_MESSAGE, isHexColor, normaliseColor } from "./co
 
 // Accepts a named palette key, "#rrggbb" or null (auto colour); hex is lowercased.
 function checkedSeasonValues(values: SeasonFormValues): SeasonFormValues {
-  if (values.color == null) return { ...values, color: null };
+  const picked = pickSeasonColumns(values);
+  if (values.color == null) return { ...picked, color: null };
   const color = normaliseColor(values.color);
   if (!color) throw new Error("Pick a valid colour.");
-  return { ...values, color };
+  return { ...picked, color };
 }
 
 // Before migration 026 the DB check constraint rejects hex colours (23514).
@@ -23,7 +25,7 @@ function saveError(code: string | undefined, values: SeasonFormValues): Error {
     console.error("Custom colour rejected by check constraint: run migration 026.");
     return new Error(CUSTOM_COLOR_MIGRATION_MESSAGE);
   }
-  return new Error("Something went wrong saving this season. Please try again.");
+  return new Error("Something went wrong saving this season. Check your connection and try again. Your details are still in the form.");
 }
 
 async function createSeasonImpl(input: SeasonFormValues): Promise<AffectedRow[]> {

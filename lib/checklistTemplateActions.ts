@@ -42,7 +42,7 @@ async function saveChecklistTemplateImpl(
     const { data, error } = await query.select();
     if (error) {
       console.error(error);
-      throw new Error("Something went wrong saving this checklist template. Please try again.");
+      throw new Error("Something went wrong saving this checklist template. Check your connection and try again. Your details are still in the form.");
     }
     if (!data || data.length === 0) {
       throw new Error(
@@ -59,7 +59,7 @@ async function saveChecklistTemplateImpl(
       .eq("template_id", id);
     if (fetchErr) {
       console.error(fetchErr);
-      throw new Error("Something went wrong saving this checklist template. Please try again.");
+      throw new Error("Something went wrong saving this checklist template. Check your connection and try again. Your details are still in the form.");
     }
     for (const oldItem of oldItems ?? []) {
       affected.push({ table: "checklist_template_items", id: oldItem.id, before: oldItem, after: null });
@@ -70,13 +70,13 @@ async function saveChecklistTemplateImpl(
       .eq("template_id", id);
     if (deleteErr) {
       console.error(deleteErr);
-      throw new Error("Something went wrong saving this checklist template. Please try again.");
+      throw new Error("Something went wrong saving this checklist template. Check your connection and try again. Your details are still in the form.");
     }
   } else {
     const { data, error } = await supabase.from("checklist_templates").insert({ name }).select().single();
     if (error) {
       console.error(error);
-      throw new Error("Something went wrong saving this checklist template. Please try again.");
+      throw new Error("Something went wrong saving this checklist template. Check your connection and try again. Your details are still in the form.");
     }
     id = data.id as string;
     affected.push({ table: "checklist_templates", id: data.id, before: null, after: data });
@@ -94,7 +94,7 @@ async function saveChecklistTemplateImpl(
     const { data: inserted, error } = await supabase.from("checklist_template_items").insert(rows).select();
     if (error) {
       console.error(error);
-      throw new Error("Something went wrong saving this checklist template's items. Please try again.");
+      throw new Error("Something went wrong saving this checklist template's items. Check your connection and try again. Your details are still in the form.");
     }
     for (const row of inserted ?? []) {
       affected.push({ table: "checklist_template_items", id: row.id, before: null, after: row });

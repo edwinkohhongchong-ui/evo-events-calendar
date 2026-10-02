@@ -500,7 +500,7 @@ function EventModalInner({
       }
       onSaved();
     } catch (err) {
-      const message = err instanceof Error ? err.message : "Something went wrong saving this event.";
+      const message = err instanceof Error ? err.message : "Something went wrong saving this event. Check your connection and try again. Your details are still in the form.";
       setConflict(isEventConflict(message));
       setFormError(message);
       setSaving(false);
@@ -532,7 +532,7 @@ function EventModalInner({
       }
       onSaved();
     } catch (err) {
-      setFormError(err instanceof Error ? err.message : "Something went wrong saving this event.");
+      setFormError(err instanceof Error ? err.message : "Something went wrong saving this event. Check your connection and try again. Your details are still in the form.");
       setSaving(false);
     }
   }

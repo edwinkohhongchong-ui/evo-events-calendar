@@ -8,6 +8,12 @@ items (features/fixes) that push contains — a push with 1 item goes up by
 `1.05`). If MINOR would pass `.99`, MAJOR increments and MINOR carries the
 remainder (e.g. `1.99` + 2 items → `2.01`).
 
+## v2.92 — 2026-10-02
+
+- Saves for events, categories, seasons, holidays, reminder templates and monthly checklist items now accept only their known fields (explicit allow-lists, checked by tests so a new form field can't be left out), so a crafted request can't set id, created or updated times.
+- Save errors now say what to do next ("Check your connection and try again. Your details are still in the form.") wherever the form is still open; messages with a specific reason are unchanged.
+- Added a safety net so a message that looks like raw database text is replaced with a generic one before it reaches the browser (the original is logged on the server). `CLAUDE.md` now notes that comment names are free text.
+
 ## v2.89 — 2026-10-02
 
 Review round 2 fixes (code, security, usability and design reviews).

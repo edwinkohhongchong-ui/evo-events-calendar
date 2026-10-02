@@ -4,15 +4,16 @@ import { supabase } from "./supabase";
 import { ReminderTemplateFormValues } from "./types";
 import { AffectedRow } from "./undo/types";
 import { fetchRow } from "./undo/capture";
+import { pickReminderTemplateColumns } from "./pickColumns";
 import { requireRole } from "./authz";
 import { runAction } from "./actionResult";
 
 async function createReminderTemplateImpl(values: ReminderTemplateFormValues): Promise<AffectedRow[]> {
   await requireRole("editor");
-  const { data, error } = await supabase.from("reminder_templates").insert(values).select().single();
+  const { data, error } = await supabase.from("reminder_templates").insert(pickReminderTemplateColumns(values)).select().single();
   if (error) {
     console.error(error);
-    throw new Error("Something went wrong saving this reminder template. Please try again.");
+    throw new Error("Something went wrong saving this reminder template. Check your connection and try again. Your details are still in the form.");
   }
   return [{ table: "reminder_templates", id: data.id, before: null, after: data }];
 }
@@ -27,12 +28,12 @@ async function updateReminderTemplateImpl(
 ): Promise<AffectedRow[]> {
   await requireRole("editor");
   const before = await fetchRow("reminder_templates", id);
-  let query = supabase.from("reminder_templates").update(values).eq("id", id);
+  let query = supabase.from("reminder_templates").update(pickReminderTemplateColumns(values)).eq("id", id);
   if (expectedUpdatedAt) query = query.eq("updated_at", expectedUpdatedAt);
   const { data, error } = await query.select();
   if (error) {
     console.error(error);
-    throw new Error("Something went wrong saving this reminder template. Please try again.");
+    throw new Error("Something went wrong saving this reminder template. Check your connection and try again. Your details are still in the form.");
   }
   if (!data || data.length === 0) {
     throw new Error(

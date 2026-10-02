@@ -64,6 +64,9 @@ internal tool (not public-facing).
   REST-API-level one. This is a deliberate, accepted v1 tradeoff (internal
   tool, single shared URL), not an oversight — don't tighten RLS without
   checking with Edwin first.
+  Comment author names are free text (there is no per-user identity), and the
+  public Supabase anon key plus "allow all" RLS remain an accepted tradeoff —
+  the REST-level exposure described above is the same reason.
 
 ## Explicit non-goals for v1
 - No mobile-native app — responsive web is enough.

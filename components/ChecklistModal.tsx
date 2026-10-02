@@ -94,7 +94,7 @@ export default function ChecklistModal({
       onSaved();
     } catch (err) {
       setFormError(
-        err instanceof Error ? err.message : "Something went wrong saving this checklist item."
+        err instanceof Error ? err.message : "Something went wrong saving this checklist item. Check your connection and try again. Your details are still in the form."
       );
       setSaving(false);
     }

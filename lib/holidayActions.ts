@@ -4,16 +4,17 @@ import { supabase } from "./supabase";
 import { HolidayFormValues } from "./types";
 import { AffectedRow } from "./undo/types";
 import { fetchRow } from "./undo/capture";
+import { pickHolidayColumns } from "./pickColumns";
 import { requireRole } from "./authz";
 import { runAction } from "./actionResult";
 import { logActivity } from "./activity";
 
 async function createHolidayImpl(values: HolidayFormValues): Promise<AffectedRow[]> {
   await requireRole("editor");
-  const { data, error } = await supabase.from("holidays").insert(values).select().single();
+  const { data, error } = await supabase.from("holidays").insert(pickHolidayColumns(values)).select().single();
   if (error) {
     console.error(error);
-    throw new Error("Something went wrong saving this holiday. Please try again.");
+    throw new Error("Something went wrong saving this holiday. Check your connection and try again. Your details are still in the form.");
   }
   await logActivity({ action: "added", entity: "holiday", entityId: data.id, label: values.name, itemDate: values.holiday_date });
   return [{ table: "holidays", id: data.id, before: null, after: data }];
@@ -40,12 +41,12 @@ async function updateHolidayImpl(
 ): Promise<AffectedRow[]> {
   await requireRole("editor");
   const before = await fetchRow("holidays", id);
-  let query = supabase.from("holidays").update(values).eq("id", id);
+  let query = supabase.from("holidays").update(pickHolidayColumns(values)).eq("id", id);
   if (expectedUpdatedAt) query = query.eq("updated_at", expectedUpdatedAt);
   const { data, error } = await query.select();
   if (error) {
     console.error(error);
-    throw new Error("Something went wrong saving this holiday. Please try again.");
+    throw new Error("Something went wrong saving this holiday. Check your connection and try again. Your details are still in the form.");
   }
   if (!data || data.length === 0) {
     throw new Error(
