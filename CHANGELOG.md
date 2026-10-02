@@ -8,6 +8,10 @@ items (features/fixes) that push contains — a push with 1 item goes up by
 `1.05`). If MINOR would pass `.99`, MAJOR increments and MINOR carries the
 remainder (e.g. `1.99` + 2 items → `2.01`).
 
+## v2.104 — 2026-10-02
+
+- Added the reader for the yearly education schedules Word document (no screen yet; the Import page comes next): it opens a `.docx` (5 MB limit, zip-bomb guarded), understands the date styles in the teammate's document (ranges, lists, cross-year ranges, Sunday rules, tentative notes, SP/RP lines), sorts rows into public holidays, School Schedule seasons and Exam Period seasons using the app's existing names, flags problems (year typos, end before start, tentative, not yet published), and compares against what is already in the calendar as new / changed / unchanged without changing anything. Tested against the real 2026 document: 14 holidays and 82 seasons found.
+
 ## v2.103 — 2026-10-02
 
 - Long holiday names and season bars that are cut off in the month grid now show a hover card (and a keyboard-focus card) with the full details: holiday name, date with weekday and type; season name, date range, category and notes. It behaves like the event hover preview (short delay, hides on scroll, drag and Escape) and never prints. Clicking a holiday or season still opens its window as before.
