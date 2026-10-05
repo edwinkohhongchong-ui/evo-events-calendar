@@ -1,4 +1,4 @@
-import type { HolidayRow, SeasonRow } from "../types";
+import type { HolidayRow, HolidayType, SeasonCategory, SeasonRow } from "../types";
 import { daysBetween, overlapDays, yearOf } from "./dateText";
 import { normaliseKeyName, PlannedHoliday, PlannedSchedule, PlannedSeason } from "./classify";
 
@@ -28,9 +28,23 @@ export interface FieldChange {
   to: string;
 }
 
-export interface HolidayDiff {
+/** What the matcher reads from a planned holiday/season, so the Excel importer can reuse it. */
+export interface HolidayLike {
+  date: string;
+  name: string;
+  type: HolidayType;
+}
+export interface SeasonLike {
+  name: string;
+  category: SeasonCategory;
+  start_date: string;
+  end_date: string;
+  notes: string;
+}
+
+export interface HolidayDiff<P extends HolidayLike = PlannedHoliday> {
   status: DiffStatus;
-  planned: PlannedHoliday;
+  planned: P;
   existing?: HolidayRow;
   matchKind?: MatchKind;
   changes: FieldChange[];
@@ -38,9 +52,9 @@ export interface HolidayDiff {
   possibleDuplicates: HolidayRow[];
 }
 
-export interface SeasonDiff {
+export interface SeasonDiff<P extends SeasonLike = PlannedSeason> {
   status: DiffStatus;
-  planned: PlannedSeason;
+  planned: P;
   existing?: SeasonRow;
   matchKind?: MatchKind;
   changes: FieldChange[];
@@ -88,11 +102,11 @@ function holidayNamesCompatible(a: string, b: string): boolean {
   return !/in-lieu|off-in-lieu/.test(tail) && /^[\s(/]/.test(tail);
 }
 
-function changeList(pairs: Array<[string, string, string]>): FieldChange[] {
+export function changeList(pairs: Array<[string, string, string]>): FieldChange[] {
   return pairs.filter(([, from, to]) => from !== to).map(([field, from, to]) => ({ field, from, to }));
 }
 
-function diffHolidays(planned: PlannedHoliday[], existing: HolidayRow[]): HolidayDiff[] {
+export function diffHolidays<P extends HolidayLike>(planned: P[], existing: HolidayRow[]): HolidayDiff<P>[] {
   const claimed = new Set<string>();
   const match = new Map<number, { row: HolidayRow; kind: MatchKind }>();
 
@@ -149,17 +163,17 @@ function diffHolidays(planned: PlannedHoliday[], existing: HolidayRow[]): Holida
   });
 }
 
-function diffSeasons(planned: PlannedSeason[], existing: SeasonRow[]): SeasonDiff[] {
+export function diffSeasons<P extends SeasonLike>(planned: P[], existing: SeasonRow[]): SeasonDiff<P>[] {
   const claimed = new Set<string>();
   const match = new Map<number, { row: SeasonRow; kind: MatchKind }>();
-  const sameName = (e: SeasonRow, p: PlannedSeason) =>
+  const sameName = (e: SeasonRow, p: P) =>
     e.category === p.category && normaliseKeyName(e.name) === normaliseKeyName(p.name);
   const claim = (i: number, e: SeasonRow, strong: MatchKind) => {
     claimed.add(e.id);
     // Names equal only after dropping a tentative/approx qualifier: still a name change to confirm.
     match.set(i, { row: e, kind: sameRawName(e.name, planned[i].name) ? strong : "qualifier" });
   };
-  const ov = (e: SeasonRow, p: PlannedSeason) => overlapDays(e.start_date, e.end_date, p.start_date, p.end_date);
+  const ov = (e: SeasonRow, p: P) => overlapDays(e.start_date, e.end_date, p.start_date, p.end_date);
 
   // Names are compared with normaliseKeyName only: it drops "(tentative)", "(approx.)" and
   // observed markers, and nothing else. Institution codes ("(SP)" vs "(RP)") and month labels

@@ -8,6 +8,10 @@ items (features/fixes) that push contains — a push with 1 item goes up by
 `1.05`). If MINOR would pass `.99`, MAJOR increments and MINOR carries the
 remainder (e.g. `1.99` + 2 items → `2.01`).
 
+## v2.111 — 2026-10-05
+
+- Added the comparison and save logic for the Excel calendar import (no screen yet): rows from the workbook are matched against your calendar, with events matched against the expanded occurrences of existing recurring events (so a weekly event already in the calendar shows as Unchanged), possible duplicates are never auto-matched, weak matches start unticked, events with an unknown level start unticked, and observances and "Other" season tags start unticked. The save action re-checks every row on the server (level must exist, name, date and time rules, 300 rows per call, no duplicates, recurrence forced off), applies approved rows only, returns what was saved so one Undo can reverse an import, and stops cleanly with a plain message if a row fails. Event, checklist and level look-ups used by Add/Edit Event were moved into shared helpers with the same behaviour.
+
 ## v2.110 — 2026-10-05
 
 - Added the reader for the old Excel events calendar (no screen yet; the Import page comes next): a safe `.xlsx` reader (5 MB limit, zip-bomb and time guards, hidden characters stripped) and a parser that understands the month-sheet layout (Mon–Sun grid, observances in day cells, season tags with dates from merged cells, events split by their time ranges, week notes and the Checklist sheet), then sorts the rows into events, seasons, holidays and checklist items using the app's existing naming and level conventions, with plain-language flags for anything unclear.

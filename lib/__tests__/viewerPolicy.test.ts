@@ -50,6 +50,7 @@ const POLICY: Record<string, Record<string, Role>> = {
   "lib/reminderTemplateActions.ts": {
     createReminderTemplate: "editor", updateReminderTemplate: "editor", deleteReminderTemplate: "editor",
   },
+  "lib/excelImportActions.ts": { applyExcelImport: "editor" },
   "lib/scheduleImportActions.ts": { applyScheduleImport: "editor" },
   "lib/seasonActions.ts": { createSeason: "editor", updateSeason: "editor", deleteSeason: "editor" },
   "lib/seasonSourceDateActions.ts": { saveSeasonSourceDates: "editor" },

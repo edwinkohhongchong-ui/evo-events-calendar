@@ -12,6 +12,7 @@ import { requireRole } from "./authz";
 import { logActivity } from "./activity";
 import { runAction } from "./actionResult";
 import { EVENT_CONFLICT_MESSAGE } from "./eventConflict";
+import { insertEventRow, updateEventRow } from "./rowWrites";
 import { pickEventColumns } from "./pickColumns";
 import { OWNER_MIGRATION_HINT, isMissingOwnerColumn, withOwner } from "./owner";
 
@@ -273,20 +274,9 @@ export interface EventFormValues {
 
 async function createEventImpl(values: EventFormValues): Promise<AffectedRow[]> {
   await requireRole("editor");
-  const row = withOwner(pickEventColumns(values));
-  const { data, error } = await supabase.from("events").insert(row).select().single();
-  if (error) {
-    console.error(error);
-    if ("owner" in row && isMissingOwnerColumn(error)) throw new Error(OWNER_MIGRATION_HINT);
-    if (error.code === "23503") {
-      throw new Error("That event type's category doesn't exist any more. Add it under Categories, then try again.");
-    }
-    throw new Error("Something went wrong saving this event. Check your connection and try again. Your details are still in the form.");
-  }
-  await logActivity({ action: "added", entity: "event", entityId: data.id, label: values.name, itemDate: values.event_date });
-  // Undo deletes the event (its checklist cascades away); redo recreates the
-  // event row only, so any checklist added after creation is not restored.
-  return [{ table: "events", id: data.id, before: null, after: data }];
+  const { id, affected } = await insertEventRow(values);
+  await logActivity({ action: "added", entity: "event", entityId: id, label: values.name, itemDate: values.event_date });
+  return affected;
 }
 
 // `expectedUpdatedAt` is an optional optimistic lock: EventModal passes the
@@ -299,27 +289,9 @@ async function updateEventImpl(
   expectedUpdatedAt?: string
 ): Promise<AffectedRow[]> {
   await requireRole("editor");
-  const before = await fetchRow("events", id);
-  // `before` has an owner key only once migration 025 exists, which is also
-  // the only time sending owner: null (to clear it) is safe.
-  const row = withOwner(pickEventColumns(values), !!before && "owner" in before);
-  let query = supabase.from("events").update(row).eq("id", id);
-  if (expectedUpdatedAt) query = query.eq("updated_at", expectedUpdatedAt);
-  const { data, error } = await query.select();
-  if (error) {
-    console.error(error);
-    if ("owner" in row && isMissingOwnerColumn(error)) throw new Error(OWNER_MIGRATION_HINT);
-    if (error.code === "23503") {
-      throw new Error("That event type's category doesn't exist any more. Add it under Categories, then try again.");
-    }
-    throw new Error("Something went wrong saving this event. Check your connection and try again. Your details are still in the form.");
-  }
-  if (!data || data.length === 0) {
-    // The row still exists, so the zero-row match was the updated_at guard.
-    throw new Error(expectedUpdatedAt && before ? EVENT_CONFLICT_MESSAGE : "Event not found.");
-  }
+  const affected = await updateEventRow(id, values, expectedUpdatedAt);
   await logActivity({ action: "edited", entity: "event", entityId: id, label: values.name, itemDate: values.event_date });
-  return [{ table: "events", id, before, after: data[0] }];
+  return affected;
 }
 
 // Deletes the base event row. event_overrides/event_exceptions have ON

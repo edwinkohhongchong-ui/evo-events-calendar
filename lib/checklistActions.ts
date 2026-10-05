@@ -7,17 +7,14 @@ import { fetchRow } from "./undo/capture";
 import { pickChecklistColumns } from "./pickColumns";
 import { requireRole } from "./authz";
 import { runAction } from "./actionResult";
+import { insertChecklistRow } from "./rowWrites";
 import { logActivity } from "./activity";
 
 async function createChecklistItemImpl(values: ChecklistFormValues): Promise<AffectedRow[]> {
   await requireRole("editor");
-  const { data, error } = await supabase.from("checklist").insert(pickChecklistColumns(values)).select().single();
-  if (error) {
-    console.error(error);
-    throw new Error("Something went wrong saving this checklist item. Check your connection and try again. Your details are still in the form.");
-  }
-  await logActivity({ action: "added", entity: "checklist", entityId: data.id, label: values.item });
-  return [{ table: "checklist", id: data.id, before: null, after: data }];
+  const { id, affected } = await insertChecklistRow(values);
+  await logActivity({ action: "added", entity: "checklist", entityId: id, label: values.item });
+  return affected;
 }
 
 // See updateHoliday in lib/holidayActions.ts for the full explanation of the

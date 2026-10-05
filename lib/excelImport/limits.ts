@@ -20,3 +20,10 @@ export const MAX_STRING_LENGTH = 5000;
 export const MAX_READ_MS = 4000;
 export const MAX_XML_TOKENS = 4_000_000;
 export const MAX_XML_DEPTH = 64;
+
+/**
+ * Rows one Apply call accepts. Equal to the Word importer's cap. A bigger selection is applied in
+ * sequential calls of at most this many rows, and the client joins every call's `affected` rows
+ * into ONE Undo record (see applyExcelImport).
+ */
+export const MAX_EXCEL_APPLY_ROWS = 300;
