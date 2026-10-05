@@ -8,6 +8,10 @@ items (features/fixes) that push contains — a push with 1 item goes up by
 `1.05`). If MINOR would pass `.99`, MAJOR increments and MINOR carries the
 remainder (e.g. `1.99` + 2 items → `2.01`).
 
+## v2.116 — 2026-10-05
+
+- Fixed the event checklist's "add your own item" row, which overflowed the Event Details window: the item box now has its own full-width line, with the Owner box and an "Add item" button below it, and the heading reads "Or add your own items (no template needed)".
+
 ## v2.115 — 2026-10-05
 
 - Calendar day notes now have an Edit button right on the calendar: each note shows "Edit" (on hover or keyboard focus on desktop, always on touch), and clicking it or the note opens a card to change the text, Remove the note with a clearly labelled button, or add another note. "+ Add note" replaces the small "+ note" link. Edits and removals can be undone. Viewers still only read notes.

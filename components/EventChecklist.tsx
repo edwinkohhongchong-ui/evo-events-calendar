@@ -218,7 +218,7 @@ export default function EventChecklist({ event, ownerOptions = [] }: { event: Ev
         e.preventDefault();
         void addItem();
       }}
-      className="flex items-center gap-2"
+      className="flex flex-wrap items-center gap-2"
     >
       {ownerDatalist}
       <input
@@ -227,7 +227,7 @@ export default function EventChecklist({ event, ownerOptions = [] }: { event: Ev
         placeholder="Add an item…"
         aria-label="Add an item to this checklist"
         maxLength={200}
-        className={`${INPUT} !min-h-[36px] min-w-0 flex-1 ${coarse}`}
+        className={`${INPUT} !min-h-[36px] !w-full basis-full min-w-0 ${coarse}`}
       />
       <input
         value={newOwner}
@@ -237,10 +237,10 @@ export default function EventChecklist({ event, ownerOptions = [] }: { event: Ev
         aria-label="Owner of the new item"
         maxLength={OWNER_MAX}
         autoComplete="off"
-        className={`${INPUT} !min-h-[36px] w-28 shrink-0 ${coarse}`}
+        className={`${INPUT} !min-h-[36px] !w-auto min-w-0 flex-1 ${coarse}`}
       />
-      <Button type="submit" size="sm" variant="secondary" className={coarse} disabled={!newItem.trim()} loading={busy}>
-        Add
+      <Button type="submit" size="sm" variant="secondary" className={`shrink-0 ${coarse}`} disabled={!newItem.trim()} loading={busy}>
+        Add item
       </Button>
     </form>
   );
@@ -410,7 +410,7 @@ export default function EventChecklist({ event, ownerOptions = [] }: { event: Ev
             <>
               {picker}
               {suggestedName && templateId && <p className="text-micro text-ink-2">Suggested for this type of event: {suggestedName}.</p>}
-              <p className="text-micro text-ink-2">Or start with your own item:</p>
+              <p className="text-micro text-ink-2">Or add your own items (no template needed):</p>
               {addForm}
             </>
           ) : (
