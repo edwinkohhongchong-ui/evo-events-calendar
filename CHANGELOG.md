@@ -8,6 +8,10 @@ items (features/fixes) that push contains — a push with 1 item goes up by
 `1.05`). If MINOR would pass `.99`, MAJOR increments and MINOR carries the
 remainder (e.g. `1.99` + 2 items → `2.01`).
 
+## v2.110 — 2026-10-05
+
+- Added the reader for the old Excel events calendar (no screen yet; the Import page comes next): a safe `.xlsx` reader (5 MB limit, zip-bomb and time guards, hidden characters stripped) and a parser that understands the month-sheet layout (Mon–Sun grid, observances in day cells, season tags with dates from merged cells, events split by their time ranges, week notes and the Checklist sheet), then sorts the rows into events, seasons, holidays and checklist items using the app's existing naming and level conventions, with plain-language flags for anything unclear.
+
 ## v2.109 — 2026-10-02
 
 - Edit-conflict protection now also covers deleting an event, saving "only this event" or "this and future events" on a recurring event, and dragging, resizing or retiming a non-recurring event: if someone else changed the event meanwhile you see the same plain message ("Someone else changed this event while you were editing. Reload to see their changes.") with a Reload button, and a dragged event rolls back to their version. Your own back-to-back drags never conflict with themselves. Recurring-event drags (which only add one-date overrides) are not locked, because they never change the event row.
