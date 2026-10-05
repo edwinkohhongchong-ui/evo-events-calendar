@@ -38,7 +38,7 @@ const POLICY: Record<string, Record<string, Role>> = {
     deleteChecklistItem: "editor", logCheckCalendarSummary: "editor",
   },
   "lib/checklistTemplateActions.ts": { saveChecklistTemplate: "editor", deleteChecklistTemplate: "editor" },
-  "lib/dayNoteActions.ts": { createDayNote: "editor", deleteDayNote: "editor" },
+  "lib/dayNoteActions.ts": { createDayNote: "editor", updateDayNote: "editor", deleteDayNote: "editor" },
   "lib/eventChecklistActions.ts": {
     getEventChecklist: "viewer", getChecklistTemplateOptions: "editor", applyChecklistTemplate: "editor",
     setChecklistItemDone: "viewer", removeEventChecklist: "editor", addChecklistItem: "editor",

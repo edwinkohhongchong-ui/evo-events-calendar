@@ -29,6 +29,28 @@ async function createDayNoteImpl(noteDate: string, content: string): Promise<Aff
   return [{ table: "day_notes", id: data.id, before: null, after: data }];
 }
 
+async function updateDayNoteImpl(id: string, content: string): Promise<AffectedRow[]> {
+  await requireRole("editor");
+  if (typeof content !== "string" || !content.trim()) throw new Error("A note can't be empty. Use Remove note to delete it.");
+  if (content.length > MAX_NOTE_LENGTH) {
+    throw new Error(`Notes can be at most ${MAX_NOTE_LENGTH} characters.`);
+  }
+  const before = await fetchRow("day_notes", id);
+  if (!before) throw new Error("That note no longer exists.");
+  const { data, error } = await supabase
+    .from("day_notes")
+    .update({ content: content.trim() })
+    .eq("id", id)
+    .select()
+    .single();
+  if (error) {
+    console.error(error);
+    throw new Error("Something went wrong saving this note. Please try again.");
+  }
+  await logActivity({ action: "edited", entity: "day_note", entityId: id, label: data.content, itemDate: data.note_date });
+  return [{ table: "day_notes", id, before, after: data }];
+}
+
 async function deleteDayNoteImpl(id: string): Promise<AffectedRow[]> {
   await requireRole("editor");
   const before = await fetchRow("day_notes", id);
@@ -45,6 +67,10 @@ async function deleteDayNoteImpl(id: string): Promise<AffectedRow[]> {
 // Public Server Actions: every one returns an ActionResult (see lib/actionResult.ts).
 export async function createDayNote(...args: Parameters<typeof createDayNoteImpl>) {
   return runAction(() => createDayNoteImpl(...args));
+}
+
+export async function updateDayNote(...args: Parameters<typeof updateDayNoteImpl>) {
+  return runAction(() => updateDayNoteImpl(...args));
 }
 
 export async function deleteDayNote(...args: Parameters<typeof deleteDayNoteImpl>) {

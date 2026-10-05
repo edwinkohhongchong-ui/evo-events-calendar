@@ -8,6 +8,10 @@ items (features/fixes) that push contains — a push with 1 item goes up by
 `1.05`). If MINOR would pass `.99`, MAJOR increments and MINOR carries the
 remainder (e.g. `1.99` + 2 items → `2.01`).
 
+## v2.115 — 2026-10-05
+
+- Calendar day notes now have an Edit button right on the calendar: each note shows "Edit" (on hover or keyboard focus on desktop, always on touch), and clicking it or the note opens a card to change the text, Remove the note with a clearly labelled button, or add another note. "+ Add note" replaces the small "+ note" link. Edits and removals can be undone. Viewers still only read notes.
+
 ## v2.114 — 2026-10-05
 
 - Excel import can no longer create duplicates when the same preview is applied twice: the Apply button locks after it has started, and the server now refuses to create an event (same name, date and start time) or checklist item (same category and item) that is already in the calendar, with a plain message and nothing imported.
