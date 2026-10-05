@@ -4,7 +4,10 @@ import { requireRole } from "./authz";
 import { runAction } from "./actionResult";
 import { logActivity } from "./activity";
 import {
+  fetchChecklistKeys,
   fetchEventRecurring,
+  fetchEventsOnDates,
+  fetchEventTimes,
   fetchLevelNames,
   insertChecklistRow,
   insertEventRow,
@@ -17,7 +20,7 @@ import {
 } from "./rowWrites";
 import { earliestExcelDate, runExcelImport } from "./excelImport/applyRunner";
 import type { ExcelOutcome } from "./excelImport/applyRunner";
-import { eventUpdateIds, validateExcelSelection } from "./excelImport/applyValidation";
+import { checklistDupKey, eventCreateDates, eventDupKey, eventUpdateIds, validateExcelSelection } from "./excelImport/applyValidation";
 import type { ExcelApplyRow } from "./excelImport/applyValidation";
 import { MAX_EXCEL_APPLY_ROWS } from "./excelImport/limits";
 
@@ -42,8 +45,13 @@ async function applyExcelImportImpl(selection: ExcelApplyRow[]): Promise<ExcelOu
     throw new Error(`That is more than ${MAX_EXCEL_APPLY_ROWS} rows at once. Import in more than one go.`);
   }
   const levelNames = await fetchLevelNames();
-  const eventRecurring = await fetchEventRecurring(eventUpdateIds(selection));
-  const checked = validateExcelSelection(selection, { levelNames, eventRecurring });
+  const updateIds = eventUpdateIds(selection);
+  const eventRecurring = await fetchEventRecurring(updateIds);
+  const eventTimes = await fetchEventTimes(updateIds);
+  // Fresh reads, so a second Apply of the same selection (or one from another tab) finds what the first saved.
+  const existingEventKeys = new Set((await fetchEventsOnDates(eventCreateDates(selection))).map((e) => eventDupKey(e.name, e.event_date, e.event_time)));
+  const existingChecklistKeys = new Set((await fetchChecklistKeys()).map((c) => checklistDupKey(c.category, c.item)));
+  const checked = validateExcelSelection(selection, { levelNames, eventRecurring, eventTimes, existingEventKeys, existingChecklistKeys });
   if (!checked.ok) throw new Error(checked.error);
 
   const outcome = await runExcelImport(checked.rows, {

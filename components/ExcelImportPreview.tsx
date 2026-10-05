@@ -134,6 +134,8 @@ export default function ExcelImportPreview({ result, onReset }: { result: ExcelP
   const [bulkLevel, setBulkLevel] = useState("");
   const [levelNote, setLevelNote] = useState<string | null>(null);
   const listTop = useRef<HTMLDivElement>(null);
+  // Set the moment Apply starts and kept once anything may have been saved, so the same selection can never be sent twice.
+  const applyStarted = useRef(false);
 
   const counts = useMemo(() => planCounts(plan), [plan]);
   const selection = useMemo(() => buildSelection(plan, selected, drafts, ctx), [plan, selected, drafts, ctx]);
@@ -196,6 +198,8 @@ export default function ExcelImportPreview({ result, onReset }: { result: ExcelP
   }
 
   async function apply() {
+    if (applyStarted.current || selection.length === 0) return;
+    applyStarted.current = true;
     setPhase({ kind: "applying", done: 0, total: selection.length });
     setApplyError(null);
     try {
@@ -205,8 +209,10 @@ export default function ExcelImportPreview({ result, onReset }: { result: ExcelP
       const saved = excelSavedCount(outcome.summary);
       // ONE Undo for the whole import, however many batches it took (and for a partial one, what was saved).
       if (saved > 0) record(undoLabel(saved), outcome.affected);
+      setSelected(new Set());
       setPhase({ kind: "done", summary: outcome.summary });
     } catch (err) {
+      applyStarted.current = false;
       // The first batch was rejected before anything was written; stay on the preview.
       setApplyError(err instanceof Error ? err.message : "Something went wrong. Nothing was imported.");
       setPhase({ kind: "review" });

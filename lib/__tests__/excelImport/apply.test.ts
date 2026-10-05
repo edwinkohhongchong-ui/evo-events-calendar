@@ -1,6 +1,8 @@
 import { describe, it, expect } from "vitest";
 import {
+  checklistDupKey,
   combineExcelSummaries,
+  eventDupKey,
   describeExcelApply,
   eventUpdateIds,
   validateExcelSelection,
@@ -17,6 +19,9 @@ const AT = "2026-03-01T10:00:00.5+00:00";
 const ctx = (over: Partial<ExcelApplyContext> = {}): ExcelApplyContext => ({
   levelNames: ["Youth", "Adults"],
   eventRecurring: new Map([[ID1, "None"], [ID2, "Weekly"]]),
+  eventTimes: new Map([[ID1, { event_time: "18:00:00", end_time: "20:00:00" }], [ID2, { event_time: null, end_time: null }]]),
+  existingEventKeys: new Set(),
+  existingChecklistKeys: new Set(),
   ...over,
 });
 
@@ -259,5 +264,31 @@ describe("runExcelImport", () => {
   it("earliestExcelDate picks the earliest date a create carries", () => {
     expect(earliestExcelDate(rows(E({ event_date: "2026-04-01" }), H({ start: "2026-03-08" }), S({ start: "2026-05-01", end: "2026-05-02" })))).toBe("2026-03-08");
     expect(earliestExcelDate(rows(C()))).toBeNull();
+  });
+});
+
+describe("validateExcelSelection: already in the calendar and saved end time", () => {
+  it("rejects an event create that matches a saved event by normalised name, date and start time", () => {
+    const c = ctx({ existingEventKeys: new Set([eventDupKey("study night", "2026-03-02", "19:00:00")]) });
+    expect(bad([E({ name: "  Study   NIGHT " })], c)).toMatch(/Row 1 .*already in the calendar.*nothing was imported/i);
+    expect(good([E({ event_time: "19:30", end_time: "20:30" })], c)).toHaveLength(1);
+    expect(good([E({ event_date: "2026-03-03" })], c)).toHaveLength(1);
+  });
+
+  it("rejects a checklist create that matches a saved item by category and item", () => {
+    const c = ctx({ existingChecklistKeys: new Set([checklistDupKey("prep", "book the hall")]) });
+    expect(bad([C({ item: "Book  the Hall" })], c)).toMatch(/already in the calendar/);
+    expect(good([C({ item: "Book the band" })], c)).toHaveLength(1);
+  });
+
+  it("rejects a new start time that is not before the saved end time", () => {
+    expect(bad([upd({ event_time: "20:00" })])).toMatch(/not before the end time already saved \(20:00\)/);
+    expect(bad([upd({ event_time: "21:00" })])).toMatch(/not before the end time/);
+    expect(good([upd({ event_time: "19:00" })])).toHaveLength(1);
+  });
+
+  it("does not check the saved end when the patch also sets an end, or when none is saved", () => {
+    expect(good([upd({ event_time: "21:00", end_time: "22:00" })])).toHaveLength(1);
+    expect(bad([upd({ event_time: "21:00", end_time: "20:00" })])).toMatch(/end time must be after/);
   });
 });

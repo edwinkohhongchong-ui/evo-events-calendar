@@ -182,3 +182,42 @@ export async function fetchEventRecurring(ids: string[]): Promise<Map<string, st
   for (const r of data ?? []) out.set(String(r.id).toLowerCase(), String(r.recurring));
   return out;
 }
+
+/** event id (lower case) -> its saved start/end times, for the events an update names. */
+export async function fetchEventTimes(ids: string[]): Promise<Map<string, { event_time: string | null; end_time: string | null }>> {
+  const out = new Map<string, { event_time: string | null; end_time: string | null }>();
+  if (ids.length === 0) return out;
+  const { data, error } = await supabase.from("events").select("id, event_time, end_time").in("id", ids);
+  if (error) {
+    console.error(error);
+    throw new Error("Something went wrong checking the events. Please try again.");
+  }
+  for (const r of data ?? []) out.set(String(r.id).toLowerCase(), { event_time: r.event_time ?? null, end_time: r.end_time ?? null });
+  return out;
+}
+
+/** Name/date/time of the events already saved on any of these dates (fresh read, for the duplicate check). */
+export async function fetchEventsOnDates(dates: string[]): Promise<{ name: string; event_date: string; event_time: string | null }[]> {
+  if (dates.length === 0) return [];
+  const { data, error } = await supabase.from("events").select("name, event_date, event_time").in("event_date", dates);
+  if (error) {
+    console.error(error);
+    throw new Error("Something went wrong checking the events. Please try again.");
+  }
+  return (data ?? []) as { name: string; event_date: string; event_time: string | null }[];
+}
+
+/** Category/item of every saved checklist item (fresh read, for the duplicate check). */
+export async function fetchChecklistKeys(): Promise<{ category: string; item: string }[]> {
+  const out: { category: string; item: string }[] = [];
+  for (let from = 0; ; from += 1000) {
+    const { data, error } = await supabase.from("checklist").select("category, item").order("id").range(from, from + 999);
+    if (error) {
+      console.error(error);
+      throw new Error("Something went wrong checking the checklist. Please try again.");
+    }
+    const page = (data ?? []) as { category: string; item: string }[];
+    out.push(...page);
+    if (page.length < 1000) return out;
+  }
+}

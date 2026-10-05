@@ -8,6 +8,11 @@ items (features/fixes) that push contains — a push with 1 item goes up by
 `1.05`). If MINOR would pass `.99`, MAJOR increments and MINOR carries the
 remainder (e.g. `1.99` + 2 items → `2.01`).
 
+## v2.114 — 2026-10-05
+
+- Excel import can no longer create duplicates when the same preview is applied twice: the Apply button locks after it has started, and the server now refuses to create an event (same name, date and start time) or checklist item (same category and item) that is already in the calendar, with a plain message and nothing imported.
+- Excel import now rejects an event update whose new start time is not before the end time already saved.
+
 ## v2.112 — 2026-10-05
 
 - Added the Excel calendar import screen: Admin > Import schedules now has a "Word document" / "Excel calendar" switch. Upload your events calendar workbook (.xlsx, up to 5 MB, Editors only, never stored) to see a month-by-month preview of events, seasons, observances and checklist items against your calendar, with status chips (New, Changed, Unchanged, Possible duplicate), plain-word flags, inline editing, month chips to tick a whole month, and a bulk "Set level" for events with no level. Apply saves in chunks as one Undo, and stops with a clear message if a row fails. The menu item is now called "Import schedules" (Word or Excel calendar).

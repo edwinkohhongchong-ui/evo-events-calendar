@@ -75,6 +75,12 @@ export interface ExcelApplyContext {
   levelNames: readonly string[];
   /** Existing event id (lower case) -> its `recurring` value, for the ids an update names. */
   eventRecurring: ReadonlyMap<string, string>;
+  /** Existing event id (lower case) -> saved start/end time, for the ids an update names. */
+  eventTimes: ReadonlyMap<string, { event_time: string | null; end_time: string | null }>;
+  /** eventDupKey of every saved event on a date a create row uses (fresh read). */
+  existingEventKeys: ReadonlySet<string>;
+  /** checklistDupKey of every saved checklist item (fresh read). */
+  existingChecklistKeys: ReadonlySet<string>;
 }
 
 export type ExcelSelectionCheck = { ok: true; rows: CleanExcelRow[] } | { ok: false; error: string };
@@ -91,6 +97,26 @@ function normaliseTime(v: unknown): string | null | undefined {
   if (typeof v !== "string") return undefined;
   const m = TIME_RE.exec(v.trim());
   return m ? `${m[1]}:${m[2]}:${m[3] ?? "00"}` : undefined;
+}
+
+/** Identity of an event for the "already exists" check: normalised name + date + start time. */
+export function eventDupKey(name: string, date: string, time: string | null | undefined): string {
+  return ["event", cleanText(name).toLowerCase(), date, normaliseTime(time) ?? ""].join("|");
+}
+export function checklistDupKey(category: string, item: string): string {
+  return ["checklist", cleanText(category).toLowerCase(), cleanText(item).toLowerCase()].join("|");
+}
+
+/** Dates the event create rows use, so the caller can read the events already saved on them. */
+export function eventCreateDates(raw: unknown): string[] {
+  if (!Array.isArray(raw)) return [];
+  const dates = new Set<string>();
+  for (const r of raw.slice(0, MAX_EXCEL_APPLY_ROWS)) {
+    const row = r as Partial<ExcelApplyRow> | null;
+    const d = row?.values?.event_date;
+    if (row && row.kind === "event" && row.op === "create" && dateOk(d)) dates.add(d);
+  }
+  return Array.from(dates);
 }
 
 /** Ids of the events an update row names, so the caller can look them up before validating. */
@@ -118,7 +144,7 @@ const optNotes = (v: unknown): { ok: true; value: string | null } | { ok: false 
 };
 
 /** Plain-language problem with an event's values, or null. Returns the cleaned values through `out`. */
-function checkEvent(v: Record<string, unknown>, ctx: ExcelApplyContext, op: "create" | "update", out: { create?: EventFormValues; patch?: EventPatch }): string | null {
+function checkEvent(v: Record<string, unknown>, ctx: ExcelApplyContext, op: "create" | "update", id: string | undefined, out: { create?: EventFormValues; patch?: EventPatch }): string | null {
   const wanted = typeof v.level === "string" ? v.level.trim().toLowerCase() : "";
   const levelCanon = wanted ? ctx.levelNames.find((n) => n.toLowerCase() === wanted) : undefined;
   const start = normaliseTime(v.event_time);
@@ -134,6 +160,11 @@ function checkEvent(v: Record<string, unknown>, ctx: ExcelApplyContext, op: "cre
   if (op === "update") {
     // Only fields the row supplies are changed; a blank never erases what is already saved.
     if (v.level !== undefined && v.level !== null && v.level !== "" && !levelCanon) return "That level does not exist in the calendar.";
+    if (start && !end) {
+      // A new start with no new end is checked against the end already saved.
+      const savedEnd = normaliseTime(ctx.eventTimes.get((id ?? "").toLowerCase())?.end_time);
+      if (savedEnd && savedEnd <= start) return `The new start time is not before the end time already saved (${savedEnd.slice(0, 5)}).`;
+    }
     const patch: EventPatch = {};
     if (start) patch.event_time = start;
     if (end) {
@@ -264,15 +295,17 @@ export function validateExcelSelection(raw: unknown, ctx: ExcelApplyContext): Ex
 
     const out: { create?: EventFormValues; patch?: EventPatch } = {};
     const cout: { create?: ChecklistFormValues; patch?: ChecklistPatch } = {};
-    const problem = r.kind === "event" ? checkEvent(v, ctx, r.op, out) : checkChecklist(v, r.op, cout);
+    const problem = r.kind === "event" ? checkEvent(v, ctx, r.op, r.id, out) : checkChecklist(v, r.op, cout);
     if (problem) return { ok: false, error: `${where}: ${problem} Nothing was imported.` };
 
     if (r.op === "create") {
       const c = r.kind === "event" ? (out.create as EventFormValues) : (cout.create as ChecklistFormValues);
       const key =
         r.kind === "event"
-          ? ["event", (c as EventFormValues).name.toLowerCase(), (c as EventFormValues).event_date, (c as EventFormValues).event_time ?? ""].join("|")
-          : ["checklist", (c as ChecklistFormValues).category.toLowerCase(), (c as ChecklistFormValues).item.toLowerCase()].join("|");
+          ? eventDupKey((c as EventFormValues).name, (c as EventFormValues).event_date, (c as EventFormValues).event_time)
+          : checklistDupKey((c as ChecklistFormValues).category, (c as ChecklistFormValues).item);
+      const existing = r.kind === "event" ? ctx.existingEventKeys : ctx.existingChecklistKeys;
+      if (existing.has(key)) return { ok: false, error: `${where} is already in the calendar, so nothing was imported.` };
       if (seenCreates.has(key)) return { ok: false, error: `${where} is the same as an earlier row being added, so nothing was imported.` };
       seenCreates.add(key);
       rows.push(r.kind === "event" ? { kind: "event", op: "create", values: out.create as EventFormValues } : { kind: "checklist", op: "create", values: cout.create as ChecklistFormValues });
