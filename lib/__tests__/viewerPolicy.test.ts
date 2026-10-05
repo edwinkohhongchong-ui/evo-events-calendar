@@ -141,6 +141,7 @@ type RouteKind =
 const ROUTES: Record<string, RouteKind> = {
   "app/api/holidays/fetch-year/route.ts": { kind: "editor", methods: ["POST"] },
   "app/api/schedules/parse/route.ts": { kind: "editor", methods: ["POST"] },
+  "app/api/excel/parse/route.ts": { kind: "editor", methods: ["POST"] },
   "app/api/export/ics/route.ts": { kind: "viewer-read", methods: ["GET"] },
   "app/api/admin/backup/route.ts": { kind: "editor", methods: ["GET"] },
   "app/api/export/document/route.ts": { kind: "viewer-read", methods: ["POST"] },
@@ -250,7 +251,7 @@ describe("api routes are fully covered", () => {
     for (const p of ["/", "/day/2026-10-01", "/api/activity", "/export", "/export/calendar", "/export/print", "/api/export/ics", "/api/export/document"]) {
       expect(isPathAllowedForRole(p, "viewer"), p).toBe(true);
     }
-    for (const p of ["/checklist", "/holidays", "/seasons", "/levels", "/reminders", "/exportx", "/admin", "/api/admin/backup", "/api/holidays/fetch-year", "/api/reminders/events", "/seasons/import", "/api/schedules/parse"]) {
+    for (const p of ["/checklist", "/holidays", "/seasons", "/levels", "/reminders", "/exportx", "/admin", "/api/admin/backup", "/api/holidays/fetch-year", "/api/reminders/events", "/seasons/import", "/api/schedules/parse", "/api/excel/parse"]) {
       expect(isPathAllowedForRole(p, "viewer")).toBe(false);
     }
   });

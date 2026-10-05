@@ -108,9 +108,9 @@ export default function SeasonsTable({ seasons }: { seasons: SeasonRow[] }) {
           <Link
             href="/seasons/import"
             className={buttonClass("secondary", "sm")}
-            title="Upload the yearly education schedule (Word) and review what it would add or change"
+            title="Upload the yearly education schedule (Word) or the old events calendar (Excel) and review what it would add or change"
           >
-            Import from Word
+            Import schedules
           </Link>
           <Button size="sm" icon={<PlusIcon className="!h-4 !w-4" />} onClick={() => setModal({ type: "add" })}>
             Add Season

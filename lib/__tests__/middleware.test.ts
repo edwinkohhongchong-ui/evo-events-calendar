@@ -117,7 +117,7 @@ describe("middleware with a session", () => {
     for (const p of ["/export", "/export/calendar", "/export/print", "/api/export/ics", "/api/export/document"]) {
       expect(isNext(await middleware(await req(p, "viewer"))), p).toBe(true);
     }
-    for (const p of ["/exportx", "/reminders", "/admin/backup", "/api/admin/backup", "/api/holidays/fetch-year", "/api/reminders/events", "/seasons/import", "/api/schedules/parse"]) {
+    for (const p of ["/exportx", "/reminders", "/admin/backup", "/api/admin/backup", "/api/holidays/fetch-year", "/api/reminders/events", "/seasons/import", "/api/schedules/parse", "/api/excel/parse"]) {
       expect(isNext(await middleware(await req(p, "viewer"))), p).toBe(false);
     }
   });
@@ -142,7 +142,7 @@ describe("middleware with a session", () => {
   });
 
   it("lets an Editor reach /reminders, /api/admin/backup and the schedule import", async () => {
-    for (const p of ["/reminders", "/api/admin/backup", "/seasons/import", "/api/schedules/parse"]) {
+    for (const p of ["/reminders", "/api/admin/backup", "/seasons/import", "/api/schedules/parse", "/api/excel/parse"]) {
       expect(isNext(await middleware(await req(p, "editor"))), p).toBe(true);
     }
   });

@@ -56,7 +56,7 @@ const S = (over: Partial<SeasonRow> = {}): SeasonRow => ({
 });
 const H = (over: Partial<HolidayRow> = {}): HolidayRow => ({ id: `h${++n}`, holiday_date: "2026-03-08", name: "Founders Awareness Day", type: "International Observance", updated_at: "2026-01-02T00:00:00+00:00", ...over });
 const C = (over: Partial<ChecklistRow> = {}): ChecklistRow => ({
-  id: `c${++n}`, category: "Prep", item: "Book the hall", status: "Not Started", target_month: null, notes: null, linked_event_id: null, auto_check_type: null, ...over,
+  id: `c${++n}`, category: "Prep", item: "Book the hall", status: "Not Started", target_month: null, notes: null, linked_event_id: null, auto_check_type: null, updated_at: "2026-01-02T00:00:00+00:00", ...over,
 });
 
 describe("eventNameKey", () => {
@@ -285,6 +285,15 @@ describe("checklist", () => {
     expect(r.changes).toEqual([{ field: "status", from: "Not Started", to: "Done" }]);
     expect(r.op).toBe("update");
     expect(r.defaultSelected).toBe(false);
+  });
+
+  it("a changed checklist row carries the existing edit marker, and cannot update without one", () => {
+    const ok = planExcelDiff(classified({ checklist: [item({ status: "Done" })] }), existing({ checklist: [C()] })).checklist[0];
+    expect(ok.existing?.updatedAt).toBe("2026-01-02T00:00:00+00:00");
+    const bare = planExcelDiff(classified({ checklist: [item({ status: "Done" })] }), existing({ checklist: [C({ updated_at: undefined })] })).checklist[0];
+    expect(bare.status).toBe("changed");
+    expect(bare.op).toBeNull();
+    expect(bare.flags.map((f) => f.code)).toContain("no-update-token");
   });
 
   it("a status the user already advanced is flagged when the workbook would set it back", () => {

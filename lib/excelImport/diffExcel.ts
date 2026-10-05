@@ -513,6 +513,12 @@ function planChecklist(planned: PlannedChecklist[], existing: ChecklistRow[]): {
         flags.push(flag("status-advanced", "warn", `The calendar already has this as ${e.status}; the workbook still says Not Started.`));
       }
     }
+    // An update needs the row's edit marker (optimistic lock); without one it cannot be applied safely.
+    let op: ExcelPlanRow["op"] = !e ? "create" : status === "changed" ? "update" : null;
+    if (op === "update" && !e?.updated_at) {
+      op = null;
+      flags.push(flag("no-update-token", "warn", "This checklist item has no edit marker, so it cannot be updated from here."));
+    }
     const invalid = hasError(flags);
     const values: ChecklistApplyValues = { category: e ? e.category : c.category, item: c.item, status: c.status, notes: notes || null };
     return {
@@ -527,9 +533,9 @@ function planChecklist(planned: PlannedChecklist[], existing: ChecklistRow[]): {
       time: null,
       endTime: null,
       notes,
-      op: !e ? "create" : status === "changed" ? "update" : null,
+      op,
       existingId: e?.id ?? null,
-      existing: e ? { name: e.item, category: e.category, start: "", end: "", time: null, endTime: null, notes: e.notes ?? "", updatedAt: null, repeating: false } : null,
+      existing: e ? { name: e.item, category: e.category, start: "", end: "", time: null, endTime: null, notes: e.notes ?? "", updatedAt: e.updated_at ?? null, repeating: false } : null,
       matchKind: kind,
       changes,
       flags,

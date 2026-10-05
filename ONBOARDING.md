@@ -121,10 +121,11 @@ preview cards, Duplicate event, a phone agenda layout, Seasons "Update Calendar"
 changelog is the full record. The app is currently at **CHANGELOG.md v2.23** —
 check that file's top entry for the exact current version and what's in it.
 
-### Import schedules from Word (Editor only)
+### Import schedules from Word or Excel (Editor only)
 
-Menu → Tools → "Import schedules (Word)" (also a button on the Seasons page,
-`/seasons/import`). Upload the yearly education schedule as a `.docx` (5 MB
+Menu → Admin → "Import schedules" (also a button on the Seasons page,
+`/seasons/import`). The page has two choices at the top: "Word document" and
+"Excel calendar" (see the Excel section below). Upload the yearly education schedule as a `.docx` (5 MB
 max); the file is read in memory only and never stored. The page shows a
 preview of what would be added or changed in Holidays and Seasons, and nothing
 is saved until you click Apply; one Undo reverses the whole import.
@@ -150,6 +151,19 @@ name and is marked by the provisional holiday type. "(Mid-terms should fall
 between ...)" lines come in as tentative Exam Periods but start unticked.
 Code: parse endpoint `app/api/schedules/parse/route.ts`, save action
 `lib/scheduleImportActions.ts`, preview `components/ScheduleImportPreview.tsx`.
+
+#### Excel calendar (the old events workbook)
+
+Choose "Excel calendar", upload the `.xlsx` (5 MB max, read in memory only) and
+click "Read workbook". Every month sheet and the Checklist sheet are read and
+compared with the calendar: rows come back New, Changed, Unchanged or Possible
+duplicate, grouped by month (Events, Seasons, Observances) with the Checklist
+last. Events need a level (pick one in the row, or "Set level" for every new
+event in view that has none). The month strip ticks a whole month at once and
+filters to it. Nothing saves until Apply; a big import is saved in batches of
+300 rows and one Undo reverses all of it. Code: `app/api/excel/parse/route.ts`,
+`lib/excelImport/` (reader, classifier, diff, `selection.ts`, `applyClient.ts`),
+save action `lib/excelImportActions.ts`, preview `components/ExcelImportPreview.tsx`.
 
 ## Key design decisions worth knowing before changing things
 - **Time wraps within a day; multi-day is a separate feature.** An event

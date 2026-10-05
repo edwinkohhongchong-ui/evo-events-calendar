@@ -180,6 +180,8 @@ export interface ChecklistRow {
   // Calendar" reconciles status against this (see migration 014).
   linked_event_id: string | null;
   auto_check_type: ChecklistAutoCheckType | null;
+  // Optimistic-lock token (migration 020 adds it to checklist too).
+  updated_at?: string;
 }
 
 // Slim shape for the "Link to event" picker — just enough to identify an

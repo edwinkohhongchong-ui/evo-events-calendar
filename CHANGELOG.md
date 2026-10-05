@@ -8,6 +8,10 @@ items (features/fixes) that push contains — a push with 1 item goes up by
 `1.05`). If MINOR would pass `.99`, MAJOR increments and MINOR carries the
 remainder (e.g. `1.99` + 2 items → `2.01`).
 
+## v2.112 — 2026-10-05
+
+- Added the Excel calendar import screen: Admin > Import schedules now has a "Word document" / "Excel calendar" switch. Upload your events calendar workbook (.xlsx, up to 5 MB, Editors only, never stored) to see a month-by-month preview of events, seasons, observances and checklist items against your calendar, with status chips (New, Changed, Unchanged, Possible duplicate), plain-word flags, inline editing, month chips to tick a whole month, and a bulk "Set level" for events with no level. Apply saves in chunks as one Undo, and stops with a clear message if a row fails. The menu item is now called "Import schedules" (Word or Excel calendar).
+
 ## v2.111 — 2026-10-05
 
 - Added the comparison and save logic for the Excel calendar import (no screen yet): rows from the workbook are matched against your calendar, with events matched against the expanded occurrences of existing recurring events (so a weekly event already in the calendar shows as Unchanged), possible duplicates are never auto-matched, weak matches start unticked, events with an unknown level start unticked, and observances and "Other" season tags start unticked. The save action re-checks every row on the server (level must exist, name, date and time rules, 300 rows per call, no duplicates, recurrence forced off), applies approved rows only, returns what was saved so one Undo can reverse an import, and stops cleanly with a plain message if a row fails. Event, checklist and level look-ups used by Add/Edit Event were moved into shared helpers with the same behaviour.
