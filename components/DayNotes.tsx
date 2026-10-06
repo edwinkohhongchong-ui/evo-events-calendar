@@ -12,6 +12,8 @@ import AutoGrowTextarea from "./ui/AutoGrowTextarea";
 import DetailsText, { DetailsMarker } from "./ui/DetailsText";
 import { unwrap } from "@/lib/actionResult";
 import { DAY_NOTE_DETAILS_MAX } from "@/lib/dayNoteDetails";
+import { format } from "date-fns";
+import { parseDateStr } from "@/lib/dates";
 
 interface DayNotesProps {
   dateStr: string;
@@ -233,7 +235,7 @@ export default function DayNotes({ dateStr, notes }: DayNotesProps) {
             className="z-40 flex flex-col gap-2 bg-surface rounded-card shadow-pop p-3 max-h-[70vh] overflow-y-auto"
           >
             <p className="text-micro font-medium text-ink-2">
-              {isEditor ? "Notes" : "Note"} for {dateStr}
+              {!isEditor ? "Note" : editingNote ? "Edit note" : "New note"} · {format(parseDateStr(dateStr), "d MMM yyyy")}
             </p>
 
             {!isEditor && editingNote && (
@@ -310,11 +312,12 @@ export default function DayNotes({ dateStr, notes }: DayNotesProps) {
               </form>
             )}
 
-            {isEditor && (
-              <form onSubmit={handleAdd} className={["flex flex-col gap-2", editingNote ? "border-t border-line pt-2" : ""].join(" ")}>
+            {/* Editing one note shows only that note; adding is done from
+                "+ Add note" on the calendar, so the two never share a card. */}
+            {isEditor && !editingNote && (
+              <form onSubmit={handleAdd} className="flex flex-col gap-2">
                 <AutoGrowTextarea
-                  key={editingNote ? "add-secondary" : "add-primary"}
-                  autoFocus={!editingNote}
+                  autoFocus
                   value={draft}
                   onChange={(e) => setDraft(e.target.value)}
                   onKeyDown={(e) => {
@@ -323,8 +326,8 @@ export default function DayNotes({ dateStr, notes }: DayNotesProps) {
                       e.currentTarget.form?.requestSubmit();
                     }
                   }}
-                  aria-label={editingNote ? "Add another note" : "Add a note"}
-                  placeholder={editingNote ? "Add another note…" : "Add a note…"}
+                  aria-label="Add a note"
+                  placeholder="Add a note…"
                   className="border border-line-strong rounded-ctl px-2.5 py-1.5 text-chip w-full"
                 />
                 <AutoGrowTextarea
@@ -338,15 +341,13 @@ export default function DayNotes({ dateStr, notes }: DayNotesProps) {
                   className={detailsBox}
                 />
                 <div className="flex items-center justify-end gap-2">
-                  {!editingNote && (
-                    <button
-                      type="button"
-                      onClick={() => setOpen(false)}
-                      className="px-3 py-1 text-chip rounded-pill text-ink-2 hover:bg-black/5 coarse:min-h-[44px]"
-                    >
-                      Cancel
-                    </button>
-                  )}
+                  <button
+                    type="button"
+                    onClick={() => setOpen(false)}
+                    className="px-3 py-1 text-chip rounded-pill text-ink-2 hover:bg-black/5 coarse:min-h-[44px]"
+                  >
+                    Cancel
+                  </button>
                   <button
                     type="submit"
                     disabled={saving || !draft.trim()}

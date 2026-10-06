@@ -8,6 +8,10 @@ items (features/fixes) that push contains — a push with 1 item goes up by
 `1.05`). If MINOR would pass `.99`, MAJOR increments and MINOR carries the
 remainder (e.g. `1.99` + 2 items → `2.01`).
 
+## v2.125 — 2026-10-06
+
+- Cleaner note editor: editing a calendar note now shows only that note (text, details, Remove note, Cancel, Save) without the "Add another note" boxes; adding is done from "+ Add note" on the calendar. The card heading now says "Edit note", "New note" or "Note" with a readable date (e.g. 18 Oct 2026).
+
 ## v2.124 — 2026-10-06
 
 - Calendar day notes can now carry optional details: a "Details (optional)" box when adding or editing a note, a small "⋯" on notes that have details, and anyone (Viewers included) can click a note to read its details, wrapped. Needs migration 027; notes without details keep working before it is run.
