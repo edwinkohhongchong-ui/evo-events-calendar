@@ -88,7 +88,7 @@ export default function ChecklistTemplatesSection({
               className="group flex cursor-pointer items-center justify-between gap-2 rounded-ctl border border-line px-4 py-2.5 transition-colors duration-fast hover:bg-canvas"
             >
               <div className="min-w-0">
-                <div className="text-ui font-medium text-ink">{t.name}</div>
+                <div className="truncate text-ui font-medium text-ink">{t.name}</div>
                 <div className="truncate text-body text-ink-2">
                   {t.items.map((i) => i.item).join(", ") || "No items"}
                 </div>

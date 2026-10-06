@@ -170,7 +170,7 @@ export default function SeasonModal({ mode, season, onClose, onSaved, onDeleted 
                 ))}
               </select>
             </label>
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-2 gap-3 [&>label]:min-w-0">
               <label className="flex flex-col gap-1">
                 <span className={LABEL}>Start date</span>
                 <input

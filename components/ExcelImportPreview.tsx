@@ -696,20 +696,20 @@ function PreviewRow({ row, draft, ctx, levels, ticked, editing, onToggle, onEdit
           {pickLevel ? <span className="text-warn">Pick a level</span> : v.category}
         </td>
         <td className={TD}>{dateText(row, v)}</td>
-        <td className={`${TD} min-w-[16rem] max-w-[26rem] whitespace-normal`}>
+        <td className={`${TD} min-w-[16rem] max-w-[26rem] whitespace-normal break-words`}>
           {v.notes && <div className="whitespace-pre-line text-body text-ink-2">{v.notes}</div>}
           {noOp && row.status !== "unchanged" && <div className="mt-1 text-micro text-ink-2">{notTickableReason(row)}</div>}
           {!noOp &&
             problems.map((p, i) => (
               <div key={`p${i}`} className="mt-1 flex items-start gap-1.5 text-micro text-danger">
                 <Pill variant="danger">Fix first</Pill>
-                <span>{p}</span>
+                <span className="min-w-0">{p}</span>
               </div>
             ))}
           {flags.map((f, i) => (
             <div key={i} className={`mt-1 flex items-start gap-1.5 text-micro ${f.severity === "error" ? "text-danger" : "text-ink-2"}`}>
               <Pill variant={f.severity === "error" ? "danger" : "warn"}>{FLAG_LABEL[f.code] ?? "Check"}</Pill>
-              <span>{f.message}</span>
+              <span className="min-w-0">{f.message}</span>
             </div>
           ))}
         </td>

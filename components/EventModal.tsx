@@ -612,7 +612,7 @@ function EventModalInner({
     footer = (
       <>
         <div>{isEditor && deleteButton}</div>
-        <div className="flex gap-2">
+        <div className="ml-auto flex flex-wrap justify-end gap-2">
           <Button variant="ghost" onClick={onClose}>
             Close
           </Button>
@@ -635,7 +635,7 @@ function EventModalInner({
     footer = (
       <>
         <div>{mode === "edit" && isEditor && deleteButton}</div>
-        <div className="flex gap-2">
+        <div className="ml-auto flex flex-wrap justify-end gap-2">
           <Button variant="ghost" onClick={() => (mode === "edit" ? setStep("view") : onClose())}>
             Cancel
           </Button>
@@ -677,28 +677,28 @@ function EventModalInner({
               <Pill icon={<CategoryDot levelName={level} />}>{level}</Pill>
             )}
           </div>
-          <div className="text-title text-ink">{name}</div>
-          <div className="flex flex-col gap-1.5 text-ui text-ink">
+          <div className="break-words text-title text-ink">{name}</div>
+          <div className="flex min-w-0 flex-col gap-1.5 break-words text-ui text-ink">
             <div>
               {formatDateDisplay(eventDate)}
               {endDate && endDate !== eventDate && <> – {formatDateDisplay(endDate)}</>}
             </div>
             {(eventTime || endTime) && (
-              <div className="flex items-center gap-1.5 text-ink-2">
-                <ClockIcon className="!h-4 !w-4" />
+              <div className="flex items-start gap-1.5 text-ink-2">
+                <ClockIcon className="!h-4 !w-4 mt-0.5 shrink-0" />
                 {formatEventTimeRange(eventTime ? `${eventTime}:00` : null, endTime ? `${endTime}:00` : null)}
               </div>
             )}
             {recurring !== "None" && (
-              <div className="flex items-center gap-1.5 text-ink-2">
-                <RepeatIcon className="!h-4 !w-4" />
+              <div className="flex items-start gap-1.5 text-ink-2">
+                <RepeatIcon className="!h-4 !w-4 mt-0.5 shrink-0" />
                 Repeats {recurring}
                 {repeatUntil ? ` until ${formatDateDisplay(repeatUntil)}` : ""}
               </div>
             )}
             {location && (
-              <div className="flex items-center gap-1.5 text-ink-2">
-                <MapPinIcon className="!h-4 !w-4" />
+              <div className="flex items-start gap-1.5 text-ink-2">
+                <MapPinIcon className="!h-4 !w-4 mt-0.5 shrink-0" />
                 {location}
               </div>
             )}
@@ -731,33 +731,33 @@ function EventModalInner({
               {series && (
                 <>
                   <dt className="text-ink-2">Series</dt>
-                  <dd>{series}</dd>
+                  <dd className="min-w-0 break-words">{series}</dd>
                 </>
               )}
               {preacherName && (
                 <>
                   <dt className="text-ink-2">Preacher</dt>
-                  <dd>{preacherName}</dd>
+                  <dd className="min-w-0 break-words">{preacherName}</dd>
                 </>
               )}
               {sermonTitle && (
                 <>
                   <dt className="text-ink-2">Sermon</dt>
-                  <dd>{sermonTitle}</dd>
+                  <dd className="min-w-0 break-words">{sermonTitle}</dd>
                 </>
               )}
               {theme && (
                 <>
                   <dt className="text-ink-2">Theme</dt>
-                  <dd>{theme}</dd>
+                  <dd className="min-w-0 break-words">{theme}</dd>
                 </>
               )}
             </dl>
           )}
           {notes && (
             <div className="flex items-start gap-1.5 whitespace-pre-wrap rounded-ctl bg-canvas p-3 text-ui text-ink">
-              <StickyNoteIcon className="!h-4 !w-4 mt-0.5 text-ink-2" />
-              <span>{notes}</span>
+              <StickyNoteIcon className="!h-4 !w-4 mt-0.5 shrink-0 text-ink-2" />
+              <span className="min-w-0 break-words">{notes}</span>
             </div>
           )}
           {mode === "edit" && event && <EventChecklist event={event} ownerOptions={ownerOptions} />}
@@ -841,7 +841,7 @@ function EventModalInner({
                   ))}
                 </select>
               </label>
-              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 [&>input]:min-w-0">
                 <input
                   value={series}
                   onChange={(e) => setSeries(e.target.value)}
@@ -982,7 +982,7 @@ function EventModalInner({
           {isDuplicate && event && (
             <p className="text-micro text-ink-2">Copy of &ldquo;{event.name}&rdquo;</p>
           )}
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-2 gap-3 [&>label]:min-w-0">
             <label className="flex flex-col gap-1">
               <span className={LABEL}>Date</span>
               <input
@@ -1054,7 +1054,7 @@ function EventModalInner({
             </button>
             {moreOpen && (
               <div className="flex flex-col gap-4 border-t border-line px-4 py-4">
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-2 gap-3 [&>label]:min-w-0">
                   <label className="flex flex-col gap-1">
                     <span className={LABEL}>End date (multi-day)</span>
                     <input
@@ -1118,7 +1118,7 @@ function EventModalInner({
                   </datalist>
                 </label>
 
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-2 gap-3 [&>label]:min-w-0">
                   <label className="flex flex-col gap-1">
                     <span className={`${LABEL} flex items-center gap-1`}>
                       <RepeatIcon className="!h-3.5 !w-3.5" /> Repeats

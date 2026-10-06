@@ -252,7 +252,7 @@ export default function RemindersForm({ templates, checklistTemplates, openCheck
           username.
         </p>
 
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-2 gap-3 [&>*]:min-w-0">
           <label className="flex flex-col gap-1">
             <span className={LABEL}>Reminder template</span>
             <select
@@ -325,9 +325,9 @@ export default function RemindersForm({ templates, checklistTemplates, openCheck
                       type="checkbox"
                       checked={selectedKeys.has(ev.occurrenceKey)}
                       onChange={() => toggleEvent(ev.occurrenceKey)}
-                      className="mt-0.5"
+                      className="mt-0.5 shrink-0"
                     />
-                    <span className="flex-1">
+                    <span className="min-w-0 flex-1 break-words">
                       {ev.flagged && <span title="Flagged as important">⭐ </span>}
                       {ev.name}
                       <span className="text-ink-2">
@@ -344,7 +344,7 @@ export default function RemindersForm({ templates, checklistTemplates, openCheck
                         <select
                           value={chosenTemplateId}
                           onChange={(e) => setEventTemplate(ev.occurrenceKey, e.target.value)}
-                          className="min-h-[28px] rounded-pill border border-line-strong bg-white px-2.5 text-body"
+                          className="min-h-[28px] max-w-full rounded-pill border border-line-strong bg-white px-2.5 text-body"
                         >
                           <option value="">No checklist template</option>
                           {checklistTemplates.map((t) => (
@@ -358,6 +358,7 @@ export default function RemindersForm({ templates, checklistTemplates, openCheck
                             type="button"
                             onClick={() => setEventTemplate(ev.occurrenceKey, "")}
                             title="Remove this checklist template from the message"
+                            aria-label="Remove this checklist template from the message"
                             className="text-ink-3 hover:text-danger leading-none coarse:min-h-[44px] coarse:min-w-[44px]"
                           >
                             ×

@@ -43,7 +43,7 @@ export default function GeneralNotesDrawer({ open, onOpenChange, comments }: Pro
                 type="button"
                 onClick={() => onOpenChange(false)}
                 aria-label="Close General Notes"
-                className="inline-flex h-7 w-7 items-center justify-center rounded-full text-ink-2 hover:bg-fill hover:text-ink"
+                className="inline-flex h-7 w-7 coarse:h-11 coarse:w-11 items-center justify-center rounded-full text-ink-2 hover:bg-fill hover:text-ink"
               >
                 <XIcon className="!h-4 !w-4" />
               </button>

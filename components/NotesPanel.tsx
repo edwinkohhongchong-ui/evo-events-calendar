@@ -169,7 +169,7 @@ export default function NotesPanel({
     return (
       <div key={c.id} className={["group", isReply ? "pl-3 border-l-2 border-line" : ""].join(" ")}>
         <div className="flex items-center justify-between gap-2">
-          <span className="text-chip font-medium text-navy truncate">{c.author_name}</span>
+          <span className="min-w-0 text-chip font-medium text-navy truncate">{c.author_name}</span>
           <div className="flex items-center gap-1 shrink-0">
             <span className="text-micro text-ink-2 whitespace-nowrap">
               {format(parseISO(c.created_at), "d MMM, h:mm a")}
@@ -181,7 +181,7 @@ export default function NotesPanel({
                 disabled={removingId === c.id}
                 title="Delete this note"
                 aria-label="Delete this note"
-                className="inline-flex h-5 w-5 items-center justify-center rounded-full text-ink-3 hover:bg-fill hover:text-danger disabled:opacity-30"
+                className="inline-flex h-5 w-5 coarse:h-11 coarse:w-11 items-center justify-center rounded-full text-ink-3 hover:bg-fill hover:text-danger disabled:opacity-30"
               >
                 <XIcon className="!h-3.5 !w-3.5" />
               </button>
@@ -196,7 +196,7 @@ export default function NotesPanel({
               setReplyingTo(replyingTo === c.id ? null : c.id);
               setReplyDraft("");
             }}
-            className="text-micro font-medium text-ink-2 hover:text-navy hover:underline"
+            className="text-micro font-medium text-ink-2 hover:text-navy hover:underline coarse:min-h-[44px]"
           >
             Reply
           </button>
@@ -252,12 +252,12 @@ export default function NotesPanel({
 
       <div className="border-t border-line pt-3 flex flex-col gap-2">
         {authorName ? (
-          <div className="flex items-center gap-1 text-micro text-ink-2">
-            Commenting as <span className="font-medium text-ink">{authorName}</span>
+          <div className="flex flex-wrap items-center gap-x-1 text-micro text-ink-2">
+            Commenting as <span className="min-w-0 break-words font-medium text-ink">{authorName}</span>
             <button
               type="button"
               onClick={() => setAuthorNameState(null)}
-              className="underline hover:no-underline hover:text-navy"
+              className="underline hover:no-underline hover:text-navy coarse:min-h-[44px]"
             >
               change
             </button>

@@ -165,7 +165,7 @@ export default function AttentionPill({ rows, onOpenEvent }: { rows: OpenCheckli
                       setDraft(myName);
                       setAsking(true);
                     }}
-                    className="font-medium text-navy hover:underline"
+                    className="font-medium text-navy hover:underline [@media(pointer:coarse)]:min-h-[44px]"
                   >
                     change
                   </button>
@@ -193,7 +193,7 @@ export default function AttentionPill({ rows, onOpenEvent }: { rows: OpenCheckli
                 <button
                   type="submit"
                   disabled={!normalizeOwner(draft)}
-                  className="rounded-ctl bg-navy px-3 py-1.5 text-body font-medium text-white disabled:opacity-50"
+                  className="shrink-0 rounded-ctl bg-navy px-3 py-1.5 text-body font-medium text-white disabled:opacity-50 [@media(pointer:coarse)]:min-h-[44px]"
                 >
                   Save
                 </button>

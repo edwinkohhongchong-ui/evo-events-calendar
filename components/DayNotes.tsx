@@ -58,16 +58,21 @@ export default function DayNotes({ dateStr, notes }: DayNotesProps) {
     };
     place();
     const close = () => setOpen(false);
+    // Scrolling inside the editor itself (long note) must not dismiss it.
+    const closeOnPageScroll = (e: Event) => {
+      if (e.target instanceof Node && cardRef.current?.contains(e.target)) return;
+      setOpen(false);
+    };
     const onDown = (e: MouseEvent) => {
       const t = e.target as Node;
       if (!cardRef.current?.contains(t) && !anchorRef.current?.contains(t)) setOpen(false);
     };
     window.addEventListener("resize", close);
-    window.addEventListener("scroll", close, true);
+    window.addEventListener("scroll", closeOnPageScroll, true);
     document.addEventListener("mousedown", onDown);
     return () => {
       window.removeEventListener("resize", close);
-      window.removeEventListener("scroll", close, true);
+      window.removeEventListener("scroll", closeOnPageScroll, true);
       document.removeEventListener("mousedown", onDown);
     };
   }, [open, editingId]);
@@ -231,7 +236,7 @@ export default function DayNotes({ dateStr, notes }: DayNotesProps) {
                   aria-label="Edit note"
                   className="border border-line-strong rounded-ctl px-2.5 py-1.5 text-chip w-full text-green-700"
                 />
-                <div className="flex items-center justify-between gap-2">
+                <div className="flex flex-wrap items-center justify-between gap-2">
                   <button
                     type="button"
                     onClick={() => handleRemove(editingNote.id)}

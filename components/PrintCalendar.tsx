@@ -178,7 +178,7 @@ export default function PrintCalendar({ months, levels, checklistProgress, print
   return (
     <>
       <style>{pageRule(paper, orient)}</style>
-      <div className="print-hide sticky top-[var(--nav-h,50px)] z-30 flex items-center justify-between gap-3 border-b border-line bg-surface px-4 py-2">
+      <div className="print-hide sticky top-[var(--nav-h,50px)] z-30 flex flex-wrap items-center justify-between gap-x-3 gap-y-2 border-b border-line bg-surface px-4 py-2">
         <Link href={backHref} className="text-body font-medium text-navy hover:underline">
           {backLabel}
         </Link>
@@ -191,7 +191,7 @@ export default function PrintCalendar({ months, levels, checklistProgress, print
             <select
               value={paper}
               onChange={(e) => choose(parsePaper(e.target.value) ?? DEFAULT_PAPER, orient)}
-              className="rounded-ctl border border-line bg-surface px-2 py-1 text-ink"
+              className="rounded-ctl border border-line bg-surface px-2 py-1 text-ink coarse:min-h-[44px]"
             >
               {PAPER_IDS.map((id) => (
                 <option key={id} value={id}>
@@ -205,7 +205,7 @@ export default function PrintCalendar({ months, levels, checklistProgress, print
             <select
               value={orient}
               onChange={(e) => choose(paper, parseOrient(e.target.value) ?? DEFAULT_ORIENT)}
-              className="rounded-ctl border border-line bg-surface px-2 py-1 text-ink"
+              className="rounded-ctl border border-line bg-surface px-2 py-1 text-ink coarse:min-h-[44px]"
             >
               {ORIENTS.map((o) => (
                 <option key={o} value={o}>

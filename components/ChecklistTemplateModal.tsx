@@ -174,7 +174,7 @@ export default function ChecklistTemplateModal({
                         onChange={(e) => updateItem(index, { item: e.target.value })}
                         placeholder="e.g. Send the e-invite"
                         aria-label={`Item ${index + 1}`}
-                        className={`${INPUT} flex-1`}
+                        className={`${INPUT} min-w-0 flex-1`}
                       />
                       <IconButton
                         label="Remove this item"
@@ -184,7 +184,7 @@ export default function ChecklistTemplateModal({
                         className="mt-0.5 hover:!text-danger [@media(pointer:coarse)]:!h-11 [@media(pointer:coarse)]:!w-11"
                       />
                     </div>
-                    <div className="grid grid-cols-2 gap-3">
+                    <div className="grid grid-cols-2 gap-3 [&>*]:min-w-0">
                       <label className="flex flex-col gap-1">
                         <span className="text-micro text-ink-2">Repeat (times)</span>
                         <input
@@ -197,7 +197,7 @@ export default function ChecklistTemplateModal({
                       </label>
                       <div className="flex flex-col gap-1">
                         <span className="text-micro text-ink-2">Due (weeks, vs. event)</span>
-                        <div className="flex gap-2">
+                        <div className="flex min-w-0 gap-2">
                           <input
                             type="number"
                             min={0}
@@ -205,13 +205,13 @@ export default function ChecklistTemplateModal({
                             onChange={(e) => updateItem(index, { weeks_before: e.target.value })}
                             placeholder="None"
                             aria-label="Due, in weeks"
-                            className={`${INPUT} !w-20 px-2`}
+                            className={`${INPUT} !w-20 shrink-0 px-2`}
                           />
                           <select
                             value={it.after ? "after" : "before"}
                             onChange={(e) => updateItem(index, { after: e.target.value === "after" })}
                             aria-label="Before or after the event"
-                            className={`${INPUT} flex-1`}
+                            className={`${INPUT} min-w-0 flex-1`}
                           >
                             <option value="before">before</option>
                             <option value="after">after</option>

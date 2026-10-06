@@ -363,7 +363,7 @@ export default function EventChecklist({ event, ownerOptions = [] }: { event: Ev
                           setEditingOwnerId(null);
                         }
                       }}
-                      className={`${INPUT} !min-h-[32px] my-1.5 w-28 shrink-0 self-center`}
+                      className={`${INPUT} !min-h-[32px] my-1.5 !w-28 shrink-0 self-center coarse:!min-h-[44px]`}
                     />
                   ) : (
                     <button

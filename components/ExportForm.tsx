@@ -178,7 +178,7 @@ export default function ExportForm({ levels }: { levels: LevelRow[] }) {
           ))}
         </div>
         {preset === "custom" ? (
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-2 gap-3 [&>*]:min-w-0">
             <label className="flex flex-col gap-1">
               <span className={LABEL}>Start date</span>
               <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} className={INPUT} />

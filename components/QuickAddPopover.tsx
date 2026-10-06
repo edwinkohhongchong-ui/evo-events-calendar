@@ -229,7 +229,7 @@ export default function QuickAddPopover({ date: initialDate, anchor, levels, onC
               maxLength={200}
             />
           </label>
-          <div className={desktop ? "flex flex-col gap-3" : "grid grid-cols-2 gap-3"}>
+          <div className={desktop ? "flex flex-col gap-3" : "grid grid-cols-2 gap-3 [&>label]:min-w-0"}>
             <label className="flex flex-col gap-1">
               <span className={LABEL}>Date</span>
               <input

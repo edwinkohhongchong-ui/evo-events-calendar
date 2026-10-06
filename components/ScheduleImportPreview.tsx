@@ -458,7 +458,7 @@ function PreviewRow({ row, docYear, draft, check, ticked, editing, onToggle, onE
         </td>
         <td className={`${TD} whitespace-normal text-ink-2`}>{v.category}</td>
         <td className={TD}>{datesText(v.start, isHoliday ? v.start : v.end)}</td>
-        <td className={`${TD} min-w-[16rem] max-w-[26rem] whitespace-normal`}>
+        <td className={`${TD} min-w-[16rem] max-w-[26rem] whitespace-normal break-words`}>
           {v.notes && <div className="whitespace-pre-line text-body text-ink-2">{v.notes}</div>}
           {problems.map((p, i) => (
             <div key={`p${i}`} className="mt-1 flex items-start gap-1.5 text-micro text-danger">

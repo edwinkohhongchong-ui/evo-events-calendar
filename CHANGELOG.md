@@ -8,6 +8,11 @@ items (features/fixes) that push contains — a push with 1 item goes up by
 `1.05`). If MINOR would pass `.99`, MAJOR increments and MINOR carries the
 remainder (e.g. `1.99` + 2 items → `2.01`).
 
+## v2.118 — 2026-10-06
+
+- Fixed the event checklist "+ Owner" box, which stretched across the whole row and squeezed the item title into a one-character-wide column; it is now a fixed small box (and a proper touch size on phones).
+- Layout pass across the app so long text and narrow screens no longer break forms: event window buttons (Delete, Close, Duplicate, Edit) wrap on phones and every pop-up footer wraps; long event, series and notes text wraps; date/time pairs no longer overflow at phone width; checklist-template and import editors wrap their rows; the day-note editor no longer closes when you scroll inside it; sidebar notes and Reminders get larger touch targets and long names truncate; the Print Calendar toolbar wraps on phones.
+
 ## v2.116 — 2026-10-05
 
 - Fixed the event checklist's "add your own item" row, which overflowed the Event Details window: the item box now has its own full-width line, with the Owner box and an "Add item" button below it, and the heading reads "Or add your own items (no template needed)".
