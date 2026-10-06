@@ -55,6 +55,8 @@ const COLUMNS = [
   ["checklist", "auto_check_type", "022"],
   ["event_checklist_items", "owner", "025"],
   ["checklist_template_items", "weeks_before", "024"],
+  ["day_notes", "details", "027"],
+  ["holidays", "details", "027"],
 ];
 
 async function probe(select, table) {

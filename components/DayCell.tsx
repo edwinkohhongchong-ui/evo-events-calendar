@@ -6,6 +6,7 @@ import Link from "next/link";
 import EventCard from "./EventCard";
 import DayNotes from "./DayNotes";
 import { FlagIcon } from "./icons";
+import { DetailsMarker } from "./ui/DetailsText";
 import { useHolidayPreview } from "./InfoPreviewCard";
 import { DayData } from "@/lib/dayIndex";
 import { todayStr, toDateStr } from "@/lib/dates";
@@ -143,7 +144,7 @@ function HolidayLabel({
           hide();
           onHolidayClick(holiday);
         }}
-        aria-label={`${holiday.name}, ${holiday.type}`}
+        aria-label={`${holiday.name}, ${holiday.type}${holiday.details ? ", has details" : ""}`}
         className={[
           "inline-flex max-w-full min-w-0 items-center gap-0.5 text-micro hover:underline",
           isCurrentMonth ? "text-ink-2" : "text-ink-3/60",
@@ -151,6 +152,7 @@ function HolidayLabel({
       >
         <FlagIcon className="!h-3 !w-3 text-danger/70" />
         <span className="truncate">{holiday.name}</span>
+        {holiday.details && <DetailsMarker className="print-hide" />}
       </button>
       {card}
     </>

@@ -8,6 +8,7 @@ import { EVENT_CONFLICT_MESSAGE } from "./eventConflict";
 import { OWNER_MIGRATION_HINT, isMissingOwnerColumn, withOwner } from "./owner";
 import { RowConflictError } from "./rowConflict";
 import { CUSTOM_COLOR_MIGRATION_MESSAGE, isHexColor } from "./colorStyle";
+import { DAY_NOTE_DETAILS_MIGRATION_HINT, isMissingDetailsColumn } from "./dayNoteDetails";
 
 // The database half of createSeason/updateSeason/createHoliday/updateHoliday,
 // createEvent/updateEvent and createChecklistItem/updateChecklistItem,
@@ -55,12 +56,17 @@ export async function updateSeasonRow(
   return [{ table: "seasons", id, before, after: data[0] }];
 }
 
+// Only a details column the caller actually sent can be the cause (before migration 027).
+function holidaySaveError(row: HolidayFormValues, error: { code?: string; message?: string }): Error {
+  if ("details" in row && isMissingDetailsColumn(error)) return new Error(DAY_NOTE_DETAILS_MIGRATION_HINT);
+  console.error(error);
+  return new Error(HOLIDAY_SAVE_ERROR);
+}
+
 export async function insertHolidayRow(values: HolidayFormValues): Promise<{ id: string; affected: AffectedRow[] }> {
-  const { data, error } = await supabase.from("holidays").insert(pickHolidayColumns(values)).select().single();
-  if (error) {
-    console.error(error);
-    throw new Error(HOLIDAY_SAVE_ERROR);
-  }
+  const row = pickHolidayColumns(values);
+  const { data, error } = await supabase.from("holidays").insert(row).select().single();
+  if (error) throw holidaySaveError(row, error);
   return { id: data.id, affected: [{ table: "holidays", id: data.id, before: null, after: data }] };
 }
 
@@ -70,13 +76,14 @@ export async function updateHolidayRow(
   expectedUpdatedAt?: string
 ): Promise<AffectedRow[]> {
   const before = await fetchRow("holidays", id);
-  let query = supabase.from("holidays").update(pickHolidayColumns(values)).eq("id", id);
+  const row = pickHolidayColumns(values);
+  // Clearing details that were never there is a no-op; skipping it keeps the
+  // save working before migration 027 adds the column.
+  if (row.details === null && before?.details == null) delete row.details;
+  let query = supabase.from("holidays").update(row).eq("id", id);
   if (expectedUpdatedAt) query = query.eq("updated_at", expectedUpdatedAt);
   const { data, error } = await query.select();
-  if (error) {
-    console.error(error);
-    throw new Error(HOLIDAY_SAVE_ERROR);
-  }
+  if (error) throw holidaySaveError(row, error);
   if (!data || data.length === 0) {
     throw expectedUpdatedAt ? new RowConflictError() : new Error("Holiday not found.");
   }

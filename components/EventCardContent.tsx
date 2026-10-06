@@ -7,6 +7,7 @@ import { useEventChecklistProgress } from "@/lib/eventChecklistContext";
 import { progressOverdue } from "@/lib/eventChecklist";
 import { todayStr } from "@/lib/dates";
 import { useIsDimmed } from "@/lib/eventSearchContext";
+import { DetailsMarker } from "./ui/DetailsText";
 
 export default function EventCardContent({
   occurrence,
@@ -63,10 +64,14 @@ export default function EventCardContent({
       ].join(" ")}
       style={chip.style}
     >
-      <div className="text-chip font-medium truncate">
-        {event.name}
-        {nextDay && <span className="ml-1 text-micro font-normal text-ink-2">(next day)</span>}
-        {occurrence.isOverridden && <span className="ml-1 text-micro font-normal text-ink-2">(moved)</span>}
+      {/* The marker sits outside the truncated name so a long name can't clip it. */}
+      <div className="flex min-w-0 items-baseline text-chip font-medium">
+        <span className="min-w-0 truncate">
+          {event.name}
+          {nextDay && <span className="ml-1 text-micro font-normal text-ink-2">(next day)</span>}
+          {occurrence.isOverridden && <span className="ml-1 text-micro font-normal text-ink-2">(moved)</span>}
+        </span>
+        {event.notes && <DetailsMarker className="print-hide" />}
       </div>
       {subtitle && <div className="text-chip text-ink-2 truncate">{subtitle}</div>}
       {(time || badge) && (

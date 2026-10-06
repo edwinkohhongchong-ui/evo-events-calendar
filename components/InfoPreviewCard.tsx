@@ -100,6 +100,11 @@ function Card({ anchor, children }: { anchor: Anchor; children: ReactNode }) {
   );
 }
 
+// Clamped: the hover card is a glance; clicking opens the full text.
+function PreviewDetails({ text }: { text: string }) {
+  return <div className="line-clamp-4 whitespace-pre-wrap break-words border-t border-line pt-1.5 text-ink-2">{text}</div>;
+}
+
 const fmt = (d: string) => format(parseDateStr(d), "EEE d MMM yyyy");
 
 export function useHolidayPreview(holiday: HolidayRow) {
@@ -110,6 +115,7 @@ export function useHolidayPreview(holiday: HolidayRow) {
       <div>
         <Pill variant="neutral">{holiday.type}</Pill>
       </div>
+      {holiday.details && <PreviewDetails text={holiday.details} />}
     </>
   );
 }
@@ -124,7 +130,7 @@ export function useSeasonPreview(season: SeasonRow) {
       <div>
         <Pill variant="neutral">{season.category}</Pill>
       </div>
-      {season.notes && <div className="whitespace-pre-wrap border-t border-line pt-1.5 text-ink-2">{season.notes}</div>}
+      {season.notes && <PreviewDetails text={season.notes} />}
     </>
   );
 }

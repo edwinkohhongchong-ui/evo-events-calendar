@@ -42,12 +42,13 @@ it immediately after confirming a migration has been run.
 | 024 | supabase_migration_024_event_checklists.sql | Per-event checklists: event_checklist_items table + weeks_before on checklist_template_items (idempotent) | Yes (run by Edwin, 2 Oct 2026; first checklist added to "Gathering with Regina", 4 Oct 2026) |
 | 025 | supabase_migration_025_owner.sql | Owner (free-text name) on events and event_checklist_items, 60-char check (idempotent) | Yes (run by Edwin, 2 Oct 2026; owner can now be saved) |
 | 026 | supabase_migration_026_custom_colors.sql | Custom hex colours for Categories and Seasons (widens levels_color_key_check / seasons_color_check; idempotent, no data changes) | Yes (run by Edwin, 2 Oct 2026; custom hex colours can now be saved) |
+| 027 | supabase_migration_027_note_details.sql | Optional details (remarks) on calendar day notes and holidays: day_notes.details + holidays.details text, each with a 2000-char check (idempotent, no data changes) | Yes (run by Edwin, 6 Oct 2026; details can now be saved) |
 
 Note: numbering starts at 002 — there is no `supabase_migration_001_*.sql` file
 in this repo (the initial schema lives in `supabase_schema.sql`).
 
 
-Next available migration number: **027**. (Indexes on event_overrides and event_exceptions were considered and skipped: their unique (event_id, original_date) constraints already index those lookups.)
+Next available migration number: **028**. (Indexes on event_overrides and event_exceptions were considered and skipped: their unique (event_id, original_date) constraints already index those lookups.)
 
 Run `npm run check:schema` (read-only; uses `.env.local`) to see which tables/columns above actually exist in the live database.
 

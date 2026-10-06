@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useEffect, FormEvent } from "react";
+import { useState, useRef, useEffect, FormEvent, KeyboardEvent } from "react";
 import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
 import { useEscapeKey } from "@/lib/useEscapeKey";
@@ -9,7 +9,9 @@ import { useUndo } from "@/lib/undo/UndoProvider";
 import { useIsEditor } from "@/lib/roleContext";
 import { DayNoteRow } from "@/lib/types";
 import AutoGrowTextarea from "./ui/AutoGrowTextarea";
+import DetailsText, { DetailsMarker } from "./ui/DetailsText";
 import { unwrap } from "@/lib/actionResult";
+import { DAY_NOTE_DETAILS_MAX } from "@/lib/dayNoteDetails";
 
 interface DayNotesProps {
   dateStr: string;
@@ -21,6 +23,7 @@ interface DayNotesProps {
 // Supabase writes and router.refresh(), same pattern as NotesPanel, so
 // DayCell doesn't need to thread add/edit/delete callbacks down. Editors get
 // an Edit button per note plus "+ Add note"; both open the same floating card.
+// Viewers click a note to open a read-only card with its details.
 export default function DayNotes({ dateStr, notes }: DayNotesProps) {
   const router = useRouter();
   const { record } = useUndo();
@@ -29,7 +32,9 @@ export default function DayNotes({ dateStr, notes }: DayNotesProps) {
   // Which note the card is editing; null = the card is only offering "add".
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editDraft, setEditDraft] = useState("");
+  const [editDetails, setEditDetails] = useState("");
   const [draft, setDraft] = useState("");
+  const [draftDetails, setDraftDetails] = useState("");
   const [saving, setSaving] = useState(false);
   const [removingId, setRemovingId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -90,6 +95,7 @@ export default function DayNotes({ dateStr, notes }: DayNotesProps) {
     anchorRef.current = anchor;
     setEditingId(note ? note.id : null);
     setEditDraft(note ? note.content : "");
+    setEditDetails(note?.details ?? "");
     setError(null);
     setOpen(true);
   }
@@ -102,14 +108,19 @@ export default function DayNotes({ dateStr, notes }: DayNotesProps) {
       setError("A note can't be empty. Use Remove note to delete it.");
       return;
     }
-    if (next === editingNote.content) {
+    const nextDetails = editDetails.trim();
+    const detailsChanged = nextDetails !== (editingNote.details ?? "").trim();
+    if (next === editingNote.content && !detailsChanged) {
       setOpen(false);
       return;
     }
     setSaving(true);
     setError(null);
     try {
-      const affected = unwrap(await updateDayNote(editingNote.id, next));
+      // Unchanged details are not sent, so title-only edits work before migration 027.
+      const affected = unwrap(
+        await updateDayNote(editingNote.id, next, detailsChanged ? nextDetails : undefined)
+      );
       record(`Edit note "${next}"`, affected);
       setOpen(false);
       router.refresh();
@@ -126,9 +137,10 @@ export default function DayNotes({ dateStr, notes }: DayNotesProps) {
     setSaving(true);
     setError(null);
     try {
-      const affected = unwrap(await createDayNote(dateStr, draft.trim()));
+      const affected = unwrap(await createDayNote(dateStr, draft.trim(), draftDetails.trim() || undefined));
       record(`Add note "${draft.trim()}"`, affected);
       setDraft("");
+      setDraftDetails("");
       router.refresh();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Couldn't save that note.");
@@ -159,6 +171,14 @@ export default function DayNotes({ dateStr, notes }: DayNotesProps) {
     active
       ? "opacity-100"
       : "opacity-0 group-hover/cell:opacity-100 group-focus-within/cell:opacity-100 focus-visible:opacity-100 [@media(hover:none)]:opacity-100";
+  // Cmd/Ctrl+Enter saves from a details box; plain Enter is a new line there.
+  const submitOnModEnter = (e: KeyboardEvent<HTMLTextAreaElement>) => {
+    if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
+      e.preventDefault();
+      e.currentTarget.form?.requestSubmit();
+    }
+  };
+  const detailsBox = "border border-line-strong rounded-ctl px-2.5 py-1.5 text-chip w-full";
   const smallBtn =
     "text-micro leading-none rounded-pill px-1.5 py-0.5 transition-opacity duration-fast coarse:min-h-[44px] coarse:min-w-[44px]";
 
@@ -166,20 +186,15 @@ export default function DayNotes({ dateStr, notes }: DayNotesProps) {
     <div onClick={(e) => e.stopPropagation()} className="flex flex-col gap-0.5">
       {notes.map((n) => (
         <div key={n.id} className="flex items-start gap-1">
-          {isEditor ? (
-            <button
-              type="button"
-              onClick={(e) => openFor(e.currentTarget, n)}
-              title="Click to edit this note"
-              className="min-w-0 flex-1 text-left text-micro font-medium text-green-700 break-words hover:underline"
-            >
-              {n.content}
-            </button>
-          ) : (
-            <span className="text-micro font-medium text-green-700 break-words" title={n.content}>
-              {n.content}
-            </span>
-          )}
+          <button
+            type="button"
+            onClick={(e) => openFor(e.currentTarget, n)}
+            title={isEditor ? "Click to edit this note" : "Click to see this note"}
+            className="min-w-0 flex-1 text-left text-micro font-medium text-green-700 break-words hover:underline"
+          >
+            {n.content}
+            {n.details && <DetailsMarker />}
+          </button>
           {isEditor && (
             <button
               type="button"
@@ -209,7 +224,7 @@ export default function DayNotes({ dateStr, notes }: DayNotesProps) {
         </button>
       )}
 
-      {isEditor && open && pos &&
+      {open && pos &&
         createPortal(
           <div
             ref={cardRef}
@@ -217,9 +232,29 @@ export default function DayNotes({ dateStr, notes }: DayNotesProps) {
             style={{ position: "fixed", top: pos.top, bottom: pos.bottom, left: pos.left, width: pos.width }}
             className="z-40 flex flex-col gap-2 bg-surface rounded-card shadow-pop p-3 max-h-[70vh] overflow-y-auto"
           >
-            <p className="text-micro font-medium text-ink-2">Notes for {dateStr}</p>
+            <p className="text-micro font-medium text-ink-2">
+              {isEditor ? "Notes" : "Note"} for {dateStr}
+            </p>
 
-            {editingNote && (
+            {!isEditor && editingNote && (
+              <>
+                <p className="text-chip font-medium text-green-700 whitespace-pre-wrap break-words">
+                  {editingNote.content}
+                </p>
+                <DetailsText text={editingNote.details} className="text-chip max-h-60 overflow-y-auto" />
+                <div className="flex justify-end">
+                  <button
+                    type="button"
+                    onClick={() => setOpen(false)}
+                    className="px-3 py-1 text-chip rounded-pill text-ink-2 hover:bg-black/5 coarse:min-h-[44px]"
+                  >
+                    Close
+                  </button>
+                </div>
+              </>
+            )}
+
+            {isEditor && editingNote && (
               <form onSubmit={handleSaveEdit} className="flex flex-col gap-2">
                 <AutoGrowTextarea
                   key={editingNote.id}
@@ -235,6 +270,16 @@ export default function DayNotes({ dateStr, notes }: DayNotesProps) {
                   }}
                   aria-label="Edit note"
                   className="border border-line-strong rounded-ctl px-2.5 py-1.5 text-chip w-full text-green-700"
+                />
+                <AutoGrowTextarea
+                  value={editDetails}
+                  onChange={(e) => setEditDetails(e.target.value)}
+                  onKeyDown={submitOnModEnter}
+                  maxLength={DAY_NOTE_DETAILS_MAX}
+                  maxHeightPx={200}
+                  aria-label="Note details (optional)"
+                  placeholder="Details (optional)"
+                  className={detailsBox}
                 />
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <button
@@ -265,41 +310,53 @@ export default function DayNotes({ dateStr, notes }: DayNotesProps) {
               </form>
             )}
 
-            <form onSubmit={handleAdd} className={["flex flex-col gap-2", editingNote ? "border-t border-line pt-2" : ""].join(" ")}>
-              <AutoGrowTextarea
-                key={editingNote ? "add-secondary" : "add-primary"}
-                autoFocus={!editingNote}
-                value={draft}
-                onChange={(e) => setDraft(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter" && !e.shiftKey) {
-                    e.preventDefault();
-                    e.currentTarget.form?.requestSubmit();
-                  }
-                }}
-                aria-label={editingNote ? "Add another note" : "Add a note"}
-                placeholder={editingNote ? "Add another note…" : "Add a note…"}
-                className="border border-line-strong rounded-ctl px-2.5 py-1.5 text-chip w-full"
-              />
-              <div className="flex items-center justify-end gap-2">
-                {!editingNote && (
+            {isEditor && (
+              <form onSubmit={handleAdd} className={["flex flex-col gap-2", editingNote ? "border-t border-line pt-2" : ""].join(" ")}>
+                <AutoGrowTextarea
+                  key={editingNote ? "add-secondary" : "add-primary"}
+                  autoFocus={!editingNote}
+                  value={draft}
+                  onChange={(e) => setDraft(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" && !e.shiftKey) {
+                      e.preventDefault();
+                      e.currentTarget.form?.requestSubmit();
+                    }
+                  }}
+                  aria-label={editingNote ? "Add another note" : "Add a note"}
+                  placeholder={editingNote ? "Add another note…" : "Add a note…"}
+                  className="border border-line-strong rounded-ctl px-2.5 py-1.5 text-chip w-full"
+                />
+                <AutoGrowTextarea
+                  value={draftDetails}
+                  onChange={(e) => setDraftDetails(e.target.value)}
+                  onKeyDown={submitOnModEnter}
+                  maxLength={DAY_NOTE_DETAILS_MAX}
+                  maxHeightPx={200}
+                  aria-label="New note details (optional)"
+                  placeholder="Details (optional)"
+                  className={detailsBox}
+                />
+                <div className="flex items-center justify-end gap-2">
+                  {!editingNote && (
+                    <button
+                      type="button"
+                      onClick={() => setOpen(false)}
+                      className="px-3 py-1 text-chip rounded-pill text-ink-2 hover:bg-black/5 coarse:min-h-[44px]"
+                    >
+                      Cancel
+                    </button>
+                  )}
                   <button
-                    type="button"
-                    onClick={() => setOpen(false)}
-                    className="px-3 py-1 text-chip rounded-pill text-ink-2 hover:bg-black/5 coarse:min-h-[44px]"
+                    type="submit"
+                    disabled={saving || !draft.trim()}
+                    className="px-3 py-1 text-chip rounded-pill bg-navy text-white disabled:opacity-50 coarse:min-h-[44px]"
                   >
-                    Cancel
+                    {saving ? "Saving…" : "+ Add note"}
                   </button>
-                )}
-                <button
-                  type="submit"
-                  disabled={saving || !draft.trim()}
-                  className="px-3 py-1 text-chip rounded-pill bg-navy text-white disabled:opacity-50 coarse:min-h-[44px]"
-                >
-                  {saving ? "Saving…" : "+ Add note"}
-                </button>
-              </div>
-            </form>
+                </div>
+              </form>
+            )}
             {error && <p className="text-micro text-danger">{error}</p>}
           </div>,
           document.body

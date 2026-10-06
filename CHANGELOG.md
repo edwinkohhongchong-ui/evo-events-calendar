@@ -8,6 +8,11 @@ items (features/fixes) that push contains — a push with 1 item goes up by
 `1.05`). If MINOR would pass `.99`, MAJOR increments and MINOR carries the
 remainder (e.g. `1.99` + 2 items → `2.01`).
 
+## v2.124 — 2026-10-06
+
+- Calendar day notes can now carry optional details: a "Details (optional)" box when adding or editing a note, a small "⋯" on notes that have details, and anyone (Viewers included) can click a note to read its details, wrapped. Needs migration 027; notes without details keep working before it is run.
+- Details for everything clickable on the calendar: event notes show under a "Notes" heading with a "⋯" on event cards that have notes; season notes grow as you type and Viewers see them in full, wrapped; holidays get a new "Details (optional)" field (migration 027) shown when clicked and previewed in the hover card.
+
 ## v2.122 — 2026-10-06
 
 - Event checklist items can now be edited in place: Editors click the item text, the owner name or the new "Edit" button to change both the item and its owner, then Save (Enter) or Cancel (Escape). Only the checkbox ticks an item for Editors; Viewers still tick by clicking the row. Edits can be undone, and the add-item boxes now reach a full touch size on phones.

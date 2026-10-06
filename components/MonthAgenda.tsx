@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { addMonths, format, subMonths } from "date-fns";
 import EventCardContent from "./EventCardContent";
 import { FlagIcon } from "./icons";
+import { DetailsMarker } from "./ui/DetailsText";
 import { DayData } from "@/lib/dayIndex";
 import { SeasonSegment } from "@/lib/seasonBars";
 import { resolveSeasonColor } from "@/lib/seasonColor";
@@ -133,6 +134,7 @@ export default function MonthAgenda({
                 >
                   <FlagIcon className="!h-3.5 !w-3.5 text-danger/70" />
                   {h.name}
+                  {h.details && <DetailsMarker />}
                 </button>
               ))}
               {[...spanning, ...events].map((occ) => (

@@ -14,6 +14,8 @@ import ModalShell from "./ui/ModalShell";
 import ColorPicker from "./ui/ColorPicker";
 import Button from "./ui/Button";
 import { INPUT, TEXTAREA, LABEL } from "./ui/fieldStyles";
+import AutoGrowTextarea from "./ui/AutoGrowTextarea";
+import DetailsText from "./ui/DetailsText";
 
 interface SeasonModalProps {
   mode: "add" | "edit";
@@ -192,16 +194,23 @@ export default function SeasonModal({ mode, season, onClose, onSaved, onDeleted 
                 />
               </label>
             </div>
-            <label className="flex flex-col gap-1">
-              <span className={LABEL}>Notes</span>
-              <textarea
-                value={notes ?? ""}
-                onChange={(e) => setNotes(e.target.value)}
-                className={TEXTAREA}
-                rows={2}
-              />
-            </label>
-
+            {isEditor ? (
+              <label className="flex flex-col gap-1">
+                <span className={LABEL}>Notes</span>
+                <AutoGrowTextarea
+                  value={notes}
+                  onChange={(e) => setNotes(e.target.value)}
+                  rows={2}
+                  placeholder="Remarks or details anyone can see when they click this season (optional)"
+                  className={TEXTAREA}
+                />
+              </label>
+            ) : (
+              <div className="flex flex-col gap-1">
+                <span className={LABEL}>Notes</span>
+                <DetailsText text={season?.notes} className="text-ui" />
+              </div>
+            )}
           </fieldset>
           </form>
         ) : (

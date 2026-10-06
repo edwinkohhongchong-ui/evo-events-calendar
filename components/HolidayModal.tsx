@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, FormEvent } from "react";
-import { HolidayRow, HolidayType } from "@/lib/types";
+import { HolidayFormValues, HolidayRow, HolidayType } from "@/lib/types";
 import { HOLIDAY_TYPES } from "@/lib/constants";
 import { createHoliday, updateHoliday, deleteHoliday } from "@/lib/holidayActions";
 import { useUndo } from "@/lib/undo/UndoProvider";
@@ -11,7 +11,10 @@ import ConfirmDialog from "./ConfirmDialog";
 import { unwrap } from "@/lib/actionResult";
 import ModalShell from "./ui/ModalShell";
 import Button from "./ui/Button";
-import { INPUT, LABEL } from "./ui/fieldStyles";
+import { INPUT, LABEL, TEXTAREA } from "./ui/fieldStyles";
+import AutoGrowTextarea from "./ui/AutoGrowTextarea";
+import DetailsText from "./ui/DetailsText";
+import { DAY_NOTE_DETAILS_MAX } from "@/lib/dayNoteDetails";
 
 interface HolidayModalProps {
   mode: "add" | "edit";
@@ -33,6 +36,7 @@ export default function HolidayModal({
   const [holidayDate, setHolidayDate] = useState(holiday?.holiday_date ?? "");
   const [name, setName] = useState(holiday?.name ?? "");
   const [type, setType] = useState<HolidayType>(holiday?.type ?? HOLIDAY_TYPES[0]);
+  const [details, setDetails] = useState(holiday?.details ?? "");
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
   const [confirmDelete, setConfirmDelete] = useState(false);
@@ -54,7 +58,15 @@ export default function HolidayModal({
 
     setSaving(true);
     try {
-      const values = { holiday_date: holidayDate, name: name.trim(), type };
+      // Details are only sent when changed, so other edits keep working before migration 027.
+      const nextDetails = details.trim();
+      const detailsChanged = nextDetails !== (holiday?.details ?? "").trim();
+      const values: HolidayFormValues = {
+        holiday_date: holidayDate,
+        name: name.trim(),
+        type,
+        ...(detailsChanged ? { details: nextDetails || null } : {}),
+      };
       if (mode === "add") {
         const affected = unwrap(await createHoliday(values));
         record(`Add holiday "${values.name}"`, affected);
@@ -151,7 +163,24 @@ export default function HolidayModal({
                 ))}
               </select>
             </label>
-
+            {isEditor ? (
+              <label className="flex flex-col gap-1">
+                <span className={LABEL}>Details (optional)</span>
+                <AutoGrowTextarea
+                  value={details}
+                  onChange={(e) => setDetails(e.target.value)}
+                  maxLength={DAY_NOTE_DETAILS_MAX}
+                  rows={2}
+                  placeholder="Remarks anyone can see when they click this holiday"
+                  className={TEXTAREA}
+                />
+              </label>
+            ) : (
+              <div className="flex flex-col gap-1">
+                <span className={LABEL}>Details</span>
+                <DetailsText text={holiday?.details} className="text-ui" />
+              </div>
+            )}
           </fieldset>
           </form>
         ) : (

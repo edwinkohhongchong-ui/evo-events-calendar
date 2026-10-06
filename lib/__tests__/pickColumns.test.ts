@@ -36,7 +36,7 @@ const level: Required<LevelFormValues> = { name: "n", color_key: "#aabbcc", sort
 const season: Required<SeasonFormValues> = {
   name: "n", category: "Other", start_date: "2026-01-01", end_date: "2026-02-01", notes: "x", color: "#aabbcc",
 };
-const holiday: Required<HolidayFormValues> = { holiday_date: "2026-01-01", name: "n", type: "Custom" };
+const holiday: Required<HolidayFormValues> = { holiday_date: "2026-01-01", name: "n", type: "Custom", details: "d" };
 const reminder: Required<ReminderTemplateFormValues> = {
   name: "n", default_message: "m", default_telegram_handle: "@h", include_event_summary: true, lookahead_days: 7,
 };

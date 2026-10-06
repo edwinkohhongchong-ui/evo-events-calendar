@@ -30,6 +30,8 @@ import { OWNER_MAX, normalizeOwner } from "@/lib/owner";
 import ConfirmDialog from "./ConfirmDialog";
 import ModalShell from "./ui/ModalShell";
 import { INPUT, LABEL, TEXTAREA } from "./ui/fieldStyles";
+import AutoGrowTextarea from "./ui/AutoGrowTextarea";
+import DetailsText from "./ui/DetailsText";
 import Button from "./ui/Button";
 import Pill from "./ui/Pill";
 import { CheckSquareIcon, ChevronIcon, MapPinIcon, RepeatIcon, StickyNoteIcon, ClockIcon } from "./icons";
@@ -755,9 +757,11 @@ function EventModalInner({
             </dl>
           )}
           {notes && (
-            <div className="flex items-start gap-1.5 whitespace-pre-wrap rounded-ctl bg-canvas p-3 text-ui text-ink">
-              <StickyNoteIcon className="!h-4 !w-4 mt-0.5 shrink-0 text-ink-2" />
-              <span className="min-w-0 break-words">{notes}</span>
+            <div className="flex flex-col gap-1">
+              <span className={`${LABEL} flex items-center gap-1`}>
+                <StickyNoteIcon className="!h-3.5 !w-3.5" /> Notes
+              </span>
+              <DetailsText text={notes} className="rounded-ctl bg-canvas p-3 text-ui" />
             </div>
           )}
           {mode === "edit" && event && <EventChecklist event={event} ownerOptions={ownerOptions} />}
@@ -1175,11 +1179,12 @@ function EventModalInner({
                   <span className={`${LABEL} flex items-center gap-1`}>
                     <StickyNoteIcon className="!h-3.5 !w-3.5" /> Notes
                   </span>
-                  <textarea
+                  <AutoGrowTextarea
                     value={notes}
                     onChange={(e) => setNotes(e.target.value)}
-                    className={TEXTAREA}
                     rows={2}
+                    placeholder="Remarks or details anyone can see when they open this event (optional)"
+                    className={TEXTAREA}
                   />
                 </label>
               </div>

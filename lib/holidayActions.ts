@@ -8,10 +8,20 @@ import { insertHolidayRow, updateHolidayRow } from "./rowWrites";
 import { requireRole } from "./authz";
 import { runAction } from "./actionResult";
 import { logActivity } from "./activity";
+import { normaliseNoteDetails } from "./dayNoteDetails";
+
+// Validates `details` without changing whether it was sent: undefined stays
+// undefined (column untouched), so saves without details work before migration 027.
+function withCleanDetails(values: HolidayFormValues, mode: "create" | "update"): HolidayFormValues {
+  if (values.details === undefined) return values;
+  const details = normaliseNoteDetails(values.details);
+  // A new holiday has nothing to clear.
+  return { ...values, details: mode === "create" ? details ?? undefined : details };
+}
 
 async function createHolidayImpl(values: HolidayFormValues): Promise<AffectedRow[]> {
   await requireRole("editor");
-  const { id, affected } = await insertHolidayRow(values);
+  const { id, affected } = await insertHolidayRow(withCleanDetails(values, "create"));
   await logActivity({ action: "added", entity: "holiday", entityId: id, label: values.name, itemDate: values.holiday_date });
   return affected;
 }
@@ -36,7 +46,7 @@ async function updateHolidayImpl(
   expectedUpdatedAt?: string
 ): Promise<AffectedRow[]> {
   await requireRole("editor");
-  const affected = await updateHolidayRow(id, values, expectedUpdatedAt);
+  const affected = await updateHolidayRow(id, withCleanDetails(values, "update"), expectedUpdatedAt);
   await logActivity({ action: "edited", entity: "holiday", entityId: id, label: values.name, itemDate: values.holiday_date });
   return affected;
 }

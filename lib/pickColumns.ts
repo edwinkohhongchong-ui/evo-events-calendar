@@ -52,7 +52,7 @@ export const SEASON_COLUMNS: Allow<SeasonFormValues> = {
   color: true,
 };
 
-export const HOLIDAY_COLUMNS: Allow<HolidayFormValues> = { holiday_date: true, name: true, type: true };
+export const HOLIDAY_COLUMNS: Allow<HolidayFormValues> = { holiday_date: true, name: true, type: true, details: true };
 
 export const REMINDER_TEMPLATE_COLUMNS: Allow<ReminderTemplateFormValues> = {
   name: true,

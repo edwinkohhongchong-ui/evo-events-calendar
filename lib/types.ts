@@ -63,6 +63,9 @@ export interface HolidayRow {
   holiday_date: string; // yyyy-MM-dd
   name: string;
   type: HolidayType;
+  // Optional remarks, shown when the holiday is clicked (migration 027;
+  // absent before it runs).
+  details?: string | null;
   // Optimistic-lock token (migration 020).
   updated_at?: string;
 }
@@ -75,6 +78,9 @@ export interface DayNoteRow {
   id: string;
   note_date: string; // yyyy-MM-dd
   content: string;
+  // Optional longer remarks, shown when the note is clicked (migration 027;
+  // absent before it runs).
+  details?: string | null;
 }
 
 export type HolidayDiffBucket = "new" | "existing" | "collision";
@@ -196,6 +202,9 @@ export interface HolidayFormValues {
   holiday_date: string;
   name: string;
   type: HolidayType;
+  // Omitted (undefined) = leave the column alone, so imports and saves
+  // without details keep working before migration 027.
+  details?: string | null;
 }
 
 // A saved draft template for the Reminders page — see migration 017. Sending
