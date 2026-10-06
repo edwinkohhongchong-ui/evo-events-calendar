@@ -911,7 +911,7 @@ function EventModalInner({
                   aria-pressed={pastoralFocus[key]}
                   onClick={() => setPastoralFocus((prev) => ({ ...prev, [key]: !prev[key] }))}
                   className={[
-                    "min-h-[30px] rounded-pill px-3 text-body font-medium transition-colors duration-fast",
+                    "min-h-[30px] coarse:min-h-[44px] rounded-pill px-3 text-body font-medium transition-colors duration-fast",
                     pastoralFocus[key] ? "bg-navy text-white" : "bg-fill text-ink hover:bg-line",
                   ].join(" ")}
                 >
@@ -928,13 +928,14 @@ function EventModalInner({
                 {eventTypeButtons.map((cat) => (
                   <Seg
                     key={cat}
+                    title={cat}
                     active={displayCategoryFor(level) === cat}
                     onClick={() => handleEventTypeCategoryChange(cat)}
                   >
                     {(cat !== "Zone" || ZONE_LEVEL_NAMES.includes(level)) && (
                       <CategoryDot levelName={cat === "Zone" ? level : cat} />
                     )}
-                    {cat}
+                    <span className="min-w-0 truncate">{cat}</span>
                   </Seg>
                 ))}
               </div>

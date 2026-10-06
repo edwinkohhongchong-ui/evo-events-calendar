@@ -8,6 +8,12 @@ items (features/fixes) that push contains — a push with 1 item goes up by
 `1.05`). If MINOR would pass `.99`, MAJOR increments and MINOR carries the
 remainder (e.g. `1.99` + 2 items → `2.01`).
 
+## v2.121 — 2026-10-06
+
+- Checklist templates can now be opened with the keyboard (Tab, then Enter or Space), not just by clicking.
+- A very long custom event-type name is now cut short with "…" on the event-type buttons (Add/Edit Event and quick-add) instead of spilling out, with the full name on hover.
+- Bigger tap targets on phones and tablets for the Pastoral focus pills and the Reminders event checkboxes.
+
 ## v2.118 — 2026-10-06
 
 - Fixed the event checklist "+ Owner" box, which stretched across the whole row and squeezed the item title into a one-character-wide column; it is now a fixed small box (and a proper touch size on phones).

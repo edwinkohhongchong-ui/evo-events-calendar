@@ -84,23 +84,25 @@ export default function ChecklistTemplatesSection({
           {templates.map((t) => (
             <div
               key={t.id}
-              onClick={() => setModal({ type: "edit", template: t })}
-              className="group flex cursor-pointer items-center justify-between gap-2 rounded-ctl border border-line px-4 py-2.5 transition-colors duration-fast hover:bg-canvas"
+              className="group flex items-center justify-between gap-2 rounded-ctl border border-line pr-2 transition-colors duration-fast hover:bg-canvas"
             >
-              <div className="min-w-0">
+              {/* Real button (not a clickable div) so the row is reachable by
+                  Tab and opens on Enter/Space; delete stays a sibling button. */}
+              <button
+                type="button"
+                onClick={() => setModal({ type: "edit", template: t })}
+                className="min-w-0 flex-1 rounded-ctl py-2.5 pl-4 text-left"
+              >
                 <div className="truncate text-ui font-medium text-ink">{t.name}</div>
                 <div className="truncate text-body text-ink-2">
                   {t.items.map((i) => i.item).join(", ") || "No items"}
                 </div>
-              </div>
+              </button>
               <span className={ROW_ACTION}>
                 <IconButton
                   label={`Remove "${t.name}"`}
                   icon={<TrashIcon className="!h-4 !w-4" />}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleRemove(t);
-                  }}
+                  onClick={() => handleRemove(t)}
                   disabled={removingId === t.id}
                   className="hover:!text-danger"
                 />

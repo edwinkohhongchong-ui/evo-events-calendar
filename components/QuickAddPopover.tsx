@@ -262,6 +262,7 @@ export default function QuickAddPopover({ date: initialDate, anchor, levels, onC
                   key={cat}
                   type="button"
                   aria-pressed={active === cat}
+                  title={cat}
                   onClick={() => pickCategory(cat)}
                   className={[
                     "inline-flex min-h-[36px] coarse:min-h-[44px] min-w-0 items-center justify-center gap-1.5 whitespace-nowrap rounded-pill px-3 text-body font-medium transition-colors duration-fast",
@@ -269,7 +270,7 @@ export default function QuickAddPopover({ date: initialDate, anchor, levels, onC
                   ].join(" ")}
                 >
                   {(cat !== "Zone" || level) && <CategoryDot levelName={cat === "Zone" ? level : cat} />}
-                  {cat}
+                  <span className="min-w-0 truncate">{cat}</span>
                 </button>
               ))}
             </div>

@@ -320,12 +320,12 @@ export default function RemindersForm({ templates, checklistTemplates, openCheck
               const chosenTemplateId = eventTemplates[ev.occurrenceKey] ?? "";
               return (
                 <div key={ev.occurrenceKey} className="px-4 py-2.5 flex flex-col gap-1 hover:bg-canvas">
-                  <label className="flex items-start gap-2.5 text-ui cursor-pointer">
+                  <label className="flex items-start gap-2.5 text-ui cursor-pointer coarse:min-h-[44px]">
                     <input
                       type="checkbox"
                       checked={selectedKeys.has(ev.occurrenceKey)}
                       onChange={() => toggleEvent(ev.occurrenceKey)}
-                      className="mt-0.5 shrink-0"
+                      className="mt-0.5 shrink-0 coarse:h-5 coarse:w-5"
                     />
                     <span className="min-w-0 flex-1 break-words">
                       {ev.flagged && <span title="Flagged as important">⭐ </span>}
@@ -339,7 +339,7 @@ export default function RemindersForm({ templates, checklistTemplates, openCheck
                     </span>
                   </label>
                   {selectedKeys.has(ev.occurrenceKey) && (
-                    <div className="pl-6 flex flex-col gap-1">
+                    <div className="pl-6 coarse:pl-[30px] flex flex-col gap-1">
                       <div className="flex items-center gap-2 flex-wrap">
                         <select
                           value={chosenTemplateId}
