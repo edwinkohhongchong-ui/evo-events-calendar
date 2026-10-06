@@ -7,6 +7,8 @@ import { logActivity } from "./activity";
 import { buildTickUpdate, expandTemplateItems } from "./eventChecklist";
 import { OWNER_MIGRATION_HINT, buildOwnerOptions, isMissingOwnerColumn, parseOwner } from "./owner";
 import { ChecklistTemplateWithItems, EventChecklistItemRow } from "./types";
+import { AffectedRow } from "./undo/types";
+import { fetchRow } from "./undo/capture";
 
 const MIGRATION_HINT = "Event checklists need the latest database update (migration 024). Ask Edwin to run it.";
 
@@ -192,6 +194,41 @@ async function setChecklistItemOwnerImpl(itemId: string, owner: string | null): 
   if (error) throw friendly(error, "Couldn't update that item. Please try again.");
 }
 
+// Edit one item's text and owner together (blank owner clears it). Editors only.
+async function editChecklistItemImpl(
+  itemId: string,
+  values: { item: string; owner: string | null }
+): Promise<AffectedRow[]> {
+  await requireRole("editor");
+  const item = (values?.item ?? "").trim().slice(0, 200);
+  if (!item) throw new Error("Type what needs doing.");
+  const owner = parseOwner(values?.owner);
+  const before = await fetchRow("event_checklist_items", itemId);
+  if (!before) throw new Error("That item couldn't be found. It may have been removed.");
+  const patch: { item: string; owner?: string | null } = { item };
+  // Only touch owner when it changed, so text edits still work before migration 025.
+  if (owner !== (before.owner ?? null)) patch.owner = owner;
+  const { data, error } = await supabase
+    .from("event_checklist_items")
+    .update(patch)
+    .eq("id", itemId)
+    .select();
+  if (error && "owner" in patch && isMissingOwnerColumn(error)) throw new Error(OWNER_MIGRATION_HINT);
+  if (error) throw friendly(error, "Couldn't update that item. Please try again.");
+  if (!data || data.length === 0) throw new Error("That item couldn't be found. It may have been removed.");
+  const { data: event } = await supabase.from("events").select("name, event_date").eq("id", before.event_id).single();
+  if (event) {
+    await logActivity({
+      action: "edited",
+      entity: "event",
+      entityId: String(before.event_id),
+      label: `${event.name} (checklist)`,
+      itemDate: event.event_date,
+    });
+  }
+  return [{ table: "event_checklist_items", id: itemId, before, after: data[0] }];
+}
+
 // Owner names already used on events and checklist items, for the datalist.
 // Empty (not an error) before migration 025.
 async function getOwnerOptionsImpl(): Promise<string[]> {
@@ -238,6 +275,9 @@ export async function addChecklistItem(...args: Parameters<typeof addChecklistIt
 }
 export async function setChecklistItemOwner(...args: Parameters<typeof setChecklistItemOwnerImpl>) {
   return runAction(() => setChecklistItemOwnerImpl(...args));
+}
+export async function editChecklistItem(...args: Parameters<typeof editChecklistItemImpl>) {
+  return runAction(() => editChecklistItemImpl(...args));
 }
 export async function getOwnerOptions(...args: Parameters<typeof getOwnerOptionsImpl>) {
   return runAction(() => getOwnerOptionsImpl(...args));

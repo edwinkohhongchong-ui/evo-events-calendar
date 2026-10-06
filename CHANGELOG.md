@@ -8,6 +8,10 @@ items (features/fixes) that push contains — a push with 1 item goes up by
 `1.05`). If MINOR would pass `.99`, MAJOR increments and MINOR carries the
 remainder (e.g. `1.99` + 2 items → `2.01`).
 
+## v2.122 — 2026-10-06
+
+- Event checklist items can now be edited in place: Editors click the item text, the owner name or the new "Edit" button to change both the item and its owner, then Save (Enter) or Cancel (Escape). Only the checkbox ticks an item for Editors; Viewers still tick by clicking the row. Edits can be undone, and the add-item boxes now reach a full touch size on phones.
+
 ## v2.121 — 2026-10-06
 
 - Checklist templates can now be opened with the keyboard (Tab, then Enter or Space), not just by clicking.

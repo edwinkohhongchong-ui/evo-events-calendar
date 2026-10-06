@@ -12,12 +12,13 @@ import {
   getEventChecklist,
   removeEventChecklist,
   setChecklistItemDone,
-  setChecklistItemOwner,
+  editChecklistItem,
 } from "@/lib/eventChecklistActions";
 import { unwrap } from "@/lib/actionResult";
 import { DONE_BY_MAX, dueDate, isOverdue, progressOf, SUGGESTED_TEMPLATE_BY_GATHERING_TYPE } from "@/lib/eventChecklist";
 import { parseDateStr, todayStr } from "@/lib/dates";
 import { useIsEditor } from "@/lib/roleContext";
+import { useUndo } from "@/lib/undo/UndoProvider";
 import { OWNER_MAX, normalizeOwner } from "@/lib/owner";
 import ConfirmModal from "./ConfirmModal";
 import Button from "./ui/Button";
@@ -39,6 +40,7 @@ function authorName(): string | null {
 export default function EventChecklist({ event, ownerOptions = [] }: { event: EventRow; ownerOptions?: string[] }) {
   const router = useRouter();
   const isEditor = useIsEditor();
+  const { record } = useUndo();
   const [items, setItems] = useState<EventChecklistItemRow[] | null>(null);
   const [templates, setTemplates] = useState<ChecklistTemplateWithItems[]>([]);
   const [templateId, setTemplateId] = useState("");
@@ -51,9 +53,11 @@ export default function EventChecklist({ event, ownerOptions = [] }: { event: Ev
   const [newItem, setNewItem] = useState("");
   // New items default to the event's owner; stays as typed between adds.
   const [newOwner, setNewOwner] = useState(event.owner ?? "");
-  const [editingOwnerId, setEditingOwnerId] = useState<string | null>(null);
-  // Escape cancels the inline owner input; the blur that follows must not save.
-  const skipOwnerSave = useRef(false);
+  // The one row being edited inline (Editors only); `focus` is the field they clicked.
+  const [editing, setEditing] = useState<{ id: string; item: string; owner: string; focus: "item" | "owner" } | null>(
+    null
+  );
+  const [savingEdit, setSavingEdit] = useState(false);
 
   const repeating = event.recurring !== "None";
   const today = todayStr();
@@ -105,7 +109,7 @@ export default function EventChecklist({ event, ownerOptions = [] }: { event: Ev
   const overdueCount = items.filter((i) => isOverdue(event.event_date, i.weeks_before, i.done, today)).length;
   const suggestedName = event.gathering_type ? SUGGESTED_TEMPLATE_BY_GATHERING_TYPE[event.gathering_type] : undefined;
   const listId = `event-checklist-${event.id}`;
-  const coarse = "[@media(pointer:coarse)]:min-h-[44px]";
+  const coarse = "[@media(pointer:coarse)]:!min-h-[44px]";
   const ownerListId = `owner-options-${event.id}`;
 
   async function add() {
@@ -176,19 +180,38 @@ export default function EventChecklist({ event, ownerOptions = [] }: { event: Ev
     }
   }
 
-  async function saveOwner(item: EventChecklistItemRow, raw: string) {
-    setEditingOwnerId(null);
-    const next = normalizeOwner(raw) || null;
-    if (next === (item.owner ?? null)) return;
-    // Optimistic: show it now, restore if the save fails.
-    setItems((prev) => prev && prev.map((i) => (i.id === item.id ? { ...i, owner: next } : i)));
+  function startEdit(item: EventChecklistItemRow, focus: "item" | "owner") {
+    setEditing({ id: item.id, item: item.item, owner: item.owner ?? "", focus });
+  }
+
+  async function saveEdit(item: EventChecklistItemRow) {
+    if (!editing || savingEdit) return;
+    const draft = editing;
+    const text = draft.item.trim();
+    if (!text) {
+      setError("Type what needs doing.");
+      return;
+    }
+    const owner = normalizeOwner(draft.owner) || null;
+    if (text === item.item && owner === (item.owner ?? null)) {
+      setEditing(null);
+      return;
+    }
+    setSavingEdit(true);
+    // Optimistic: show it now; on failure restore the row and reopen the editor with what was typed.
+    setItems((prev) => prev && prev.map((i) => (i.id === item.id ? { ...i, item: text, owner } : i)));
+    setEditing(null);
     try {
-      unwrap(await setChecklistItemOwner(item.id, next));
+      const affected = unwrap(await editChecklistItem(item.id, { item: text, owner }));
+      record(`Edit checklist item "${text}"`, affected);
       setError(null);
       router.refresh();
     } catch (err) {
       setItems((prev) => prev && prev.map((i) => (i.id === item.id ? item : i)));
+      setEditing(draft);
       setError(err instanceof Error ? err.message : "Couldn't update that item.");
+    } finally {
+      setSavingEdit(false);
     }
   }
 
@@ -203,6 +226,42 @@ export default function EventChecklist({ event, ownerOptions = [] }: { event: Ev
       setError(err instanceof Error ? err.message : "Couldn't remove that item.");
       await load();
     }
+  }
+
+  // Done/due line under an item. For Editors the owner name opens the inline editor.
+  function subline(it: EventChecklistItemRow, due: string | null, overdue: boolean) {
+    if (!(it.done && it.done_at) && !due && !it.owner) return null;
+    return (
+      <span className="block text-chip text-ink-2">
+        {it.done && it.done_at ? (
+          <>
+            Done{it.done_by ? ` by ${it.done_by}` : ""} · {format(new Date(it.done_at), "d MMM")}
+          </>
+        ) : due ? (
+          <span className={overdue ? "font-medium text-danger" : ""}>
+            {overdue ? "Overdue · " : "Due "}
+            {format(parseDateStr(due), "d MMM")}
+          </span>
+        ) : null}
+        {it.owner && (
+          <>
+            {it.done || due ? " · " : ""}
+            {isEditor ? (
+              <button
+                type="button"
+                onClick={() => startEdit(it, "owner")}
+                title="Change owner"
+                className="break-words text-left hover:text-navy hover:underline"
+              >
+                Owner: {it.owner}
+              </button>
+            ) : (
+              <span>Owner: {it.owner}</span>
+            )}
+          </>
+        )}
+      </span>
+    );
   }
 
   const ownerDatalist = (
@@ -307,81 +366,99 @@ export default function EventChecklist({ event, ownerOptions = [] }: { event: Ev
             const overdue = isOverdue(event.event_date, it.weeks_before, it.done, today);
             return (
               <li key={it.id} className="group/item flex items-stretch border-b border-line last:border-b-0">
-                <label
-                  className="flex min-h-[44px] min-w-0 flex-1 cursor-pointer items-start gap-3 px-4 py-2.5 hover:bg-canvas"
-                >
-                  <input
-                    type="checkbox"
-                    checked={it.done}
-                    onChange={() => toggle(it)}
-                    className="mt-0.5 h-5 w-5 shrink-0 accent-[#1F2A44]"
-                  />
-                  <span className="min-w-0 flex-1">
-                    <span className={`block text-ui ${it.done ? "text-ink-2 line-through" : "text-ink"}`}>{it.item}</span>
-                    <span className="block text-chip text-ink-2">
-                      {it.done && it.done_at ? (
-                        <>
-                          Done{it.done_by ? ` by ${it.done_by}` : ""} · {format(new Date(it.done_at), "d MMM")}
-                        </>
-                      ) : due ? (
-                        <span className={overdue ? "font-medium text-danger" : ""}>
-                          {overdue ? "Overdue · " : "Due "}
-                          {format(parseDateStr(due), "d MMM")}
-                        </span>
-                      ) : null}
-                      {it.owner && (
-                        <span>
-                          {it.done || due ? " · " : ""}Owner: {it.owner}
-                        </span>
-                      )}
-                    </span>
-                  </span>
-                </label>
-                {isEditor &&
-                  (editingOwnerId === it.id ? (
+                {editing?.id === it.id ? (
+                  <form
+                    onSubmit={(e) => {
+                      e.preventDefault();
+                      void saveEdit(it);
+                    }}
+                    onKeyDown={(e) => {
+                      if (e.key === "Escape") {
+                        // Cancel only this editor, not the modal around it.
+                        e.stopPropagation();
+                        setEditing(null);
+                      }
+                    }}
+                    className="flex min-w-0 flex-1 flex-col gap-2 px-4 py-2.5"
+                  >
                     <input
-                      autoFocus
-                      defaultValue={it.owner ?? ""}
-                      list={ownerListId}
-                      maxLength={OWNER_MAX}
-                      autoComplete="off"
-                      aria-label={`Owner of: ${it.item}`}
-                      placeholder="Owner"
-                      onBlur={(e) => {
-                        if (skipOwnerSave.current) {
-                          skipOwnerSave.current = false;
-                          return;
-                        }
-                        void saveOwner(it, e.target.value);
-                      }}
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter") e.currentTarget.blur();
-                        else if (e.key === "Escape") {
-                          // Cancel only this input: not the modal, and no half-typed save.
-                          e.stopPropagation();
-                          skipOwnerSave.current = true;
-                          setEditingOwnerId(null);
-                        }
-                      }}
-                      className={`${INPUT} !min-h-[32px] my-1.5 !w-28 shrink-0 self-center coarse:!min-h-[44px]`}
+                      autoFocus={editing.focus === "item"}
+                      value={editing.item}
+                      onChange={(e) => setEditing({ ...editing, item: e.target.value })}
+                      maxLength={200}
+                      aria-label="Checklist item"
+                      className={`${INPUT} !min-h-[36px] min-w-0 coarse:!min-h-[44px]`}
                     />
-                  ) : (
+                    <div className="flex flex-wrap items-center gap-2">
+                      <input
+                        autoFocus={editing.focus === "owner"}
+                        value={editing.owner}
+                        onChange={(e) => setEditing({ ...editing, owner: e.target.value })}
+                        list={ownerListId}
+                        maxLength={OWNER_MAX}
+                        autoComplete="off"
+                        placeholder="Owner"
+                        aria-label="Owner"
+                        className={`${INPUT} !min-h-[36px] !w-auto min-w-0 flex-1 basis-32 coarse:!min-h-[44px]`}
+                      />
+                      <div className="flex shrink-0 gap-2">
+                        <Button type="submit" size="sm" variant="primary" disabled={!editing.item.trim()} loading={savingEdit}>
+                          Save
+                        </Button>
+                        <Button type="button" size="sm" variant="ghost" onClick={() => setEditing(null)}>
+                          Cancel
+                        </Button>
+                      </div>
+                    </div>
+                  </form>
+                ) : isEditor ? (
+                  <>
+                    <label className="flex shrink-0 cursor-pointer items-start py-2.5 pl-4 pr-3 hover:bg-canvas">
+                      <input
+                        type="checkbox"
+                        checked={it.done}
+                        onChange={() => toggle(it)}
+                        aria-label={`Done: ${it.item}`}
+                        className="mt-0.5 h-5 w-5 accent-[#1F2A44]"
+                      />
+                    </label>
+                    <div className="min-w-0 flex-1 py-2.5">
+                      <button
+                        type="button"
+                        onClick={() => startEdit(it, "item")}
+                        title="Edit this item"
+                        className={`block w-full break-words text-left text-ui hover:text-navy hover:underline ${
+                          it.done ? "text-ink-2 line-through" : "text-ink"
+                        }`}
+                      >
+                        {it.item}
+                      </button>
+                      {subline(it, due, overdue)}
+                    </div>
                     <button
                       type="button"
-                      onClick={() => {
-                        skipOwnerSave.current = false;
-                        setEditingOwnerId(it.id);
-                      }}
-                      title={it.owner ? "Change owner" : "Set an owner"}
-                      aria-label={it.owner ? `Owner ${it.owner}. Change owner of: ${it.item}` : `Set owner of: ${it.item}`}
-                      className={`shrink-0 px-2 text-chip text-ink-2 hover:bg-canvas hover:text-navy coarse:min-h-[44px] ${
-                        it.owner ? "font-medium underline" : "underline decoration-dashed underline-offset-2"
-                      }`}
+                      onClick={() => startEdit(it, "item")}
+                      aria-label={`Edit item: ${it.item}`}
+                      className="shrink-0 px-2 text-chip font-medium text-ink-2 underline underline-offset-2 hover:bg-canvas hover:text-navy md:opacity-0 md:group-hover/item:opacity-100 focus-visible:opacity-100 coarse:min-h-[44px] coarse:opacity-100"
                     >
-                      {it.owner ? "change" : "+ Owner"}
+                      Edit
                     </button>
-                  ))}
-                {isEditor && (
+                  </>
+                ) : (
+                  <label className="flex min-h-[44px] min-w-0 flex-1 cursor-pointer items-start gap-3 px-4 py-2.5 hover:bg-canvas">
+                    <input
+                      type="checkbox"
+                      checked={it.done}
+                      onChange={() => toggle(it)}
+                      className="mt-0.5 h-5 w-5 shrink-0 accent-[#1F2A44]"
+                    />
+                    <span className="min-w-0 flex-1">
+                      <span className={`block break-words text-ui ${it.done ? "text-ink-2 line-through" : "text-ink"}`}>{it.item}</span>
+                      {subline(it, due, overdue)}
+                    </span>
+                  </label>
+                )}
+                {isEditor && editing?.id !== it.id && (
                   <button
                     type="button"
                     onClick={() => removeItem(it)}
