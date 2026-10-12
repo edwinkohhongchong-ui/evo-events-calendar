@@ -8,6 +8,10 @@ items (features/fixes) that push contains — a push with 1 item goes up by
 `1.05`). If MINOR would pass `.99`, MAJOR increments and MINOR carries the
 remainder (e.g. `1.99` + 2 items → `2.01`).
 
+## v2.128 — 2026-10-12
+
+- Telegram group digests are now managed on the Reminders page instead of being fixed: create several digests, each with its own name, on/off switch, weekdays, coverage (rest of this month, this week, or the next N days), event types (events and/or gatherings), categories, big-event planning check (weeks ahead), open-checklist counts, intro and closing lines, a live preview of the exact message, an editable message for the next send only, "Skip the next send", and "Send now". Each digest sends at most once a day (recorded before sending, so a double trigger can't repeat it). The schedule now runs daily at about 7:30pm Singapore (Vercel free plan: within the hour); until you create a digest, the Sunday message from v2.127 keeps running unchanged. Needs migration 029.
+
 ## v2.127 — 2026-10-12
 
 - Automatic Sunday Telegram message to the team group (7:30pm Singapore, set in vercel.json; on Vercel's free plan it may arrive 7:00–7:59pm): this month's remaining events and gatherings grouped by week, plus a "Planning check" asking whether everything is in place for each big event in the next 8 weeks, with open checklist counts. Runs only with a secret (CRON_SECRET, 32+ characters) and the TELEGRAM_* settings, and can be switched off with TELEGRAM_DIGEST_ENABLED. Reminders page (Editors) gets "Preview the message" and "Send digest to the group now (test)". Always sends, even when little is scheduled. Setup steps are in ONBOARDING.md.

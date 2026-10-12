@@ -1,5 +1,6 @@
-import { addDays, differenceInCalendarDays, endOfMonth, format, startOfWeek } from "date-fns";
+import { addDays, differenceInCalendarDays, endOfMonth, endOfWeek, format, startOfWeek } from "date-fns";
 import { formatEventTime, parseDateStr, toDateStr } from "./dates";
+import type { DigestConfig } from "./telegramDigestConfig";
 import type { EventOccurrence, HolidayRow } from "./types";
 
 // Pure builder for the automatic Sunday Telegram message. Not a "use server"
@@ -34,15 +35,60 @@ export interface DigestInput {
   checklistCounts?: ReadonlyMap<string, ChecklistCount>;
   /** Optional link to the calendar, added as the last line. */
   appUrl?: string;
+  /** A configured digest (migration 029). Omitted = the built-in Sunday message. */
+  config?: DigestConfig;
 }
 
 // Control characters, bidi overrides and zero-width characters become a space
 // (a pasted newline would otherwise forge extra lines in the message).
 const UNSAFE_CHARS = /[\u0000-\u001F\u007F-\u009F\u200B-\u200F\u2028\u2029\u202A-\u202E\u2066-\u2069\uFEFF]/g;
 
+const UNSAFE_CHARS_KEEP_NEWLINE = /[\u0000-\u0009\u000B-\u001F\u007F-\u009F\u200B-\u200F\u2028\u2029\u202A-\u202E\u2066-\u2069\uFEFF]/g;
+
 export function cleanText(raw: unknown, max: number): string {
   const text = String(raw ?? "").replace(UNSAFE_CHARS, " ").replace(/\s+/g, " ").trim();
   return text.length > max ? `${text.slice(0, max - 1).trimEnd()}…` : text;
+}
+
+/**
+ * Like cleanText but keeps line breaks (for the intro/closing lines and an
+ * edited message): control/bidi/zero-width characters become a space, runs of
+ * blank lines collapse to one, and `max` is only applied when given.
+ */
+export function cleanMultiline(raw: unknown, max?: number): string {
+  const text = String(raw ?? "")
+    .replace(/\r\n?/g, "\n")
+    .replace(UNSAFE_CHARS_KEEP_NEWLINE, " ")
+    .split("\n")
+    .map((l) => l.replace(/[ ]{2,}/g, " ").trim())
+    .join("\n")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
+  return max !== undefined && text.length > max ? `${text.slice(0, max - 1).trimEnd()}…` : text;
+}
+
+/** End of the period a digest lists events for (inclusive, yyyy-MM-dd). */
+export function digestRangeEnd(today: string, config?: Pick<DigestConfig, "range_mode" | "range_days">): string {
+  const todayDate = parseDateStr(today);
+  if (config?.range_mode === "this_week") return toDateStr(endOfWeek(todayDate, { weekStartsOn: 1 }));
+  if (config?.range_mode === "next_days") return toDateStr(addDays(todayDate, Math.max(1, config.range_days) - 1));
+  return toDateStr(endOfMonth(todayDate));
+}
+
+/**
+ * How far ahead the data must be loaded so every given digest (or the
+ * built-in one, for `undefined`) can be built: the farthest of its range,
+ * next month's end (the built-in "coming up" section) and its big-event window.
+ */
+export function requiredLoadEnd(today: string, configs: ReadonlyArray<DigestConfig | undefined>): string {
+  const todayDate = parseDateStr(today);
+  const ends: string[] = [];
+  for (const c of configs.length ? configs : [undefined]) {
+    ends.push(digestRangeEnd(today, c));
+    if (!c || c.range_mode === "rest_of_month") ends.push(toDateStr(endOfMonth(addDays(endOfMonth(todayDate), 1))));
+    if (!c || c.include_big_events) ends.push(toDateStr(addDays(todayDate, (c?.big_lookahead_weeks ?? LOOKAHEAD_WEEKS) * 7)));
+  }
+  return ends.reduce((a, b) => (a > b ? a : b));
 }
 
 const dayLabel = (dateStr: string) => format(parseDateStr(dateStr), "EEE d MMM");
@@ -115,13 +161,30 @@ export function chunkLines(lines: string[], max = MAX_MESSAGE_CHARS): string[] {
   return chunks;
 }
 
+const sameLevel = (a: string, b: string) => a.trim().toLowerCase() === b.trim().toLowerCase();
+
 export function buildDigest(input: DigestInput): string[] {
-  const { today, events, holidays = [], checklistCounts, appUrl } = input;
+  const { today, events: allEvents, holidays = [], checklistCounts, appUrl, config } = input;
+
+  // An edited message replaces everything generated; it is still cleaned and chunked.
+  const edited = config?.override_text ? cleanMultiline(config.override_text) : "";
+  if (edited) return chunkLines(edited.split("\n"));
+
   const todayDate = parseDateStr(today);
-  const monthEnd = toDateStr(endOfMonth(todayDate));
+  const rangeEnd = digestRangeEnd(today, config);
+  const bigWeeks = config?.big_lookahead_weeks ?? LOOKAHEAD_WEEKS;
+  const lookaheadEnd = toDateStr(addDays(todayDate, bigWeeks * 7));
   const nextMonthStart = toDateStr(addDays(endOfMonth(todayDate), 1));
   const nextMonthEnd = toDateStr(endOfMonth(parseDateStr(nextMonthStart)));
-  const lookaheadEnd = toDateStr(addDays(todayDate, LOOKAHEAD_WEEKS * 7));
+
+  const levelFilter = config?.levels ?? [];
+  const events = allEvents.filter((o) => {
+    if (config) {
+      const gathering = o.event.event_type === "Gathering";
+      if (gathering ? !config.include_gatherings : !config.include_events) return false;
+    }
+    return levelFilter.length === 0 || levelFilter.some((l) => sameLevel(l, String(o.event.level ?? "")));
+  });
 
   const holidayItems = (from: string, to: string) =>
     holidays
@@ -130,53 +193,73 @@ export function buildDigest(input: DigestInput): string[] {
   const eventItems = (from: string, to: string) =>
     events.filter((o) => o.occurrenceDate >= from && o.occurrenceDate <= to).map(eventItem);
 
-  const lines: string[] = [`+EVO calendar — ${format(todayDate, "MMMM yyyy")}`];
+  const lines: string[] = [];
+  const intro = config?.intro ? cleanMultiline(config.intro) : "";
+  if (intro) lines.push(...intro.split("\n"), "");
+  lines.push(`+EVO calendar — ${format(todayDate, "MMMM yyyy")}`);
 
-  const thisMonth = [...eventItems(today, monthEnd), ...holidayItems(today, monthEnd)];
-  lines.push("", "THIS MONTH (rest of the month)");
-  if (thisMonth.length === 0) {
-    lines.push("", "Nothing else is scheduled for the rest of this month yet. Have a blessed week!");
+  const mode = config?.range_mode ?? "rest_of_month";
+  const days = config?.range_days ?? 0;
+  const heading =
+    mode === "this_week" ? "THIS WEEK" : mode === "next_days" ? `NEXT ${days} ${days === 1 ? "DAY" : "DAYS"}` : "THIS MONTH (rest of the month)";
+  const emptyLine =
+    mode === "this_week"
+      ? "Nothing else is scheduled for the rest of this week yet. Have a blessed week!"
+      : mode === "next_days"
+        ? `Nothing is scheduled for the next ${days} ${days === 1 ? "day" : "days"} yet. Have a blessed week!`
+        : "Nothing else is scheduled for the rest of this month yet. Have a blessed week!";
+
+  const inRange = [...eventItems(today, rangeEnd), ...holidayItems(today, rangeEnd)];
+  lines.push("", heading);
+  if (inRange.length === 0) {
+    lines.push("", emptyLine);
   } else {
-    lines.push(...weekSections(thisMonth));
+    lines.push(...weekSections(inRange));
   }
 
-  const remainingEvents = eventItems(today, monthEnd).length;
-  if (remainingEvents <= QUIET_MONTH_AT_MOST) {
-    const next = [...eventItems(nextMonthStart, nextMonthEnd), ...holidayItems(nextMonthStart, nextMonthEnd)]
-      .sort(byDateThenTime)
-      .slice(0, NEXT_MONTH_ITEMS);
-    if (next.length > 0) {
-      lines.push("", `COMING UP NEXT MONTH (${format(parseDateStr(nextMonthStart), "MMMM")})`);
-      for (const item of next) lines.push(`- ${dayLabel(item.date)}: ${item.text}`);
+  if (mode === "rest_of_month") {
+    const remainingEvents = eventItems(today, rangeEnd).length;
+    if (remainingEvents <= QUIET_MONTH_AT_MOST) {
+      const next = [...eventItems(nextMonthStart, nextMonthEnd), ...holidayItems(nextMonthStart, nextMonthEnd)]
+        .sort(byDateThenTime)
+        .slice(0, NEXT_MONTH_ITEMS);
+      if (next.length > 0) {
+        lines.push("", `COMING UP NEXT MONTH (${format(parseDateStr(nextMonthStart), "MMMM")})`);
+        for (const item of next) lines.push(`- ${dayLabel(item.date)}: ${item.text}`);
+      }
     }
   }
 
-  lines.push("", `PLANNING CHECK — big events in the next ${LOOKAHEAD_WEEKS} weeks`);
-  const major = events
-    .filter((o) => o.event.is_major && o.occurrenceDate >= today && o.occurrenceDate <= lookaheadEnd)
-    .sort((a, b) => a.occurrenceDate.localeCompare(b.occurrenceDate) || a.event.name.localeCompare(b.event.name));
-  if (major.length === 0) {
-    lines.push("", `No big events are flagged in the next ${LOOKAHEAD_WEEKS} weeks.`);
-  }
-  for (const occ of major) {
-    const name = cleanText(occ.event.name, NAME_MAX) || "this event";
-    const when = whenLabel(differenceInCalendarDays(parseDateStr(occ.occurrenceDate), todayDate));
-    lines.push("", `★ ${name} — ${dayLabel(occ.occurrenceDate)} ${format(parseDateStr(occ.occurrenceDate), "yyyy")} (${when})`);
-    lines.push(`Is everything in place for ${name} (${when})? Reply here with what's still needed.`);
-    // A checklist belongs to the event row, so for a repeating series it
-    // would be counted against every occurrence; only one-off events show it.
-    const count = occ.event.recurring === "None" ? checklistCounts?.get(occ.event.id) : undefined;
-    if (count && count.total > 0) {
-      lines.push(
-        count.open > 0
-          ? `${count.open} of ${count.total} checklist items still open`
-          : `All ${count.total} checklist items are done`
-      );
+  if (config?.include_big_events ?? true) {
+    lines.push("", `PLANNING CHECK — big events in the next ${bigWeeks} weeks`);
+    const major = events
+      .filter((o) => o.event.is_major && o.occurrenceDate >= today && o.occurrenceDate <= lookaheadEnd)
+      .sort((a, b) => a.occurrenceDate.localeCompare(b.occurrenceDate) || a.event.name.localeCompare(b.event.name));
+    if (major.length === 0) {
+      lines.push("", `No big events are flagged in the next ${bigWeeks} weeks.`);
+    }
+    for (const occ of major) {
+      const name = cleanText(occ.event.name, NAME_MAX) || "this event";
+      const when = whenLabel(differenceInCalendarDays(parseDateStr(occ.occurrenceDate), todayDate));
+      lines.push("", `★ ${name} — ${dayLabel(occ.occurrenceDate)} ${format(parseDateStr(occ.occurrenceDate), "yyyy")} (${when})`);
+      lines.push(`Is everything in place for ${name} (${when})? Reply here with what's still needed.`);
+      // A checklist belongs to the event row, so for a repeating series it
+      // would be counted against every occurrence; only one-off events show it.
+      const count = occ.event.recurring === "None" && (config?.include_checklist_counts ?? true) ? checklistCounts?.get(occ.event.id) : undefined;
+      if (count && count.total > 0) {
+        lines.push(
+          count.open > 0
+            ? `${count.open} of ${count.total} checklist items still open`
+            : `All ${count.total} checklist items are done`
+        );
+      }
     }
   }
 
   const link = typeof appUrl === "string" && /^https?:\/\/\S+$/.test(appUrl) ? appUrl : "";
   if (link) lines.push("", `Open the calendar: ${link}`);
+  const outro = config?.outro ? cleanMultiline(config.outro) : "";
+  if (outro) lines.push("", ...outro.split("\n"));
 
   return chunkLines(lines);
 }

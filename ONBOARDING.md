@@ -165,13 +165,35 @@ filters to it. Nothing saves until Apply; a big import is saved in batches of
 `lib/excelImport/` (reader, classifier, diff, `selection.ts`, `applyClient.ts`),
 save action `lib/excelImportActions.ts`, preview `components/ExcelImportPreview.tsx`.
 
-### Automatic Sunday Telegram message (Editor setup)
-Every Sunday at 7:30pm Singapore time a bot posts to ONE Telegram group (never
-private messages): the rest of this month's events and gatherings, plus a
-**Planning check** that asks the team whether everything is in place for any
-event marked **Big event** (tick it in the event's More details) up to 8 weeks
-ahead, including the count of open event-checklist items. It always sends, even
-when little is scheduled. Run migration 028 first (the Big event tick needs it).
+### Telegram group digests (Editor setup)
+A bot posts to ONE Telegram group (never private messages). Out of the box it
+sends the default **Sunday digest** at 7:30pm Singapore time: the rest of this
+month's events and gatherings, plus a **Planning check** that asks the team
+whether everything is in place for any event marked **Big event** (tick it in
+the event's More details) up to 8 weeks ahead, including the count of open
+event-checklist items. It always sends, even when little is scheduled. Run
+migration 028 first (the Big event tick needs it).
+
+From migration 029 on, digests are managed on the **Reminders** page (Editors
+only), under "Telegram group digests". Each digest has: a name, the weekdays to
+send on, what it covers (rest of this month, this week up to Sunday, or the
+next N days counting today), whether to list Events and/or Gatherings, which
+categories (none picked = all), the big-events planning check and how many weeks
+ahead, open-checklist counts, an optional intro and closing line, and a live
+preview of the exact message. "Create from the default" copies the Sunday digest
+into an editable one. To change a single message, use "Edit the message for the
+next send": it is used once, then the digest goes back to automatic. "Skip the
+next send" holds one back, and "Send now" posts a digest immediately (and counts
+as today's send). Until the first digest is created (or if migration 029 has not
+been run), the default Sunday message keeps being sent on Sundays only; once at
+least one digest exists, only your digests are sent. Holidays are listed in every
+digest regardless of the category picks.
+
+The schedule runs the job once a day (`30 11 * * *` in `vercel.json`, 11:30 UTC =
+7:30pm Singapore) and the app decides which digests are due, sending each at
+most once a day. Vercel's free (Hobby) plan only guarantees the time within the
+hour, so a message may arrive between 7:00 and 7:59pm; an exact 7:30pm needs the
+Pro plan. Digests can only go out on whole days, not at a custom time.
 
 Setup (once):
 1. In Telegram, message **@BotFather**, send `/newbot`, follow the prompts, and
@@ -186,15 +208,16 @@ Setup (once):
    `TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHAT_ID`, `CRON_SECRET` (a random string of at least 32 characters, e.g. `openssl rand -base64 32`; Vercel sends it to the schedule
    automatically) and `TELEGRAM_DIGEST_ENABLED` = `true`. Optional: `APP_URL`
    (the calendar's address, added as a link at the end of the message).
-5. Redeploy. On the Reminders page, "Preview the message" shows the text without
-   sending, and "Send digest to the group now (test)" posts it once.
+5. Redeploy. On the Reminders page, each digest's preview shows the text without
+   sending, and "Send now" posts it once (before any digest exists, "Preview the
+   default message" and "Send the default now (test)" do the same for the default).
 
 To turn it off: set `TELEGRAM_DIGEST_ENABLED` to anything other than `true` (or
-delete it) and redeploy. The schedule lives in `vercel.json` (`30 11 * * 0` is
-Sunday 11:30 UTC = 7:30pm Singapore). On Vercel's free (Hobby) plan the time is
-only guaranteed within the hour, so it may arrive between 7:00 and 7:59pm;
-an exact 7:30pm needs the Pro plan. Code: `app/api/cron/telegram-digest/route.ts`,
-`lib/telegramDigest.ts` (the wording), `lib/telegramDigestActions.ts` (buttons).
+delete it) and redeploy; to pause one digest, switch it off on the Reminders
+page. Code: `app/api/cron/telegram-digest/route.ts` (which digests are due, the
+once-a-day claim), `lib/telegramDigest.ts` (the wording), `lib/telegramDigestConfig.ts`
+(settings rules), `lib/telegramDigestStore.ts` (the table), and
+`lib/telegramDigestConfigActions.ts` / `lib/telegramDigestActions.ts` (page buttons).
 
 ## Key design decisions worth knowing before changing things
 - **Time wraps within a day; multi-day is a separate feature.** An event

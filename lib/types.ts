@@ -405,3 +405,28 @@ export interface ActivityItem {
   summary: string;
   href: string | null;
 }
+
+// Configurable Telegram group digest (migration 029). See lib/telegramDigestConfig.ts.
+export type DigestRangeMode = "rest_of_month" | "this_week" | "next_days";
+
+export interface TelegramDigestRow {
+  id: string;
+  name: string;
+  enabled: boolean;
+  days_of_week: number[]; // 0 = Sunday ... 6 = Saturday (Singapore weekday)
+  range_mode: DigestRangeMode;
+  range_days: number;
+  include_events: boolean;
+  include_gatherings: boolean;
+  levels: string[]; // empty = every category
+  include_big_events: boolean;
+  big_lookahead_weeks: number;
+  include_checklist_counts: boolean;
+  intro: string | null;
+  outro: string | null;
+  override_text: string | null; // one-off edited message for the next send
+  skip_next: boolean;
+  last_sent_on: string | null; // yyyy-MM-dd
+  created_at: string;
+  updated_at: string;
+}

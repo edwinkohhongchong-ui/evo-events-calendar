@@ -44,12 +44,13 @@ it immediately after confirming a migration has been run.
 | 026 | supabase_migration_026_custom_colors.sql | Custom hex colours for Categories and Seasons (widens levels_color_key_check / seasons_color_check; idempotent, no data changes) | Yes (run by Edwin, 2 Oct 2026; custom hex colours can now be saved) |
 | 027 | supabase_migration_027_note_details.sql | Optional details (remarks) on calendar day notes and holidays: day_notes.details + holidays.details text, each with a 2000-char check (idempotent, no data changes) | Yes (run by Edwin, 6 Oct 2026; details can now be saved) |
 | 028 | supabase_migration_028_major_events.sql | Big event flag on events: events.is_major boolean not null default false, drives the Sunday Telegram planning check (idempotent, no data changes) | Not yet confirmed. |
+| 029 | supabase_migration_029_telegram_digests.sql | Configurable Telegram group digests: new table telegram_digests (days, range, filters, intro/closing, one-off edited message, skip next, last sent), managed on the Reminders page; no rows seeded, the built-in Sunday message stays active until a digest is created (idempotent, no data changes) | Not yet confirmed. |
 
 Note: numbering starts at 002 — there is no `supabase_migration_001_*.sql` file
 in this repo (the initial schema lives in `supabase_schema.sql`).
 
 
-Next available migration number: **029**. (Indexes on event_overrides and event_exceptions were considered and skipped: their unique (event_id, original_date) constraints already index those lookups.)
+Next available migration number: **030**. (Indexes on event_overrides and event_exceptions were considered and skipped: their unique (event_id, original_date) constraints already index those lookups.)
 
 Run `npm run check:schema` (read-only; uses `.env.local`) to see which tables/columns above actually exist in the live database.
 

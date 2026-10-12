@@ -1,9 +1,9 @@
-import { addDays, endOfMonth, addMonths } from "date-fns";
 import { supabase } from "./supabase";
-import { parseDateStr, sgDateStr, toDateStr } from "./dates";
+import { parseDateStr, sgDateStr } from "./dates";
 import { expandEvents } from "./recurrence";
 import { applyOverrides } from "./overrides";
-import { LOOKAHEAD_WEEKS, buildDigest, type ChecklistCount } from "./telegramDigest";
+import { buildDigest, requiredLoadEnd, type ChecklistCount } from "./telegramDigest";
+import type { DigestConfig } from "./telegramDigestConfig";
 import type { EventRow, ExceptionRow, HolidayRow, OverrideRow } from "./types";
 
 // Loads what the Sunday Telegram message needs and builds it. Not a "use
@@ -36,13 +36,16 @@ async function optionalRows<T>(table: string, columns?: string): Promise<T[]> {
   }
 }
 
-/** Builds the message(s) for `now` (Singapore day). Throws if the core calendar data can't be read. */
-export async function buildDigestMessages(now: Date = new Date(), appUrl?: string): Promise<string[]> {
+/**
+ * Builds the message(s) for `now` (Singapore day), for a configured digest or
+ * (no config) the built-in Sunday one. Throws if the core calendar data can't
+ * be read. An edited message needs no calendar data, so none is read for it.
+ */
+export async function buildDigestMessages(now: Date = new Date(), appUrl?: string, config?: DigestConfig): Promise<string[]> {
   const today = sgDateStr(now);
+  if (config?.override_text) return buildDigest({ today, events: [], config });
   const todayDate = parseDateStr(today);
-  const rangeEnd = toDateStr(
-    new Date(Math.max(endOfMonth(addMonths(todayDate, 1)).getTime(), addDays(todayDate, LOOKAHEAD_WEEKS * 7).getTime()))
-  );
+  const rangeEnd = requiredLoadEnd(today, [config]);
 
   const [events, overrides, exceptions, holidays, items] = await Promise.all([
     readAll<EventRow>("events"),
@@ -69,5 +72,5 @@ export async function buildDigestMessages(now: Date = new Date(), appUrl?: strin
     checklistCounts.set(it.event_id, c);
   }
 
-  return buildDigest({ today, events: occurrences, holidays, checklistCounts, appUrl });
+  return buildDigest({ today, events: occurrences, holidays, checklistCounts, appUrl, config });
 }

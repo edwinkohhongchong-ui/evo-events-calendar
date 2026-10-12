@@ -42,6 +42,7 @@ const TABLES = [
   ["season_source_dates", "021"],
   ["activity_log", "023"],
   ["event_checklist_items", "024"],
+  ["telegram_digests", "029"],
 ];
 
 // [table, column, migration that adds it]

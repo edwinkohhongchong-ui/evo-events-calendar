@@ -19,6 +19,7 @@ export const BACKUP_TABLES = [
   "month_focus",
   "general_notes",
   "activity_log",
+  "telegram_digests",
 ] as const;
 
 // Deterministic sort keys for paging. `.range()` without an ORDER BY can skip or

@@ -56,6 +56,10 @@ const POLICY: Record<string, Record<string, Role>> = {
   "lib/seasonActions.ts": { createSeason: "editor", updateSeason: "editor", deleteSeason: "editor" },
   "lib/seasonSourceDateActions.ts": { saveSeasonSourceDates: "editor" },
   "lib/telegramDigestActions.ts": { previewTelegramDigest: "editor", sendTelegramDigestTest: "editor" },
+  "lib/telegramDigestConfigActions.ts": {
+    listTelegramDigests: "editor", saveTelegramDigest: "editor", deleteTelegramDigest: "editor",
+    previewTelegramDigestFor: "editor", generateOverrideText: "editor", sendTelegramDigestNow: "editor",
+  },
   "lib/undo/restore.ts": { restoreSnapshot: "editor" },
 };
 
