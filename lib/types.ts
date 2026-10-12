@@ -47,6 +47,8 @@ export interface EventRow {
   theme: string | null;
   // Free-text person name (migration 025). Absent until that migration is applied.
   owner?: string | null;
+  // Big-event flag (migration 028). Absent until that migration is applied.
+  is_major?: boolean;
 }
 
 export type HolidayType =

@@ -7,7 +7,11 @@ import { SESSION_COOKIE_NAME, verifySessionToken } from "@/lib/session";
 // of anything in this app. See PROJECT decision: acceptable for v1. The
 // Viewer role's Add/Delete restriction is enforced the same way (hidden in
 // the UI, not via RLS) — see lib/roleContext.tsx call sites.
-const PUBLIC_PREFIXES = ["/login", "/api/login", "/api/logout", "/api/calendar-feed"];
+//
+// /api/cron/telegram-digest is called by Vercel Cron, which has no cookie. It is
+// public here ONLY because the route checks `Authorization: Bearer $CRON_SECRET`
+// itself before doing anything (viewerPolicy.test.ts enforces that).
+const PUBLIC_PREFIXES = ["/login", "/api/login", "/api/logout", "/api/calendar-feed", "/api/cron/telegram-digest"];
 
 export async function middleware(request: NextRequest) {
   // Public routes skip auth, but still never trust a client-supplied role

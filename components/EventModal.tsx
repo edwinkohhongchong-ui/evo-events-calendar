@@ -226,6 +226,7 @@ function EventModalInner({
   const [zonePickedWithoutLevel, setZonePickedWithoutLevel] = useState(false);
   const [location, setLocation] = useState(event?.location ?? "");
   const [owner, setOwner] = useState(event?.owner ?? "");
+  const [isMajor, setIsMajor] = useState(event?.is_major === true);
   const ownerOptions = useOwnerOptions(isEditor);
   const [recurring, setRecurring] = useState<Recurring>(event?.recurring ?? "None");
   const [repeatUntil, setRepeatUntil] = useState(event?.repeat_until ?? "");
@@ -248,6 +249,7 @@ function EventModalInner({
             event.duration_minutes != null ||
             event.location ||
             event.owner ||
+            event.is_major ||
             event.notes ||
             event.recurring !== "None")) ||
         (occurrence && (occurrence.spanEndDate !== occurrence.occurrenceDate || occurrence.endTime))
@@ -450,6 +452,7 @@ function EventModalInner({
       level,
       location: location.trim() || null,
       owner: normalizeOwner(owner) || null,
+      is_major: isMajor,
       recurring,
       repeat_until: recurring === "None" ? null : repeatUntil || null,
       notes: notes.trim() || null,
@@ -678,6 +681,7 @@ function EventModalInner({
             {level && (
               <Pill icon={<CategoryDot levelName={level} />}>{level}</Pill>
             )}
+            {isMajor && <Pill variant="gold">★ Big event</Pill>}
           </div>
           <div className="break-words text-title text-ink">{name}</div>
           <div className="flex min-w-0 flex-col gap-1.5 break-words text-ui text-ink">
@@ -1174,6 +1178,16 @@ function EventModalInner({
                     </label>
                   </div>
                 )}
+
+                <label className="flex flex-col gap-0.5">
+                  <span className="flex items-center gap-2 text-body text-ink">
+                    <input type="checkbox" checked={isMajor} onChange={(e) => setIsMajor(e.target.checked)} />
+                    Big event — ask the team ahead
+                  </span>
+                  <span className="text-micro text-ink-2">
+                    Shows in the Sunday Telegram message as a planning check up to 8 weeks before.
+                  </span>
+                </label>
 
                 <label className="flex flex-col gap-1">
                   <span className={`${LABEL} flex items-center gap-1`}>

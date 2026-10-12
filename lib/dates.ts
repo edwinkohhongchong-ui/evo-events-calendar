@@ -62,8 +62,13 @@ const SG_DATE_FORMAT = new Intl.DateTimeFormat("en-CA", {
   day: "2-digit",
 });
 
+// The Singapore calendar day (yyyy-MM-dd) of any instant.
+export function sgDateStr(instant: Date): string {
+  return SG_DATE_FORMAT.format(instant);
+}
+
 export function todayStr(): string {
-  return SG_DATE_FORMAT.format(new Date());
+  return sgDateStr(new Date());
 }
 
 // Local-midnight Date for the Singapore day (same convention as parseDateStr).

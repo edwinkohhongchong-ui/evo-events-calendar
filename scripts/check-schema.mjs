@@ -51,6 +51,7 @@ const COLUMNS = [
   ["events", "location", "019"],
   ["events", "updated_at", "020"],
   ["events", "owner", "025"],
+  ["events", "is_major", "028"],
   ["seasons", "color", "004"],
   ["checklist", "auto_check_type", "022"],
   ["event_checklist_items", "owner", "025"],

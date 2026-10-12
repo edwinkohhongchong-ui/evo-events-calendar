@@ -30,7 +30,7 @@ const event: Required<EventFormValues> = {
   duration_minutes: 60, level: "Youth", location: "Hall", recurring: "Weekly", repeat_until: "2026-06-01",
   notes: "x", event_type: "Gathering", pastoral_youth: true, pastoral_poly: false, pastoral_uni: true,
   pastoral_adults: false, gathering_type: "Gathering", series: "s", preacher_name: "p", sermon_title: "t",
-  theme: "th", owner: "Sam",
+  theme: "th", owner: "Sam", is_major: true,
 };
 const level: Required<LevelFormValues> = { name: "n", color_key: "#aabbcc", sort_order: 3 };
 const season: Required<SeasonFormValues> = {

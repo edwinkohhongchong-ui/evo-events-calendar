@@ -165,6 +165,37 @@ filters to it. Nothing saves until Apply; a big import is saved in batches of
 `lib/excelImport/` (reader, classifier, diff, `selection.ts`, `applyClient.ts`),
 save action `lib/excelImportActions.ts`, preview `components/ExcelImportPreview.tsx`.
 
+### Automatic Sunday Telegram message (Editor setup)
+Every Sunday at 7:30pm Singapore time a bot posts to ONE Telegram group (never
+private messages): the rest of this month's events and gatherings, plus a
+**Planning check** that asks the team whether everything is in place for any
+event marked **Big event** (tick it in the event's More details) up to 8 weeks
+ahead, including the count of open event-checklist items. It always sends, even
+when little is scheduled. Run migration 028 first (the Big event tick needs it).
+
+Setup (once):
+1. In Telegram, message **@BotFather**, send `/newbot`, follow the prompts, and
+   keep the bot token it gives you (treat it like a password).
+2. Add the new bot to the group as a member.
+3. Get the group's chat id: send any message in the group, then open
+   `https://api.telegram.org/bot<TOKEN>/getUpdates` in a browser (put your real
+   token in) and read `"chat":{"id":-100...}`. Or add **@RawDataBot** to the
+   group briefly and read the id it posts, then remove it. Group ids are
+   negative numbers; include the minus sign.
+4. In Vercel, Project > Settings > Environment Variables, add:
+   `TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHAT_ID`, `CRON_SECRET` (a random string of at least 32 characters, e.g. `openssl rand -base64 32`; Vercel sends it to the schedule
+   automatically) and `TELEGRAM_DIGEST_ENABLED` = `true`. Optional: `APP_URL`
+   (the calendar's address, added as a link at the end of the message).
+5. Redeploy. On the Reminders page, "Preview the message" shows the text without
+   sending, and "Send digest to the group now (test)" posts it once.
+
+To turn it off: set `TELEGRAM_DIGEST_ENABLED` to anything other than `true` (or
+delete it) and redeploy. The schedule lives in `vercel.json` (`30 11 * * 0` is
+Sunday 11:30 UTC = 7:30pm Singapore). On Vercel's free (Hobby) plan the time is
+only guaranteed within the hour, so it may arrive between 7:00 and 7:59pm;
+an exact 7:30pm needs the Pro plan. Code: `app/api/cron/telegram-digest/route.ts`,
+`lib/telegramDigest.ts` (the wording), `lib/telegramDigestActions.ts` (buttons).
+
 ## Key design decisions worth knowing before changing things
 - **Time wraps within a day; multi-day is a separate feature.** An event
   whose time ends "after midnight" just wraps within the 24-hour clock display.

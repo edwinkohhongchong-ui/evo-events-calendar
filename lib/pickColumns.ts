@@ -39,6 +39,7 @@ export const EVENT_COLUMNS: Allow<EventFormValues> = {
   sermon_title: true,
   theme: true,
   owner: true, // validated afterwards by withOwner (lib/owner.ts)
+  is_major: true, // only sent when true / when clearing (withMajor, lib/majorEvent.ts)
 };
 
 export const LEVEL_COLUMNS: Allow<LevelFormValues> = { name: true, color_key: true, sort_order: true };

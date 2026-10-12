@@ -8,6 +8,11 @@ items (features/fixes) that push contains — a push with 1 item goes up by
 `1.05`). If MINOR would pass `.99`, MAJOR increments and MINOR carries the
 remainder (e.g. `1.99` + 2 items → `2.01`).
 
+## v2.127 — 2026-10-12
+
+- Automatic Sunday Telegram message to the team group (7:30pm Singapore, set in vercel.json; on Vercel's free plan it may arrive 7:00–7:59pm): this month's remaining events and gatherings grouped by week, plus a "Planning check" asking whether everything is in place for each big event in the next 8 weeks, with open checklist counts. Runs only with a secret (CRON_SECRET, 32+ characters) and the TELEGRAM_* settings, and can be switched off with TELEGRAM_DIGEST_ENABLED. Reminders page (Editors) gets "Preview the message" and "Send digest to the group now (test)". Always sends, even when little is scheduled. Setup steps are in ONBOARDING.md.
+- New "Big event — ask the team ahead" tick on events (gold ★ on cards and in Event Details; copied by Duplicate; a yearly series is ticked once). Needs migration 028; events save as before until it is run.
+
 ## v2.125 — 2026-10-06
 
 - Cleaner note editor: editing a calendar note now shows only that note (text, details, Remove note, Cancel, Save) without the "Add another note" boxes; adding is done from "+ Add note" on the calendar. The card heading now says "Edit note", "New note" or "Note" with a readable date (e.g. 18 Oct 2026).

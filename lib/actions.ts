@@ -14,6 +14,7 @@ import { runAction } from "./actionResult";
 import { EVENT_CONFLICT_MESSAGE } from "./eventConflict";
 import { insertEventRow, updateEventRow } from "./rowWrites";
 import { pickEventColumns } from "./pickColumns";
+import { MAJOR_MIGRATION_HINT, isMissingMajorColumn, withMajor } from "./majorEvent";
 import { OWNER_MIGRATION_HINT, isMissingOwnerColumn, withOwner } from "./owner";
 
 // Optimistic-lock helpers shared by the event writes below. Every
@@ -270,6 +271,9 @@ export interface EventFormValues {
   // Optional free-text name. Only sent to the database when non-empty (see
   // withOwner), so saving works before migration 025 adds the column.
   owner?: string | null;
+  // Big event (migration 028). Only sent to the database when true, or when an
+  // edit changes it from true (see withMajor), so saving works before 028.
+  is_major?: boolean;
 }
 
 async function createEventImpl(values: EventFormValues): Promise<AffectedRow[]> {
@@ -378,7 +382,7 @@ async function detachOccurrenceImpl(
   // The series row isn't modified here (only an exception is added), so the
   // lock is a check-then-write rather than an atomic guard.
   await assertEventUnchanged(event.id, expectedUpdatedAt);
-  const row = withOwner(pickEventColumns(values));
+  const row = withMajor(withOwner(pickEventColumns(values)));
   const { data: inserted, error: insertError } = await supabase
     .from("events")
     .insert({ ...row, recurring: "None", repeat_until: null })
@@ -387,6 +391,7 @@ async function detachOccurrenceImpl(
   if (insertError) {
     console.error(insertError);
     if ("owner" in row && isMissingOwnerColumn(insertError)) throw new Error(OWNER_MIGRATION_HINT);
+    if ("is_major" in row && isMissingMajorColumn(insertError)) throw new Error(MAJOR_MIGRATION_HINT);
     throw new Error("Something went wrong saving this event. Check your connection and try again. Your details are still in the form.");
   }
   const affected: AffectedRow[] = [{ table: "events", id: inserted.id, before: null, after: inserted }];
@@ -471,7 +476,7 @@ async function splitSeriesFromOccurrenceImpl(
   // overrides/exceptions; if any later step fails, rollbackSplit puts back
   // whatever was already applied (best effort), so the worst case is "no
   // change" rather than a truncated series with nothing replacing it.
-  const row = withOwner(pickEventColumns(values));
+  const row = withMajor(withOwner(pickEventColumns(values)));
   const { data: inserted, error: insertError } = await supabase
     .from("events")
     .insert(row)
@@ -480,6 +485,7 @@ async function splitSeriesFromOccurrenceImpl(
   if (insertError) {
     console.error(insertError);
     if ("owner" in row && isMissingOwnerColumn(insertError)) throw new Error(OWNER_MIGRATION_HINT);
+    if ("is_major" in row && isMissingMajorColumn(insertError)) throw new Error(MAJOR_MIGRATION_HINT);
     throw new Error("Something went wrong saving this event series. Check your connection and try again. Your details are still in the form.");
   }
   const newEventId = inserted.id as string;

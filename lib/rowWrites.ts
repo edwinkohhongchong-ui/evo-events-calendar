@@ -6,6 +6,7 @@ import { fetchRow } from "./undo/capture";
 import { pickChecklistColumns, pickEventColumns, pickHolidayColumns } from "./pickColumns";
 import { EVENT_CONFLICT_MESSAGE } from "./eventConflict";
 import { OWNER_MIGRATION_HINT, isMissingOwnerColumn, withOwner } from "./owner";
+import { MAJOR_MIGRATION_HINT, isMissingMajorColumn, withMajor } from "./majorEvent";
 import { RowConflictError } from "./rowConflict";
 import { CUSTOM_COLOR_MIGRATION_MESSAGE, isHexColor } from "./colorStyle";
 import { DAY_NOTE_DETAILS_MIGRATION_HINT, isMissingDetailsColumn } from "./dayNoteDetails";
@@ -94,11 +95,12 @@ const EVENT_SAVE_ERROR = "Something went wrong saving this event. Check your con
 const EVENT_CATEGORY_GONE = "That event type's category doesn't exist any more. Add it under Categories, then try again.";
 
 export async function insertEventRow(values: EventFormValues): Promise<{ id: string; affected: AffectedRow[] }> {
-  const row = withOwner(pickEventColumns(values));
+  const row = withMajor(withOwner(pickEventColumns(values)));
   const { data, error } = await supabase.from("events").insert(row).select().single();
   if (error) {
     console.error(error);
     if ("owner" in row && isMissingOwnerColumn(error)) throw new Error(OWNER_MIGRATION_HINT);
+    if ("is_major" in row && isMissingMajorColumn(error)) throw new Error(MAJOR_MIGRATION_HINT);
     if (error.code === "23503") throw new Error(EVENT_CATEGORY_GONE);
     throw new Error(EVENT_SAVE_ERROR);
   }
@@ -120,13 +122,17 @@ export async function updateEventRow(
   const before = await fetchRow("events", id);
   // `before` has an owner key only once migration 025 exists, which is also
   // the only time sending owner: null (to clear it) is safe.
-  const row = withOwner(pickEventColumns(values), !opts.preserveOwner && !!before && "owner" in before);
+  const row = withMajor(
+    withOwner(pickEventColumns(values), !opts.preserveOwner && !!before && "owner" in before),
+    !!before && "is_major" in before
+  );
   let query = supabase.from("events").update(row).eq("id", id);
   if (expectedUpdatedAt) query = query.eq("updated_at", expectedUpdatedAt);
   const { data, error } = await query.select();
   if (error) {
     console.error(error);
     if ("owner" in row && isMissingOwnerColumn(error)) throw new Error(OWNER_MIGRATION_HINT);
+    if ("is_major" in row && isMissingMajorColumn(error)) throw new Error(MAJOR_MIGRATION_HINT);
     if (error.code === "23503") throw new Error(EVENT_CATEGORY_GONE);
     throw new Error(EVENT_SAVE_ERROR);
   }

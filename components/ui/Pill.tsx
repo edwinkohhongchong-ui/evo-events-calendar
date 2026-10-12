@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 
-export type PillVariant = "neutral" | "ok" | "warn" | "danger" | "navy";
+export type PillVariant = "neutral" | "ok" | "warn" | "danger" | "navy" | "gold";
 
 const VARIANT: Record<PillVariant, string> = {
   neutral: "bg-fill text-ink-2",
@@ -8,6 +8,7 @@ const VARIANT: Record<PillVariant, string> = {
   warn: "bg-warn/10 text-warn",
   danger: "bg-danger/10 text-danger",
   navy: "bg-navy-50 text-navy",
+  gold: "bg-gold-50 text-gold-600",
 };
 
 export default function Pill({

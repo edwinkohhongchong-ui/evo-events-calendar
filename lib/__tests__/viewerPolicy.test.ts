@@ -55,6 +55,7 @@ const POLICY: Record<string, Record<string, Role>> = {
   "lib/scheduleImportActions.ts": { applyScheduleImport: "editor" },
   "lib/seasonActions.ts": { createSeason: "editor", updateSeason: "editor", deleteSeason: "editor" },
   "lib/seasonSourceDateActions.ts": { saveSeasonSourceDates: "editor" },
+  "lib/telegramDigestActions.ts": { previewTelegramDigest: "editor", sendTelegramDigestTest: "editor" },
   "lib/undo/restore.ts": { restoreSnapshot: "editor" },
 };
 
@@ -136,6 +137,7 @@ type RouteKind =
   | { kind: "viewer-read"; methods: string[] } // requireRoleRoute("viewer") first; read-only export, must not write
   | { kind: "session"; methods: string[] } // verifySessionToken gate before any data access (any role)
   | { kind: "token"; methods: string[] } // secret-URL token compared before any data access
+  | { kind: "bearer"; methods: string[] } // `Authorization: Bearer $CRON_SECRET` compared (constant time) before any work; public in middleware because it has no session cookie
   | { kind: "public-login"; methods: string[] } // issues sessions; public in middleware
   | { kind: "public-logout"; methods: string[] }; // clears the session cookie only; public in middleware so it works for any role/expired session
 
@@ -149,6 +151,7 @@ const ROUTES: Record<string, RouteKind> = {
   "app/api/reminders/events/route.ts": { kind: "editor", methods: ["GET"] },
   "app/api/activity/route.ts": { kind: "session", methods: ["GET"] },
   "app/api/calendar-feed/[token]/route.ts": { kind: "token", methods: ["GET"] },
+  "app/api/cron/telegram-digest/route.ts": { kind: "bearer", methods: ["GET"] },
   "app/api/login/route.ts": { kind: "public-login", methods: ["POST"] },
   "app/api/logout/route.ts": { kind: "public-logout", methods: ["POST"] },
 };
@@ -227,6 +230,29 @@ describe("api routes are fully covered", () => {
           });
         }
 
+        if (spec.kind === "bearer") {
+          it(`${method}: fails closed on a missing secret or wrong bearer before any work`, () => {
+            const b = body()!;
+            const gate = b.indexOf("safeEqual(");
+            expect(gate).toBeGreaterThanOrEqual(0);
+            expect(b).toMatch(/if \(!secret \|\| secret\.length < \w+ \|\| !safeEqual\([^;]*\)\)\s*\{\s*return [^;]*status: 401/);
+            expect(b).toContain("Bearer ${secret}");
+            // Nothing that reads data, calls Telegram or even checks other env comes first.
+            const work = b.search(/buildDigestMessages\(|sendTelegramMessages\(|readTelegramEnv\(|TELEGRAM_DIGEST_ENABLED|\bsupabase\b|\bfetch\s*\(|\.from\s*\(/);
+            expect(work).toBeGreaterThan(gate);
+          });
+
+          it("is read-only for the calendar: no insert/update/upsert/delete", () => {
+            expect(code).not.toMatch(/\.(insert|update|upsert|delete)\s*\(/);
+          });
+
+          it("is public in middleware (no cookie) but never reachable by path policy for a Viewer", () => {
+            const path = "/" + file.replace(/^app\//, "").replace(/\/route\.ts$/, "");
+            expect(read("middleware.ts")).toContain(`"${path}"`);
+            expect(isPathAllowedForRole(path, "viewer"), path).toBe(false);
+          });
+        }
+
         if (spec.kind === "public-login") {
           it(`${method}: issues sessions only after the safeEqual passcode check`, () => {
             const b = body()!;
@@ -252,7 +278,7 @@ describe("api routes are fully covered", () => {
     for (const p of ["/", "/day/2026-10-01", "/api/activity", "/export", "/export/calendar", "/export/print", "/api/export/ics", "/api/export/document"]) {
       expect(isPathAllowedForRole(p, "viewer"), p).toBe(true);
     }
-    for (const p of ["/checklist", "/holidays", "/seasons", "/levels", "/reminders", "/exportx", "/admin", "/api/admin/backup", "/api/holidays/fetch-year", "/api/reminders/events", "/seasons/import", "/api/schedules/parse", "/api/excel/parse"]) {
+    for (const p of ["/checklist", "/holidays", "/seasons", "/levels", "/reminders", "/exportx", "/admin", "/api/admin/backup", "/api/holidays/fetch-year", "/api/reminders/events", "/api/cron/telegram-digest", "/seasons/import", "/api/schedules/parse", "/api/excel/parse"]) {
       expect(isPathAllowedForRole(p, "viewer")).toBe(false);
     }
   });
@@ -338,6 +364,14 @@ describe("policy checkers detect violations", () => {
     expect(exportedHttpMethods("export const POST = async () => {}")).toEqual(["POST"]);
     expect(exportedHttpMethods("export { handler as DELETE }")).toEqual(["DELETE"]);
     expect(exportedHttpMethods("export const dynamic = 'force-dynamic'")).toEqual([]);
+  });
+
+  it("the bearer-route check would catch work placed before the secret check", () => {
+    const gateFirst = `const secret = x; if (!secret || !safeEqual(a, b)) { return NextResponse.json({}, { status: 401 }); } await buildDigestMessages();`;
+    const workFirst = `await buildDigestMessages(); const secret = x; if (!secret || !safeEqual(a, b)) { return NextResponse.json({}, { status: 401 }); }`;
+    const re = /buildDigestMessages\(/;
+    expect(gateFirst.indexOf("safeEqual(")).toBeLessThan(gateFirst.search(re));
+    expect(workFirst.indexOf("safeEqual(")).toBeGreaterThan(workFirst.search(re));
   });
 
   it("the DATA_ACCESS ordering check would catch a db call placed before the role gate", () => {

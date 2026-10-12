@@ -2,6 +2,7 @@ import { headers } from "next/headers";
 import { getAllChecklistTemplates, getAllReminderTemplates, getOpenChecklistRows } from "@/lib/data";
 import RemindersForm from "@/components/RemindersForm";
 import ChecklistTemplatesSection from "@/components/ChecklistTemplatesSection";
+import TelegramDigestPanel from "@/components/TelegramDigestPanel";
 import InstructionsPanel from "@/components/InstructionsPanel";
 
 export const dynamic = "force-dynamic";
@@ -12,6 +13,7 @@ const INSTRUCTIONS = [
   "Under \"Checklist Templates,\" click \"Add Checklist Template\" to write a reusable list. You can attach it to an event in the drafted message, or add it to an event from the event's details so it can be ticked off with due dates — it is separate from the monthly Checklist tab and never updates it.",
   "Edit the \"Message\" box directly any time; your own wording stays put until you click \"Reset to auto-generated.\"",
   "Click \"Add Template\" to save your current handle, intro, and lookahead range for reuse next time.",
+  "Separately, the bot can post to the group every Sunday evening by itself: this month's events, plus a planning check that asks the team about any event marked \"Big event\" up to 8 weeks ahead. Use \"Preview the message\" to see it, or \"Send digest to the group now (test)\" to post it once. Setup steps are in ONBOARDING.md.",
 ];
 
 export default async function RemindersPage() {
@@ -28,6 +30,7 @@ export default async function RemindersPage() {
     <main className="max-w-2xl mx-auto p-4 sm:p-6">
       <h1 className="text-xl font-semibold text-navy mb-4">Reminders</h1>
       <InstructionsPanel lines={INSTRUCTIONS} />
+      {isEditor && <TelegramDigestPanel />}
       {isEditor && <ChecklistTemplatesSection templates={checklistTemplates} />}
       <RemindersForm templates={templates} checklistTemplates={checklistTemplates} openChecklistRows={openChecklistRows} />
     </main>

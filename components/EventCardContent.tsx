@@ -8,6 +8,7 @@ import { progressOverdue } from "@/lib/eventChecklist";
 import { todayStr } from "@/lib/dates";
 import { useIsDimmed } from "@/lib/eventSearchContext";
 import { DetailsMarker } from "./ui/DetailsText";
+import BigEventMarker from "./ui/BigEventMarker";
 
 export default function EventCardContent({
   occurrence,
@@ -71,6 +72,7 @@ export default function EventCardContent({
           {nextDay && <span className="ml-1 text-micro font-normal text-ink-2">(next day)</span>}
           {occurrence.isOverridden && <span className="ml-1 text-micro font-normal text-ink-2">(moved)</span>}
         </span>
+        {event.is_major && <BigEventMarker className="print-hide" />}
         {event.notes && <DetailsMarker className="print-hide" />}
       </div>
       {subtitle && <div className="text-chip text-ink-2 truncate">{subtitle}</div>}
