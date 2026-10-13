@@ -8,6 +8,11 @@ items (features/fixes) that push contains — a push with 1 item goes up by
 `1.05`). If MINOR would pass `.99`, MAJOR increments and MINOR carries the
 remainder (e.g. `1.99` + 2 items → `2.01`).
 
+## v2.130 — 2026-10-13
+
+- The Reminders page is now split into two clean tabs, "Scheduled Digest" and "Reminders" (the chosen tab stays in the web address so reload and Back keep your place); each has its own short description and "How this works" help. Scheduled Digest holds your Telegram digests; Reminders holds the manual reminder draft, overdue items, saved templates and Checklist Templates.
+- Group digests now include each event's checklist (the one attached to the event): "Checklist 1/3 done", then up to 8 open items with owner and due date (overdue ones marked), "+N more open" beyond that, or a single "✓ done" line when everything is ticked. A repeating event shows its checklist once, on its first listing. It sits under the digest's existing checklist toggle, now labelled "Show each event's checklist"; the built-in default Sunday message is unchanged.
+
 ## v2.128 — 2026-10-12
 
 - Telegram group digests are now managed on the Reminders page instead of being fixed: create several digests, each with its own name, on/off switch, weekdays, coverage (rest of this month, this week, or the next N days), event types (events and/or gatherings), categories, big-event planning check (weeks ahead), open-checklist counts, intro and closing lines, a live preview of the exact message, an editable message for the next send only, "Skip the next send", and "Send now". Each digest sends at most once a day (recorded before sending, so a double trigger can't repeat it). The schedule now runs daily at about 7:30pm Singapore (Vercel free plan: within the hour); until you create a digest, the Sunday message from v2.127 keeps running unchanged. Needs migration 029.

@@ -245,14 +245,14 @@ export default function RemindersForm({ templates, checklistTemplates, openCheck
   return (
     <div className="flex flex-col gap-6">
       <Card padding="p-5" className="flex flex-col gap-4">
-        <h2 className="text-title text-ink">Draft a reminder</h2>
+        <h3 className="text-title text-ink">Draft a reminder</h3>
         <p className="-mt-2 text-body text-ink-2">
           This never sends anything by itself — it opens Telegram with the message pre-filled so
           you can review and hit send yourself. The target must be a public channel/group/bot
           username.
         </p>
 
-        <div className="grid grid-cols-2 gap-3 [&>*]:min-w-0">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 [&>*]:min-w-0">
           <label className="flex flex-col gap-1">
             <span className={LABEL}>Reminder template</span>
             <select
@@ -415,7 +415,7 @@ export default function RemindersForm({ templates, checklistTemplates, openCheck
       </Card>
 
       <Card padding="p-5" className="flex flex-col gap-3">
-        <h2 className="text-title text-ink">Overdue checklist items</h2>
+        <h3 className="text-title text-ink">Overdue checklist items</h3>
         <p className="-mt-1 text-body text-ink-2">
           Copies a plain-text list of open overdue items, grouped by event, to paste wherever you like. Nothing is sent.
         </p>
@@ -431,7 +431,7 @@ export default function RemindersForm({ templates, checklistTemplates, openCheck
 
       <div className="flex flex-col gap-2">
         <div className="flex items-center justify-between">
-          <h2 className="text-title text-ink">Saved reminder templates</h2>
+          <h3 className="text-title text-ink">Saved reminder templates</h3>
           <Button size="sm" icon={<PlusIcon className="!h-4 !w-4" />} onClick={() => setTemplateModal({ type: "add" })}>
             Add Template
           </Button>

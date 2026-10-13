@@ -129,28 +129,28 @@ export default function TelegramDigestPanel({ initial, levels }: Props) {
   }
 
   return (
-    <section className="mb-4 rounded-card bg-surface p-4">
+    <section className="rounded-card bg-surface p-5">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <h2 className="text-ui font-medium text-ink">Telegram group digests</h2>
+        <h3 className="text-ui font-semibold text-ink">Your digests</h3>
         {ready && (
-          <Button size="sm" onClick={() => { setError(null); setNotice(null); setEditing({}); }}>
+          <Button size="sm" className="coarse:min-h-[44px]" onClick={() => { setError(null); setNotice(null); setEditing({}); }}>
             Add digest
           </Button>
         )}
       </div>
       <p className="mt-1 text-body text-ink-2">
-        The bot posts these to the group by itself. Pick the days, what to list, and edit the wording whenever you need to. {FIXED_TIME_NOTE}
+        {FIXED_TIME_NOTE}
       </p>
 
       {list === null && <p className="mt-3 text-body text-danger">The digests could not be loaded. Please reload the page.</p>}
       {list && !list.ready && <p className="mt-3 rounded-ctl bg-fill px-3 py-2 text-body text-ink">{DIGEST_MIGRATION_HINT}</p>}
 
       {ready && rows.length > 0 && (
-        <ul className="mt-3 flex flex-col gap-2">
+        <ul className="mt-4 flex flex-col gap-3">
           {rows.map((row) => {
             const next = nextSendDate(row, today);
             return (
-              <li key={row.id} className="rounded-ctl border border-line p-3">
+              <li key={row.id} className="rounded-ctl border border-line p-4">
                 <div className="flex flex-wrap items-start justify-between gap-2">
                   <div className="min-w-0">
                     <div className="break-words text-ui font-medium text-ink">{row.name}</div>

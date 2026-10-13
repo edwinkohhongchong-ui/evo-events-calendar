@@ -300,7 +300,12 @@ export default function TelegramDigestEditor({ row, prefill, levels, onClose, on
             )}
             <label className={checkRow}>
               <input type="checkbox" checked={checklist} onChange={(e) => setChecklist(e.target.checked)} className="h-4 w-4" />
-              Show open checklist counts
+              <span>
+                Show each event&apos;s checklist (open items, owners, due dates)
+                <span className="block text-xs font-normal opacity-70">
+                  Lists the checklist added when the event was created. A repeating event shows it once.
+                </span>
+              </span>
             </label>
           </fieldset>
 

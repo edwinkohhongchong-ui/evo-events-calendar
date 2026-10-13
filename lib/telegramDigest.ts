@@ -1,5 +1,6 @@
 import { addDays, differenceInCalendarDays, endOfMonth, endOfWeek, format, startOfWeek } from "date-fns";
 import { formatEventTime, parseDateStr, toDateStr } from "./dates";
+import { dueDate } from "./eventChecklist";
 import type { DigestConfig } from "./telegramDigestConfig";
 import type { EventOccurrence, HolidayRow } from "./types";
 
@@ -16,6 +17,10 @@ export const MAX_MESSAGE_CHARS = 4000;
 
 const NAME_MAX = 80;
 const LEVEL_MAX = 30;
+const CHECKLIST_ITEM_MAX = 80;
+const CHECKLIST_OWNER_MAX = 30;
+/** Open checklist items listed per event before "+N more open". */
+export const CHECKLIST_OPEN_ITEMS_MAX = 8;
 const NEXT_MONTH_ITEMS = 5;
 // Next month's first items are only worth a section when this month is nearly over.
 const QUIET_MONTH_AT_MOST = 3;
@@ -23,6 +28,15 @@ const QUIET_MONTH_AT_MOST = 3;
 export interface ChecklistCount {
   total: number;
   open: number;
+}
+
+/** The few checklist fields a digest may show (item text, owner, done, due offset). */
+export interface DigestChecklistItem {
+  item: string;
+  owner?: string | null;
+  done: boolean;
+  weeks_before: number | null;
+  sort_order?: number | null;
 }
 
 export interface DigestInput {
@@ -33,6 +47,8 @@ export interface DigestInput {
   holidays?: HolidayRow[];
   /** Event id -> event-checklist progress. Only used for one-off events. */
   checklistCounts?: ReadonlyMap<string, ChecklistCount>;
+  /** Event id -> its checklist items. Used by configured digests that show checklists. */
+  checklistItems?: ReadonlyMap<string, DigestChecklistItem[]>;
   /** Optional link to the calendar, added as the last line. */
   appUrl?: string;
   /** A configured digest (migration 029). Omitted = the built-in Sunday message. */
@@ -106,6 +122,7 @@ interface Item {
   time: string | null;
   text: string;
   order: number;
+  occ?: EventOccurrence;
 }
 
 function eventItem(occ: EventOccurrence): Item {
@@ -119,7 +136,7 @@ function eventItem(occ: EventOccurrence): Item {
     level ? ` (${level})` : "",
     occ.spanEndDate > occ.occurrenceDate ? `, until ${dayLabel(occ.spanEndDate)}` : "",
   ];
-  return { date: occ.occurrenceDate, time: occ.startTime, text: parts.join(""), order: 1 };
+  return { date: occ.occurrenceDate, time: occ.startTime, text: parts.join(""), order: 1, occ };
 }
 
 function holidayItem(h: HolidayRow): Item {
@@ -129,7 +146,37 @@ function holidayItem(h: HolidayRow): Item {
 const byDateThenTime = (a: Item, b: Item) =>
   a.date.localeCompare(b.date) || a.order - b.order || (a.time ?? "").localeCompare(b.time ?? "") || a.text.localeCompare(b.text);
 
-function weekSections(items: Item[]): string[] {
+const sortedOpen = (items: DigestChecklistItem[]) =>
+  items
+    .filter((i) => !i.done)
+    // Earliest due first (a bigger weeks_before is due earlier); undated last.
+    .sort(
+      (a, b) =>
+        (a.weeks_before == null ? 1 : 0) - (b.weeks_before == null ? 1 : 0) ||
+        (b.weeks_before ?? 0) - (a.weeks_before ?? 0) ||
+        (a.sort_order ?? 0) - (b.sort_order ?? 0)
+    );
+
+/** Indented checklist lines for one event, or [] when it has none. */
+function checklistBlock(items: DigestChecklistItem[] | undefined, eventDate: string, today: string): string[] {
+  if (!items || items.length === 0) return [];
+  const total = items.length;
+  const open = sortedOpen(items);
+  if (open.length === 0) return [`  Checklist ✓ ${total}/${total} done`];
+  const lines = [`  Checklist ${total - open.length}/${total} done`];
+  for (const it of open.slice(0, CHECKLIST_OPEN_ITEMS_MAX)) {
+    const parts = [`  ☐ ${cleanText(it.item, CHECKLIST_ITEM_MAX) || "(untitled)"}`];
+    const owner = cleanText(it.owner, CHECKLIST_OWNER_MAX);
+    if (owner) parts.push(`owner ${owner}`);
+    const due = dueDate(eventDate, it.weeks_before);
+    if (due) parts.push(`due ${format(parseDateStr(due), "d MMM")}${due < today ? " (overdue)" : ""}`);
+    lines.push(parts.join(" — "));
+  }
+  if (open.length > CHECKLIST_OPEN_ITEMS_MAX) lines.push(`  +${open.length - CHECKLIST_OPEN_ITEMS_MAX} more open`);
+  return lines;
+}
+
+function weekSections(items: Item[], extra: (item: Item) => string[]): string[] {
   const lines: string[] = [];
   let currentWeek = "";
   for (const item of [...items].sort(byDateThenTime)) {
@@ -138,7 +185,7 @@ function weekSections(items: Item[]): string[] {
       currentWeek = week;
       lines.push("", `Week of ${format(parseDateStr(week), "EEE d MMM")}`);
     }
-    lines.push(`- ${dayLabel(item.date)}: ${item.text}`);
+    lines.push(`- ${dayLabel(item.date)}: ${item.text}`, ...extra(item));
   }
   return lines;
 }
@@ -164,7 +211,7 @@ export function chunkLines(lines: string[], max = MAX_MESSAGE_CHARS): string[] {
 const sameLevel = (a: string, b: string) => a.trim().toLowerCase() === b.trim().toLowerCase();
 
 export function buildDigest(input: DigestInput): string[] {
-  const { today, events: allEvents, holidays = [], checklistCounts, appUrl, config } = input;
+  const { today, events: allEvents, holidays = [], checklistCounts, checklistItems, appUrl, config } = input;
 
   // An edited message replaces everything generated; it is still cleaned and chunked.
   const edited = config?.override_text ? cleanMultiline(config.override_text) : "";
@@ -193,6 +240,20 @@ export function buildDigest(input: DigestInput): string[] {
   const eventItems = (from: string, to: string) =>
     events.filter((o) => o.occurrenceDate >= from && o.occurrenceDate <= to).map(eventItem);
 
+  // Checklists are shared per event row, so a repeating series shows its
+  // checklist once (on its first listed occurrence); due dates follow that date.
+  const showChecklists = !!config && config.include_checklist_counts && !!checklistItems;
+  const seriesShown = new Set<string>();
+  const checklistFor = (occ?: EventOccurrence): string[] => {
+    if (!showChecklists || !occ) return [];
+    const id = occ.event.id;
+    if (occ.event.recurring !== "None") {
+      if (seriesShown.has(id)) return [];
+      seriesShown.add(id);
+    }
+    return checklistBlock(checklistItems!.get(id), occ.occurrenceDate, today);
+  };
+
   const lines: string[] = [];
   const intro = config?.intro ? cleanMultiline(config.intro) : "";
   if (intro) lines.push(...intro.split("\n"), "");
@@ -214,7 +275,7 @@ export function buildDigest(input: DigestInput): string[] {
   if (inRange.length === 0) {
     lines.push("", emptyLine);
   } else {
-    lines.push(...weekSections(inRange));
+    lines.push(...weekSections(inRange, (i) => checklistFor(i.occ)));
   }
 
   if (mode === "rest_of_month") {
@@ -225,7 +286,7 @@ export function buildDigest(input: DigestInput): string[] {
         .slice(0, NEXT_MONTH_ITEMS);
       if (next.length > 0) {
         lines.push("", `COMING UP NEXT MONTH (${format(parseDateStr(nextMonthStart), "MMMM")})`);
-        for (const item of next) lines.push(`- ${dayLabel(item.date)}: ${item.text}`);
+        for (const item of next) lines.push(`- ${dayLabel(item.date)}: ${item.text}`, ...checklistFor(item.occ));
       }
     }
   }
@@ -243,6 +304,10 @@ export function buildDigest(input: DigestInput): string[] {
       const when = whenLabel(differenceInCalendarDays(parseDateStr(occ.occurrenceDate), todayDate));
       lines.push("", `★ ${name} — ${dayLabel(occ.occurrenceDate)} ${format(parseDateStr(occ.occurrenceDate), "yyyy")} (${when})`);
       lines.push(`Is everything in place for ${name} (${when})? Reply here with what's still needed.`);
+      if (showChecklists) {
+        lines.push(...checklistFor(occ));
+        continue;
+      }
       // A checklist belongs to the event row, so for a repeating series it
       // would be counted against every occurrence; only one-off events show it.
       const count = occ.event.recurring === "None" && (config?.include_checklist_counts ?? true) ? checklistCounts?.get(occ.event.id) : undefined;

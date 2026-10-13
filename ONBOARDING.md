@@ -179,7 +179,7 @@ only), under "Telegram group digests". Each digest has: a name, the weekdays to
 send on, what it covers (rest of this month, this week up to Sunday, or the
 next N days counting today), whether to list Events and/or Gatherings, which
 categories (none picked = all), the big-events planning check and how many weeks
-ahead, open-checklist counts, an optional intro and closing line, and a live
+ahead, whether to show each event's checklist (done count, up to 8 open items with owner and due date, "overdue" flagged; a repeating event shows it once), an optional intro and closing line, and a live
 preview of the exact message. "Create from the default" copies the Sunday digest
 into an editable one. To change a single message, use "Edit the message for the
 next send": it is used once, then the digest goes back to automatic. "Skip the

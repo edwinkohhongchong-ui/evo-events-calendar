@@ -188,3 +188,94 @@ describe("chunkLines", () => {
     expect(chunkLines(["aaa", "bbb", "ccc"], 8)).toEqual(["aaa\nbbb", "ccc"]);
   });
 });
+
+describe("buildDigest event checklists", () => {
+  const cfg = (over: Record<string, unknown> = {}) =>
+    ({
+      range_mode: "rest_of_month",
+      range_days: 7,
+      include_events: true,
+      include_gatherings: true,
+      levels: [],
+      include_big_events: true,
+      big_lookahead_weeks: 8,
+      include_checklist_counts: true,
+      intro: null,
+      outro: null,
+      override_text: null,
+      ...over,
+    }) as unknown as import("../telegramDigestConfig").DigestConfig;
+  const it_ = (item: string, o: Partial<import("../telegramDigest").DigestChecklistItem> = {}) => ({
+    item,
+    owner: null,
+    done: false,
+    weeks_before: null,
+    ...o,
+  });
+  const map = (id: string, items: ReturnType<typeof it_>[]) => new Map([[id, items]]);
+  const run = (events: EventOccurrence[], items: Map<string, ReturnType<typeof it_>[]>, c = cfg(), today = TODAY) =>
+    text(buildDigest({ today, events, checklistItems: items, config: c }));
+
+  it("lists open items with owner and due date, summary first", () => {
+    const e = ev({ id: "a", name: "Retreat", event_date: "2026-10-25" });
+    const out = run([occ(e)], map("a", [it_("Book venue", { owner: "Sam", weeks_before: 2 }), it_("Done thing", { done: true })]), cfg({ include_big_events: false }));
+    expect(out).toContain("- Sun 25 Oct: Retreat");
+    expect(out).toContain("  Checklist 1/2 done\n  ☐ Book venue — owner Sam — due 11 Oct");
+    expect(out).not.toContain("Done thing");
+  });
+
+  it("shows a single line when everything is done, nothing when empty", () => {
+    const e = ev({ id: "a", name: "Retreat", event_date: "2026-10-25" });
+    const c = cfg({ include_big_events: false });
+    expect(run([occ(e)], map("a", [it_("x", { done: true }), it_("y", { done: true })]), c)).toContain("  Checklist ✓ 2/2 done");
+    expect(run([occ(e)], map("a", []), c)).not.toContain("Checklist");
+  });
+
+  it("marks overdue by the Singapore day boundary", () => {
+    const e = ev({ id: "a", name: "Retreat", event_date: "2026-10-25" });
+    const items = map("a", [it_("Poster", { weeks_before: 2 })]); // due 11 Oct
+    const c = cfg({ include_big_events: false });
+    // 10 Oct 23:30 UTC is already 11 Oct in Singapore: due today, not overdue.
+    const sgToday = sgDateStr(new Date("2026-10-10T23:30:00Z"));
+    expect(sgToday).toBe("2026-10-11");
+    expect(run([occ(e)], items, c, sgToday)).not.toContain("overdue");
+    expect(run([occ(e)], items, c, "2026-10-12")).toContain("due 11 Oct (overdue)");
+  });
+
+  it("caps open items and reports the rest", () => {
+    const e = ev({ id: "a", name: "Retreat", event_date: "2026-10-25" });
+    const many = Array.from({ length: 11 }, (_, i) => it_(`Task ${i}`, { sort_order: i }));
+    const out = run([occ(e)], map("a", many), cfg({ include_big_events: false }));
+    expect(out.match(/☐/g)).toHaveLength(8);
+    expect(out).toContain("+3 more open");
+  });
+
+  it("shows a recurring series' checklist only on its first listed occurrence", () => {
+    const e = ev({ id: "w", name: "Prayer", event_date: "2026-10-12", recurring: "Weekly", repeat_until: "2026-10-31" });
+    const occs = expandEvents([e], parseDateStr("2026-10-11"), parseDateStr("2026-10-31"), new Map());
+    const out = run(occs, map("w", [it_("Prep", { weeks_before: 1 })]), cfg({ include_big_events: false }));
+    expect(occs.length).toBeGreaterThan(1);
+    expect(out.match(/Checklist 0\/1 done/g)).toHaveLength(1);
+    expect(out).toContain("due 5 Oct (overdue)"); // computed from the 12 Oct occurrence
+  });
+
+  it("shows nothing when the toggle is off, and works in the big-event section", () => {
+    const e = ev({ id: "a", name: "Big Day", event_date: "2026-10-25", is_major: true } as never);
+    const items = map("a", [it_("Poster")]);
+    expect(run([occ(e)], items, cfg({ include_checklist_counts: false }))).not.toContain("Checklist");
+    const on = run([occ(e)], items, cfg({ range_mode: "next_days", range_days: 1 }));
+    expect(on).toContain("PLANNING CHECK");
+    expect(on).toContain("  Checklist 0/1 done\n  ☐ Poster");
+  });
+
+  it("strips control characters in item and owner and keeps chunks within the limit", () => {
+    const e = ev({ id: "a", name: "Retreat", event_date: "2026-10-25" });
+    const out = run([occ(e)], map("a", [it_("Bad\nitem‮", { owner: "Own\u0000er" })]), cfg({ include_big_events: false }));
+    expect(out).toContain("☐ Bad item — owner Own er");
+    const events = Array.from({ length: 60 }, (_, i) => occ(ev({ id: `e${i}`, name: `Event ${i}`, event_date: "2026-10-25" })));
+    const items = new Map(events.map((o) => [o.event.id, Array.from({ length: 9 }, (_, i) => it_("x".repeat(120), { owner: "o".repeat(50), weeks_before: i }))]));
+    const msgs = buildDigest({ today: TODAY, events, checklistItems: items, config: cfg() });
+    expect(msgs.length).toBeGreaterThan(1);
+    for (const m of msgs) expect(m.length).toBeLessThanOrEqual(MAX_MESSAGE_CHARS);
+  });
+});
