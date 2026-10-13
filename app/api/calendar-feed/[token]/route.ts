@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { supabase } from "@/lib/supabase";
 import { buildIcsCalendar } from "@/lib/icsExport";
 import { EventRow, ExceptionRow, OverrideRow } from "@/lib/types";
+import { describeFeedMismatch, normaliseFeedToken } from "@/lib/feedToken";
 
 export const dynamic = "force-dynamic";
 
@@ -23,12 +24,13 @@ function timingSafeTokenMatch(candidate: string, expected: string): boolean {
 }
 
 export async function GET(_request: NextRequest, { params }: { params: { token: string } }) {
-  const expectedToken = process.env.CALENDAR_FEED_TOKEN;
-  const suppliedToken = params.token.endsWith(".ics") ? params.token.slice(0, -4) : params.token;
+  const expectedToken = normaliseFeedToken(process.env.CALENDAR_FEED_TOKEN);
+  const suppliedToken = normaliseFeedToken(params.token.endsWith(".ics") ? params.token.slice(0, -4) : params.token);
 
   // 404 (not 403) on any mismatch — a 403 would confirm the route pattern
   // exists at all to someone probing for it.
   if (!expectedToken || !timingSafeTokenMatch(suppliedToken, expectedToken)) {
+    console.error(`calendar feed refused: ${describeFeedMismatch(expectedToken, suppliedToken)}.`);
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
 

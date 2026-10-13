@@ -8,6 +8,10 @@ items (features/fixes) that push contains — a push with 1 item goes up by
 `1.05`). If MINOR would pass `.99`, MAJOR increments and MINOR carries the
 remainder (e.g. `1.99` + 2 items → `2.01`).
 
+## v2.132 — 2026-10-13
+
+- Calendar feed links no longer fail as "Not found" because of a stray space, line break or pair of quote marks saved around the token in Vercel (the token is cleaned before it is compared), and when a link is refused the server log now says why (token not set, wrong length with both lengths, or different characters), never the token itself.
+
 ## v2.131 — 2026-10-13
 
 - The calendar feed and .ics export now name the calendar "+EVO Events" (instead of showing the link's address in Apple/Google Calendar) and ask apps to refresh hourly (apps may ignore this; Apple's own refresh setting wins).
