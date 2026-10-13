@@ -134,6 +134,11 @@ export function buildIcsCalendar(
     "VERSION:2.0",
     "PRODID:-//+EVO Events Calendar//EN",
     "CALSCALE:GREGORIAN",
+    // Name shown in Apple/Google Calendar, plus a hint to refresh hourly
+    // (clients may ignore the hint; Apple's own setting wins).
+    "X-WR-CALNAME:+EVO Events",
+    "REFRESH-INTERVAL;VALUE=DURATION:PT1H",
+    "X-PUBLISHED-TTL:PT1H",
     ...VTIMEZONE,
   ];
 

@@ -8,6 +8,10 @@ items (features/fixes) that push contains — a push with 1 item goes up by
 `1.05`). If MINOR would pass `.99`, MAJOR increments and MINOR carries the
 remainder (e.g. `1.99` + 2 items → `2.01`).
 
+## v2.131 — 2026-10-13
+
+- The calendar feed and .ics export now name the calendar "+EVO Events" (instead of showing the link's address in Apple/Google Calendar) and ask apps to refresh hourly (apps may ignore this; Apple's own refresh setting wins).
+
 ## v2.130 — 2026-10-13
 
 - The Reminders page is now split into two clean tabs, "Scheduled Digest" and "Reminders" (the chosen tab stays in the web address so reload and Back keep your place); each has its own short description and "How this works" help. Scheduled Digest holds your Telegram digests; Reminders holds the manual reminder draft, overdue items, saved templates and Checklist Templates.
