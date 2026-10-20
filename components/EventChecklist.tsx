@@ -40,7 +40,7 @@ function authorName(): string | null {
 export default function EventChecklist({ event, ownerOptions = [] }: { event: EventRow; ownerOptions?: string[] }) {
   const router = useRouter();
   const isEditor = useIsEditor();
-  const { record } = useUndo();
+  const { record, undoVersion } = useUndo();
   const [items, setItems] = useState<EventChecklistItemRow[] | null>(null);
   const [templates, setTemplates] = useState<ChecklistTemplateWithItems[]>([]);
   const [templateId, setTemplateId] = useState("");
@@ -79,7 +79,8 @@ export default function EventChecklist({ event, ownerOptions = [] }: { event: Ev
   useEffect(() => {
     if (repeating) return;
     void load();
-  }, [load, repeating]);
+    // undoVersion: an Undo/Redo changes rows behind this component's copy.
+  }, [load, repeating, undoVersion]);
 
   // Editors need the template list for the picker; preselect the suggested one.
   useEffect(() => {

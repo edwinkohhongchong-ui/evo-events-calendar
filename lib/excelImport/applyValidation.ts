@@ -170,6 +170,10 @@ function checkEvent(v: Record<string, unknown>, ctx: ExcelApplyContext, op: "cre
     if (end) {
       patch.end_time = end;
       patch.duration_minutes = duration;
+    } else if (start) {
+      // New start, saved end kept: duration_minutes is derived from start/end everywhere else, so recompute it.
+      const savedEnd = normaliseTime(ctx.eventTimes.get((id ?? "").toLowerCase())?.end_time);
+      if (savedEnd) patch.duration_minutes = computeDuration(start.slice(0, 5), savedEnd.slice(0, 5));
     }
     if (levelCanon) patch.level = levelCanon;
     if (notes.value !== null) patch.notes = notes.value;

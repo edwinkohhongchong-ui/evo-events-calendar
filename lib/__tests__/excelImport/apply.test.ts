@@ -144,8 +144,13 @@ describe("validateExcelSelection: event updates", () => {
     expect(row).toEqual({ kind: "event", op: "update", id: ID1, expectedUpdatedAt: AT, values: { event_time: "18:00:00", end_time: "19:00:00", duration_minutes: 60, level: "Adults", notes: "n" } });
   });
 
+  it("a new start with no end recomputes duration against the saved end, and leaves it alone when no end is saved", () => {
+    expect(good([upd({ event_time: "19:00" })])[0].values).toEqual({ event_time: "19:00:00", duration_minutes: 60 });
+    expect(good([upd({ event_time: "19:00" })], ctx({ eventTimes: new Map([[ID1, { event_time: "18:00:00", end_time: null }]]) }))[0].values).toEqual({ event_time: "19:00:00" });
+  });
+
   it("a blank never erases saved data; an empty patch is rejected", () => {
-    expect(good([upd({ event_time: "18:00", end_time: null, notes: "", level: "" })])[0].values).toEqual({ event_time: "18:00:00" });
+    expect(good([upd({ event_time: "18:00", end_time: null, notes: "", level: "" })])[0].values).toEqual({ event_time: "18:00:00", duration_minutes: 120 });
     expect(bad([upd({ event_time: null, notes: "" })])).toMatch(/nothing to change/);
   });
 

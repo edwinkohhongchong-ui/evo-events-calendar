@@ -30,6 +30,8 @@ interface Props {
   /** Starting values for a new digest (e.g. the built-in default). */
   prefill?: DigestConfig;
   levels: LevelRow[];
+  /** True when this is the only saved digest, so deleting it brings the built-in message back. */
+  isLastDigest?: boolean;
   onClose: () => void;
   onChanged: (message: string) => void;
 }
@@ -44,7 +46,7 @@ const chip = (on: boolean) =>
 
 const checkRow = "flex min-h-[36px] coarse:min-h-[44px] items-center gap-2 text-body text-ink";
 
-export default function TelegramDigestEditor({ row, prefill, levels, onClose, onChanged }: Props) {
+export default function TelegramDigestEditor({ row, prefill, levels, isLastDigest = false, onClose, onChanged }: Props) {
   const start = row ? configOf(row) : (prefill ?? DEFAULT_DIGEST_CONFIG);
   const [name, setName] = useState(start.name);
   const [enabled, setEnabled] = useState(start.enabled);
@@ -386,7 +388,11 @@ export default function TelegramDigestEditor({ row, prefill, levels, onClose, on
       {confirmDelete && (
         <ConfirmModal
           title="Delete this digest?"
-          message="It will stop being sent. This can't be undone."
+          message={
+            isLastDigest
+              ? "It will stop being sent. This can't be undone. This is your last digest. With none left, the built-in Sunday message starts again. To stop all messages, switch the digest off instead of deleting it."
+              : "It will stop being sent. This can't be undone."
+          }
           confirmLabel="Yes, delete it"
           busyLabel="Deleting…"
           confirmVariant="danger"

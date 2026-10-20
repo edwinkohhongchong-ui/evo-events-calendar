@@ -8,6 +8,12 @@ items (features/fixes) that push contains — a push with 1 item goes up by
 `1.05`). If MINOR would pass `.99`, MAJOR increments and MINOR carries the
 remainder (e.g. `1.99` + 2 items → `2.01`).
 
+## v2.135 — 2026-10-20
+
+- Deleting your last Telegram digest now warns that the built-in Sunday message will start again, and suggests switching the digest off instead.
+- Undo/Redo now refreshes an open event's checklist straight away (before, it only updated after reopening the event).
+- Excel import: updating an event's start time (without a new end time) now also updates its saved duration, so start, end and duration stay consistent.
+
 ## v2.132 — 2026-10-13
 
 - Calendar feed links no longer fail as "Not found" because of a stray space, line break or pair of quote marks saved around the token in Vercel (the token is cleaned before it is compared), and when a link is refused the server log now says why (token not set, wrong length with both lengths, or different characters), never the token itself.

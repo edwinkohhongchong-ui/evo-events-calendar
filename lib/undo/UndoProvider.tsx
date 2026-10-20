@@ -21,6 +21,9 @@ interface UndoContextValue {
   canRedo: boolean;
   undoLabel: string | null;
   redoLabel: string | null;
+  // Bumps after every completed undo/redo so mounted components holding their
+  // own fetched copy of rows (e.g. an open event's checklist) can refetch.
+  undoVersion: number;
   isBusy: boolean;
   error: string | null;
   dismissError: () => void;
@@ -51,6 +54,7 @@ export function UndoProvider({ children }: { children: ReactNode }) {
   const lastActionRef = useRef<LastAction | null>(null);
   const lastActionTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [, forceRender] = useReducer((x: number) => x + 1, 0);
+  const undoVersionRef = useRef(0);
   const router = useRouter();
 
   const showLastAction = useCallback((kind: LastAction["kind"], label: string) => {
@@ -97,6 +101,7 @@ export function UndoProvider({ children }: { children: ReactNode }) {
         unwrap(result);
         futureRef.current = [...futureRef.current, entry];
         showLastAction("undo", entry.label);
+        undoVersionRef.current += 1;
         router.refresh();
       })
       .catch((err) => {
@@ -122,6 +127,7 @@ export function UndoProvider({ children }: { children: ReactNode }) {
         unwrap(result);
         pastRef.current = [...pastRef.current, entry];
         showLastAction("redo", entry.label);
+        undoVersionRef.current += 1;
         router.refresh();
       })
       .catch((err) => {
@@ -169,6 +175,7 @@ export function UndoProvider({ children }: { children: ReactNode }) {
     canRedo: futureRef.current.length > 0,
     undoLabel: pastRef.current.length > 0 ? pastRef.current[pastRef.current.length - 1].label : null,
     redoLabel: futureRef.current.length > 0 ? futureRef.current[futureRef.current.length - 1].label : null,
+    undoVersion: undoVersionRef.current,
     isBusy: isBusyRef.current,
     error: errorRef.current,
     dismissError,

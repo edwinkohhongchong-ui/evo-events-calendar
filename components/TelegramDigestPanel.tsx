@@ -220,7 +220,7 @@ export default function TelegramDigestPanel({ initial, levels }: Props) {
       )}
 
       {editing && (
-        <TelegramDigestEditor row={editing.row} prefill={editing.prefill} levels={levels} onClose={() => setEditing(null)} onChanged={closeEditor} />
+        <TelegramDigestEditor row={editing.row} prefill={editing.prefill} levels={levels} isLastDigest={!!editing.row && rows.length === 1} onClose={() => setEditing(null)} onChanged={closeEditor} />
       )}
       {sendTarget && (
         <ConfirmModal
