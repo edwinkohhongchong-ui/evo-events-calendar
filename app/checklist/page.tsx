@@ -1,4 +1,5 @@
 import { getAllChecklist, getEventOptions, getAllSeasons } from "@/lib/data";
+import Link from "next/link";
 import ChecklistTable from "@/components/ChecklistTable";
 import InstructionsPanel from "@/components/InstructionsPanel";
 
@@ -21,7 +22,11 @@ export default async function ChecklistPage() {
 
   return (
     <main className="max-w-5xl mx-auto p-4 sm:p-6">
-      <h1 className="text-xl font-semibold text-navy mb-4">Checklist</h1>
+      <h1 className="text-xl font-semibold text-navy">Calendar Checklist</h1>
+      <p className="mt-1 text-body text-ink-2">Your year-planning list: tick things off as each month is covered.</p>
+      <Link href="/checklist-templates" className="mt-1 mb-4 inline-block text-body font-medium text-navy hover:underline coarse:py-3">
+        Looking for the event templates? Event Template Checklist &rarr;
+      </Link>
       <InstructionsPanel lines={INSTRUCTIONS} />
       <ChecklistTable checklist={checklist} eventOptions={eventOptions} seasons={seasons} />
     </main>

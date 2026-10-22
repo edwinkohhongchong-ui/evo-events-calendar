@@ -7,7 +7,7 @@ export function expectedPasscodeFor(role: Role): string | undefined {
 // A Viewer may reach: "/" and "/day/*" (the Calendar), the "/api/activity"
 // feed for the notification bell, and the read-only Export feature: exactly
 // the pages and API routes listed below. Every other route (Holidays, Seasons,
-// Checklist, Categories, Reminders, Admin) redirects home. Editors are
+// Calendar Checklist, Event Template Checklist, Categories, Reminders, Admin) redirects home. Editors are
 // unrestricted. The Export list is EXACT (no prefix) so a future page such as
 // "/export/admin" is Editor-only until it is deliberately added here;
 // viewerPolicy.test.ts fails if a page under app/export is not listed.

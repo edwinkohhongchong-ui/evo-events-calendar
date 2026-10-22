@@ -22,7 +22,7 @@ type ModalState =
 // Reusable checklist "playbooks" (e.g. "Big Event Prep") you can select for
 // any event in the picker below to pre-load its lines straight into the
 // drafted message — see RemindersForm.tsx. Deliberately NOT linked to the
-// real Checklist tab/table (lib/checklistActions.ts, the "linked_event_id"
+// real Calendar Checklist tab/table (lib/checklistActions.ts, the "linked_event_id"
 // system used for "Check Calendar") — this is message-composition content
 // only, kept separate on purpose per explicit user feedback.
 export default function ChecklistTemplatesSection({
@@ -71,7 +71,7 @@ export default function ChecklistTemplatesSection({
         aria-expanded={open}
         className="flex w-full items-center justify-between gap-2 px-4 py-3 text-ui font-medium text-ink hover:bg-canvas"
       >
-        <span>Checklist Templates ({templates.length})</span>
+        <span>Your templates ({templates.length})</span>
         <span className="text-ink-3">
           <ChevronIcon open={open} />
         </span>
@@ -79,7 +79,7 @@ export default function ChecklistTemplatesSection({
       {open && (
         <div className="flex flex-col gap-2 border-t border-line p-4">
           <p className="text-body text-ink-2">
-            Reusable checklists. Drop one into a drafted Telegram message, or add it to an event from the event&rsquo;s details, where items can be ticked and given due dates (“weeks before”). This is separate from the monthly Checklist tab, which it never changes.
+            Drop one into a drafted Telegram message (Admin → Reminders), or add it to an event from the event&rsquo;s details, where items can be ticked and given due dates (“weeks before”). This is separate from the Calendar Checklist, which it never changes.
           </p>
           {templates.map((t) => (
             <div

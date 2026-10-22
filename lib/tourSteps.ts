@@ -84,7 +84,7 @@ export const TOUR_STEPS: TourStep[] = [
   // --- Part 2 of 6: Event checklists ---
   {
     title: "Checklist for an event",
-    body: "Open a one-off event to give it its own to-do list, like booking the venue or sending the poster. Editors can start one from a template. Everyone can tick items off. A small badge on the event card shows how many are done.",
+    body: "Open a one-off event to give it its own to-do list, like booking the venue or sending the poster. Editors can start one from a template (write them under ☰ → Checklists → Event Template Checklist). Everyone can tick items off. A small badge on the event card shows how many are done.",
     route: "/",
     targetSelector: '[data-tour="calendar-grid"]',
   },
@@ -132,7 +132,7 @@ export const TOUR_STEPS: TourStep[] = [
   // --- Part 5 of 6: Editor vs. Viewer access ---
   {
     title: "Viewer or Editor?",
-    body: "Viewers can look around, comment in the sidebars (General Notes and Month Notes), tick items off an event's checklist, and use Export to download or print. Checklist templates and everything else are Editor-only: adding, editing, moving or deleting, Undo, and the other tabs in the ☰ menu. If a button is missing for you, that's expected.",
+    body: "Viewers can look around, comment in the sidebars (General Notes and Month Notes), tick items off an event's checklist, and use Export to download or print. Event Template Checklist and everything else are Editor-only: adding, editing, moving or deleting, Undo, and the other tabs in the ☰ menu. If a button is missing for you, that's expected.",
     route: "/",
     targetSelector: '[data-tour="hamburger-menu-panel"]',
     requiresMenuOpen: true,

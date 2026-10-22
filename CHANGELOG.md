@@ -8,6 +8,10 @@ items (features/fixes) that push contains — a push with 1 item goes up by
 `1.05`). If MINOR would pass `.99`, MAJOR increments and MINOR carries the
 remainder (e.g. `1.99` + 2 items → `2.01`).
 
+## v2.142 — 2026-10-22
+
+- The two checklists are now separate and clearly named in the menu (Editors): a new "Checklists" group holds "Calendar Checklist" (your year-planning list: is everything covered?) and "Event Template Checklist" (the reusable lists you add to events). The event templates moved out of Admin > Reminders onto their own page; the Reminders page keeps a short pointer to it. Help text and tour steps use the new names; Viewers see no change.
+
 ## v2.141 — 2026-10-22
 
 - Telegram digests are now safer against a missed send: a second daily scheduled run (about 8:30pm Singapore) re-sends only if the first one failed or crashed, each digest card shows "Next send: <date>" (or "Off — nothing will send" / "Skipping the next send") and the last run's result, and a red notice appears on the Scheduled Digest tab if a run failed, with a "Send now" hint. A skipped digest stays skipped even if the retry runs. Needs migration 030; digests behave as before until it is run.

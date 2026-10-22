@@ -19,6 +19,7 @@ import {
   LayersIcon,
   TagIcon,
   CheckSquareIcon,
+  ListChecksIcon,
   ShieldIcon,
   BellIcon,
   DatabaseIcon,
@@ -51,6 +52,15 @@ const TOOLS: Group = {
     { href: "/holidays", label: "Holidays", icon: <SunIcon /> },
     { href: "/seasons", label: "Seasons", icon: <LayersIcon />, tour: "nav-seasons" },
     { href: "/levels", label: "Categories", icon: <TagIcon /> },
+  ],
+};
+const CHECKLISTS: Group = {
+  id: "checklists",
+  label: "Checklists",
+  icon: <CheckSquareIcon />,
+  items: [
+    { href: "/checklist", label: "Calendar Checklist", caption: "Year-planning list: is everything covered?", icon: <CheckSquareIcon />, tour: "nav-calendar-checklist" },
+    { href: "/checklist-templates", label: "Event Template Checklist", caption: "Reusable lists you add to events", icon: <ListChecksIcon />, tour: "nav-event-template-checklist" },
   ],
 };
 const ADMIN: Group = {
@@ -90,7 +100,7 @@ const EXPORT: Group = {
     },
   ],
 };
-const GROUPS = [TOOLS, ADMIN, EXPORT];
+const GROUPS = [TOOLS, CHECKLISTS, ADMIN, EXPORT];
 
 function groupForPath(pathname: string | null): string | null {
   if (!pathname) return null;
@@ -171,7 +181,7 @@ export default function NavBar({ generalComments = [] }: { generalComments?: Not
     if (tourOpen && TOUR_STEPS[tourStep]?.requiresMenuOpen) {
       setMenuOpen(true);
       // Expand every group so the tour's target (e.g. Export Document) is mounted.
-      setOpenGroups({ tools: true, admin: true, export: true });
+      setOpenGroups({ tools: true, checklists: true, admin: true, export: true });
     } else if (tourOpen) {
       // Moving on to a step that isn't about the menu: close it so it
       // doesn't linger over the next highlight (e.g. the bell).
@@ -214,7 +224,7 @@ export default function NavBar({ generalComments = [] }: { generalComments?: Not
   if (pathname === "/login") return null;
 
   // Viewer role: Calendar, Export + Replay tour only; no Undo/Redo, Tools,
-  // Checklist or Admin.
+  // Checklists or Admin.
   const toggleGroup = (id: string) =>
     setOpenGroups((prev) => ({ ...prev, [id]: !prev[id] }));
 
@@ -419,7 +429,7 @@ export default function NavBar({ generalComments = [] }: { generalComments?: Not
                 {isEditor && (
                   <>
                     <div className="mt-0.5">{renderGroup(TOOLS)}</div>
-                    {renderItem({ href: "/checklist", label: "Checklist", icon: <CheckSquareIcon /> }, false)}
+                    {renderGroup(CHECKLISTS)}
                     {divider}
                     {renderGroup(ADMIN)}
                     {divider}

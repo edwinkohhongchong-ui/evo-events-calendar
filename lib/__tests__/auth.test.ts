@@ -18,6 +18,8 @@ describe("isPathAllowedForRole", () => {
     expect(isPathAllowedForRole("/checklist", "viewer")).toBe(false);
     expect(isPathAllowedForRole("/reminders", "viewer")).toBe(false);
     expect(isPathAllowedForRole("/reminders", "editor")).toBe(true);
+    expect(isPathAllowedForRole("/checklist-templates", "viewer")).toBe(false);
+    expect(isPathAllowedForRole("/checklist-templates", "editor")).toBe(true);
     expect(isPathAllowedForRole("/api/activity/extra", "viewer")).toBe(false);
     expect(isPathAllowedForRole("/api/admin/backup", "viewer")).toBe(false);
     for (const p of ["/exportx", "/export-evil", "/api/exportx", "/api/export", "/api/export/other", "/api/export/icsx", "/api/export/documentx"]) {
@@ -37,6 +39,8 @@ describe("isPathAllowedForRole", () => {
     expect(isPathAllowedForRole("/Export", "viewer")).toBe(false);
     expect(isPathAllowedForRole("/export/../reminders", "viewer")).toBe(false);
     expect(isPathAllowedForRole("/export%2Freminders", "viewer")).toBe(false);
+    expect(isPathAllowedForRole("/export/../checklist-templates", "viewer")).toBe(false);
+    expect(isPathAllowedForRole("/checklist-templates/", "viewer")).toBe(false);
     expect(isPathAllowedForRole("/export/%2Freminders", "viewer")).toBe(false);
   });
 });

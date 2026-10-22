@@ -3,7 +3,7 @@ import { headers } from "next/headers";
 import { getAllChecklistTemplates, getAllLevels, getAllReminderTemplates, getOpenChecklistRows } from "@/lib/data";
 import { readAllDigests } from "@/lib/telegramDigestStore";
 import RemindersForm from "@/components/RemindersForm";
-import ChecklistTemplatesSection from "@/components/ChecklistTemplatesSection";
+import Link from "next/link";
 import TelegramDigestPanel from "@/components/TelegramDigestPanel";
 import RemindersTabs from "@/components/RemindersTabs";
 import InstructionsPanel from "@/components/InstructionsPanel";
@@ -21,7 +21,7 @@ const REMINDER_INSTRUCTIONS = [
   "Tick which upcoming events to include, then type a Telegram handle and click \"Open in Telegram\" to send the drafted message yourself — nothing sends automatically.",
   "Edit the \"Message\" box directly any time; your own wording stays put until you click \"Reset to auto-generated.\"",
   "Click \"Add Template\" to save your current handle, intro, and lookahead range for reuse next time.",
-  "Under \"Checklist Templates,\" click \"Add Checklist Template\" to write a reusable list. You can attach it to an event in the drafted message, or add it to an event from the event's details so it can be ticked off with due dates — it is separate from the monthly Checklist tab and never updates it.",
+  "To attach a checklist to an event in the drafted message, pick one in the event's \"Checklist template\" dropdown. To write or edit those reusable lists, open ☰ → Checklists → Event Template Checklist. They are separate from the Calendar Checklist and never update it.",
 ];
 
 export default async function RemindersPage() {
@@ -48,10 +48,13 @@ export default async function RemindersPage() {
       <InstructionsPanel lines={REMINDER_INSTRUCTIONS} label="How reminders work" />
       <RemindersForm templates={templates} checklistTemplates={checklistTemplates} openChecklistRows={openChecklistRows} />
       {isEditor && (
-        <div>
-          <h3 className="text-title text-ink">Checklist templates</h3>
-          <p className="mt-1 mb-3 text-body text-ink-2">Reusable checklists to drop into a draft above or attach to an event.</p>
-          <ChecklistTemplatesSection templates={checklistTemplates} />
+        <div className="rounded-card bg-surface p-4">
+          <p className="text-body text-ink-2">
+            Checklist templates now live under <span className="font-medium text-ink">Event Template Checklist</span> in the menu (☰ → Checklists).
+          </p>
+          <Link href="/checklist-templates" className="mt-1 inline-block text-body font-medium text-navy hover:underline coarse:py-3">
+            Open Event Template Checklist &rarr;
+          </Link>
         </div>
       )}
     </div>
