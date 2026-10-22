@@ -125,9 +125,13 @@ async function setChecklistItemDoneImpl(itemId: string, done: boolean, doneBy: s
   if (error) throw friendly(error, "Couldn't update that item. Please try again.");
 }
 
-async function removeEventChecklistImpl(eventId: string): Promise<void> {
+// Removes an event's whole checklist. Returns every removed row (before = the
+// full row, after = null) so Undo can put them back with their original ids.
+async function removeEventChecklistImpl(eventId: string): Promise<AffectedRow[]> {
   await requireRole("editor");
   const { data: event } = await supabase.from("events").select("name, event_date").eq("id", eventId).single();
+  const { data: rows, error: readErr } = await supabase.from("event_checklist_items").select("*").eq("event_id", eventId);
+  if (readErr) throw friendly(readErr, "Couldn't remove the checklist. Please try again.");
   const { error } = await supabase.from("event_checklist_items").delete().eq("event_id", eventId);
   if (error) throw friendly(error, "Couldn't remove the checklist. Please try again.");
   if (event) {
@@ -139,6 +143,7 @@ async function removeEventChecklistImpl(eventId: string): Promise<void> {
       itemDate: event.event_date,
     });
   }
+  return (rows ?? []).map((before) => ({ table: "event_checklist_items" as const, id: String(before.id), before, after: null }));
 }
 
 // Add one custom item to an event's checklist (no template needed). Editors only.
@@ -247,11 +252,25 @@ async function getOwnerOptionsImpl(): Promise<string[]> {
   return buildOwnerOptions(rows.map((r) => r.owner));
 }
 
-// Remove a single item from an event's checklist. Editors only.
-async function removeChecklistItemImpl(itemId: string): Promise<void> {
+// Remove a single item from an event's checklist. Editors only. Returns the
+// removed row so Undo can restore it.
+async function removeChecklistItemImpl(itemId: string): Promise<AffectedRow[]> {
   await requireRole("editor");
+  const before = await fetchRow("event_checklist_items", itemId);
+  if (!before) throw new Error("That item couldn't be found. It may have been removed.");
   const { error } = await supabase.from("event_checklist_items").delete().eq("id", itemId);
   if (error) throw friendly(error, "Couldn't remove that item. Please try again.");
+  const { data: event } = await supabase.from("events").select("name, event_date").eq("id", before.event_id).single();
+  if (event) {
+    await logActivity({
+      action: "edited",
+      entity: "event",
+      entityId: String(before.event_id),
+      label: `${event.name} (checklist)`,
+      itemDate: event.event_date,
+    });
+  }
+  return [{ table: "event_checklist_items", id: itemId, before, after: null }];
 }
 
 // Public Server Actions: every one returns an ActionResult (see lib/actionResult.ts).

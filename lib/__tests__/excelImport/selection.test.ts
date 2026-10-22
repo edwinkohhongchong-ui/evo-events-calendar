@@ -82,7 +82,7 @@ describe("what can be ticked", () => {
 
   it("blocks an untouched row with an error flag, and a new event with no level", () => {
     expect(canTick(row({ flags: [{ code: "no-name", severity: "error", message: "Nothing to import." }], invalid: true }), undefined, ctx)).toBe(false);
-    expect(blockingProblems(row({ category: "" }), undefined, ctx)).toContain("Pick a level.");
+    expect(blockingProblems(row({ category: "" }), undefined, ctx)).toContain("Pick a category.");
   });
 
   it("re-validates live after an edit and clears fixable flags", () => {
@@ -101,7 +101,7 @@ describe("what can be ticked", () => {
     expect(blockingProblems(r, { ...base, name: "  " }, ctx)).toContain("Give it a name.");
     expect(blockingProblems(r, { ...base, name: "x".repeat(121) }, ctx).join()).toMatch(/120 characters/);
     expect(blockingProblems(r, { ...base, start: "2026-02-30" }, ctx).join()).toMatch(/not a valid date/);
-    expect(blockingProblems(r, { ...base, category: "Nope" }, ctx)).toContain("That level does not exist in the calendar.");
+    expect(blockingProblems(r, { ...base, category: "Nope" }, ctx)).toContain("That category does not exist in the calendar.");
     expect(blockingProblems(r, { ...base, endTime: "18:00" }, ctx)).toContain("The end time must be after the start time.");
     expect(blockingProblems(r, { ...base, time: "", endTime: "18:00" }, ctx)).toContain("An end time needs a start time.");
     expect(blockingProblems(r, { ...base, notes: "n".repeat(501) }, ctx).join()).toMatch(/500 characters/);

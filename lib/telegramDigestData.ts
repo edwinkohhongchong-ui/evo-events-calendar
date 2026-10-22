@@ -1,4 +1,4 @@
-import { supabase } from "./supabase";
+import { readAll } from "./readAll";
 import { parseDateStr, sgDateStr } from "./dates";
 import { expandEvents } from "./recurrence";
 import { applyOverrides } from "./overrides";
@@ -10,23 +10,8 @@ import type { EventRow, ExceptionRow, HolidayRow, OverrideRow } from "./types";
 // server" file: callers (the cron route, the Reminders-page actions) do their
 // own authorisation first.
 
-const PAGE = 1000; // PostgREST returns at most this many rows per request
-
-// Throws on a failed read: a partial event list would send the group a
+// readAll throws on a failed read: a partial event list would send the group a
 // confident but wrong message. Supplementary reads use `optionalRows`.
-async function readAll<T>(table: string, columns = "*"): Promise<T[]> {
-  const rows: T[] = [];
-  for (let from = 0; ; from += PAGE) {
-    const { data, error } = await supabase.from(table).select(columns).order("id").range(from, from + PAGE - 1);
-    if (error) {
-      console.error(`telegram digest: reading ${table} failed:`, error.message);
-      throw new Error("Could not read the calendar. Please try again.");
-    }
-    const page = (data ?? []) as T[];
-    rows.push(...page);
-    if (page.length < PAGE) return rows;
-  }
-}
 
 async function optionalRows<T>(table: string, columns?: string): Promise<T[]> {
   try {

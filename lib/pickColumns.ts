@@ -8,6 +8,8 @@
 import type { EventFormValues } from "./actions";
 import type {
   ChecklistFormValues,
+  DayNoteRow,
+  EventChecklistItemRow,
   HolidayFormValues,
   LevelFormValues,
   ReminderTemplateFormValues,
@@ -71,6 +73,23 @@ export const CHECKLIST_COLUMNS: Allow<ChecklistFormValues> = {
   notes: true,
   linked_event_id: true,
   auto_check_type: true,
+};
+
+// Not written through form values (own actions), but undo/restore re-inserts
+// them, so they get the same typed allow-lists. id/created_at are not listed:
+// restore adds the system columns itself (lib/undo/restoreRows.ts).
+export const DAY_NOTE_COLUMNS: Allow<Omit<DayNoteRow, "id">> = { note_date: true, content: true, details: true };
+
+export const EVENT_CHECKLIST_ITEM_COLUMNS: Allow<Omit<EventChecklistItemRow, "id" | "created_at">> = {
+  event_id: true,
+  item: true,
+  weeks_before: true,
+  done: true,
+  done_at: true,
+  done_by: true,
+  source_template: true,
+  sort_order: true,
+  owner: true,
 };
 
 // Copies only the allow-listed keys that are present (and not undefined) on

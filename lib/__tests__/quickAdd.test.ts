@@ -52,7 +52,7 @@ describe("validateQuickAdd", () => {
   it("passes a complete form", () => expect(validateQuickAdd(ok, lv)).toBeNull());
   it("requires name (whitespace is empty)", () => expect(validateQuickAdd({ ...ok, name: "  " }, lv)).toBe("Name is required."));
   it("requires level, with the zone wording", () => {
-    expect(validateQuickAdd({ ...ok, level: "" }, lv)).toBe("Choose an Event Type.");
+    expect(validateQuickAdd({ ...ok, level: "" }, lv)).toBe("Choose a category.");
     expect(validateQuickAdd({ ...ok, level: "", zonePickedWithoutLevel: true }, lv)).toBe("Choose a zone.");
   });
   it("rejects a level that no longer exists", () =>

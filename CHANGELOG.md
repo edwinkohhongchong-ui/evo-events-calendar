@@ -8,6 +8,15 @@ items (features/fixes) that push contains — a push with 1 item goes up by
 `1.05`). If MINOR would pass `.99`, MAJOR increments and MINOR carries the
 remainder (e.g. `1.99` + 2 items → `2.01`).
 
+## v2.141 — 2026-10-22
+
+- Telegram digests are now safer against a missed send: a second daily scheduled run (about 8:30pm Singapore) re-sends only if the first one failed or crashed, each digest card shows "Next send: <date>" (or "Off — nothing will send" / "Skipping the next send") and the last run's result, and a red notice appears on the Scheduled Digest tab if a run failed, with a "Send now" hint. A skipped digest stays skipped even if the retry runs. Needs migration 030; digests behave as before until it is run.
+- The Apple/Google calendar feed and the .ics download now read every event page by page and return an error instead of a wrong calendar if reading repeat-event changes fails (before, a failed read silently showed moved or cancelled events at their old dates, and anything past 1000 rows was dropped).
+- Removing a single checklist item, or an event's whole checklist, can now be undone and is logged in the activity history.
+- Undo/Redo now checks what it is about to restore (known columns only, valid colours and owners) and refuses a damaged change instead of writing it.
+- One word everywhere: the event grouping is now called "Category" (Add/Edit Event, quick add, Excel import "Set category", messages), replacing "Event type" and "Level".
+- Docs brought up to date (CLAUDE.md: Telegram digest, the two no-login exceptions, data model pointer; ONBOARDING.md migration numbers).
+
 ## v2.135 — 2026-10-20
 
 - Deleting your last Telegram digest now warns that the built-in Sunday message will start again, and suggests switching the digest off instead.

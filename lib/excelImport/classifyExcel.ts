@@ -148,7 +148,7 @@ export function guessEvent(rawName: string): LevelGuess {
     const focus: PastoralFocus = { youth: letters.has("Y"), poly: letters.has("P"), uni: letters.has("U"), adults: letters.has("A") };
     const name = applyTitlePrefix(m[2].trim(), focus);
     if (letters.size === 1) return { ...base, name, level: ZONE_BY_LETTER[m[1][0]], focus };
-    return { ...base, name, focus, flags: [flag("level-unknown", "warn", "This event is for more than one group, so no single level was chosen; pick one.")] };
+    return { ...base, name, focus, flags: [flag("level-unknown", "warn", "This event is for more than one group, so no single category was chosen; pick one.")] };
   }
 
   const words = (re: RegExp) => re.test(rawName);
@@ -161,12 +161,12 @@ export function guessEvent(rawName: string): LevelGuess {
     const uni = words(/\buni\b/i);
     if (poly && uni) {
       const focus: PastoralFocus = { ...none, poly: true, uni: true };
-      return { ...base, name: applyTitlePrefix(rawName, focus), focus, flags: [flag("level-unknown", "warn", "This event mentions both Poly and Uni, so no single level was chosen; pick one.")] };
+      return { ...base, name: applyTitlePrefix(rawName, focus), focus, flags: [flag("level-unknown", "warn", "This event mentions both Poly and Uni, so no single category was chosen; pick one.")] };
     }
     if (poly) level = "Poly";
     else if (uni) level = "Uni";
   }
-  if (!level) base.flags.push(flag("level-unknown", "warn", "Could not tell which level this event is for; pick one."));
+  if (!level) base.flags.push(flag("level-unknown", "warn", "Could not tell which category this event is for; pick one."));
   return { ...base, level };
 }
 

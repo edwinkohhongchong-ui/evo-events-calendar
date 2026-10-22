@@ -64,8 +64,8 @@ const FLAG_LABEL: Record<string, string> = {
   "bad-year": "Year looks wrong",
   "event-in-season-row": "Check the row",
   "no-done-flag": "No done marker",
-  "level-unknown": "Pick a level",
-  "level-not-in-calendar": "Pick a level",
+  "level-unknown": "Pick a category",
+  "level-not-in-calendar": "Pick a category",
   "gathering-type-unknown": "Gathering type?",
   "season-category-unknown": "Check the category",
   "known-public-holiday": "Public holiday",
@@ -88,7 +88,7 @@ const FIELD_LABEL: Record<string, string> = {
   end_date: "End",
   time: "Start time",
   end_time: "End time",
-  level: "Level",
+  level: "Category",
   status: "Status",
   notes: "Notes",
 };
@@ -337,15 +337,15 @@ export default function ExcelImportPreview({ result, onReset }: { result: ExcelP
       {unknownLevel.length > 0 && (
         <div className="mb-3 rounded-card bg-surface p-4">
           <p className="text-body font-medium text-ink">
-            {unknownLevel.length} new {unknownLevel.length === 1 ? "event has" : "events have"} no level yet ({scopeText})
+            {unknownLevel.length} new {unknownLevel.length === 1 ? "event has" : "events have"} no category yet ({scopeText})
           </p>
           <p className="mt-1 text-micro text-ink-3">
-            Choose a level and it is set on every new event in {scopeText} that has none, and those events are ticked. Events that already have a level, and events
+            Choose a category and it is set on every new event in {scopeText} that has none, and those events are ticked. Events that already have a category, and events
             in other months, are not changed.
           </p>
           <div className="mt-2 flex flex-wrap items-center gap-2">
-            <select className={TOOLBAR_SELECT} value={bulkLevel} onChange={(e) => setBulkLevel(e.target.value)} aria-label="Level to set">
-              <option value="">Choose a level…</option>
+            <select className={TOOLBAR_SELECT} value={bulkLevel} onChange={(e) => setBulkLevel(e.target.value)} aria-label="Category to set">
+              <option value="">Choose a category…</option>
               {levels.map((l) => (
                 <option key={l} value={l}>
                   {l}
@@ -587,7 +587,7 @@ interface TableProps {
 }
 
 function RowTable({ kind, rows, drafts, selected, editing, ctx, levels, onToggle, onEdit, onDraft, onResetDraft }: TableProps) {
-  const categoryHead = kind === "event" ? "Level" : kind === "season" ? "Category" : kind === "holiday" ? "Type" : "Section";
+  const categoryHead = kind === "event" ? "Category" : kind === "season" ? "Category" : kind === "holiday" ? "Type" : "Section";
   return (
     <div className={TABLE_CARD}>
       <table className={TABLE}>
@@ -693,7 +693,7 @@ function PreviewRow({ row, draft, ctx, levels, ticked, editing, onToggle, onEdit
           {draft && <span className="ml-1 text-micro font-normal text-ink-3">(edited)</span>}
         </td>
         <td className={`${TD} whitespace-normal text-ink-2`}>
-          {pickLevel ? <span className="text-warn">Pick a level</span> : v.category}
+          {pickLevel ? <span className="text-warn">Pick a category</span> : v.category}
         </td>
         <td className={TD}>{dateText(row, v)}</td>
         <td className={`${TD} min-w-[16rem] max-w-[26rem] whitespace-normal break-words`}>
@@ -782,7 +782,7 @@ function RowEditor({
             <label className={FIELD}>
               Level (required)
               <select className={INPUT} value={v.category} onChange={(e) => onDraft({ category: e.target.value })}>
-                <option value="">Choose a level…</option>
+                <option value="">Choose a category…</option>
                 {levels.map((l) => (
                   <option key={l} value={l}>
                     {l}
@@ -864,7 +864,7 @@ function RowEditor({
       </div>
       {updating && (
         <p className="mt-2 text-micro text-ink-3">
-          This event is already in the calendar, so its name and date stay as they are. Only the time, level and notes are updated.
+          This event is already in the calendar, so its name and date stay as they are. Only the time, category and notes are updated.
         </p>
       )}
       <div className="mt-3 flex gap-2">

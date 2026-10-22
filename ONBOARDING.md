@@ -250,8 +250,9 @@ once-a-day claim), `lib/telegramDigest.ts` (the wording), `lib/telegramDigestCon
   truth for which migrations exist, which have been confirmed run against the
   live Supabase project, and what the next free number is — check it before
   adding one, and add your row there as "Not yet confirmed". (Numbering starts
-  at 002; the original schema is `supabase_schema.sql`. Migrations 002-024 are
-  applied; the next free number is 025.) `npm run check:schema` is a read-only check of which tables/columns exist in the live database.
+  at 002; the original schema is `supabase_schema.sql`. Migrations 002-029 are
+  applied, 030 is written but not yet run; the next free number is 031 — always
+  trust `MIGRATIONS_APPLIED.md` over this line.) `npm run check:schema` is a read-only check of which tables/columns exist in the live database.
 
 ## Working with Claude Code on this project
 This project was built almost entirely through conversational, phase-by-phase

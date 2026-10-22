@@ -160,7 +160,7 @@ const ROUTES: Record<string, RouteKind> = {
   "app/api/logout/route.ts": { kind: "public-logout", methods: ["POST"] },
 };
 
-const DATA_ACCESS = /\bsupabase\b|\bfetch\s*\(|\.from\s*\(/;
+const DATA_ACCESS = /\bsupabase\b|\breadAll\s*[<(]|\bfetch\s*\(|\.from\s*\(/;
 
 describe("api routes are fully covered", () => {
   it("every route.ts under app/ is in the route table", () => {

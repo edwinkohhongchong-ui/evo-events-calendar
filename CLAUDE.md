@@ -13,6 +13,11 @@ internal tool (not public-facing).
 - A drag-and-drop library (e.g. `@dnd-kit/core`) for moving events between days
 
 ## Core data model (see schema.sql)
+These five are the original core tables. Many more exist now (levels/categories,
+event_overrides, event_exceptions, event_checklist_items, checklist_templates and
+items, day_notes, note_comments, season_source_dates, activity_log,
+reminder_templates, telegram_digests ...): `MIGRATIONS_APPLIED.md` lists every
+migration and `npm run check:schema` checks the live database.
 - `events` — one row per event. Has: name, date, time, level, recurring pattern
   (none/weekly/monthly/yearly), repeat_until, notes.
 - `holidays` — date, name, type (National / International / Church Observance / School Schedule).
@@ -67,13 +72,21 @@ internal tool (not public-facing).
   REST-API-level one. This is a deliberate, accepted v1 tradeoff (internal
   tool, single shared URL), not an oversight — don't tighten RLS without
   checking with Edwin first.
+  Two deliberate no-login exceptions bypass the session middleware, each with its
+  own gate: `/api/calendar-feed/<token>.ics` (secret URL token in
+  `CALENDAR_FEED_TOKEN`, read-only events for Apple/Google Calendar) and
+  `/api/cron/telegram-digest` (Vercel Cron bearer `CRON_SECRET`, 32+ characters,
+  fail-closed). Treat the feed URL and both secrets as passwords.
   Comment author names are free text (there is no per-user identity), and the
   public Supabase anon key plus "allow all" RLS remain an accepted tradeoff —
   the REST-level exposure described above is the same reason.
 
 ## Explicit non-goals for v1
 - No mobile-native app — responsive web is enough.
-- No notifications/reminders.
+- No per-user notifications. (A scheduled Telegram group digest does exist: an
+  Editor-managed message to one team group chat, sent by a Vercel cron — see
+  `app/api/cron/telegram-digest` and the Reminders page. There is still no push,
+  email or in-app notification system.)
 - No sync with Google Calendar/Outlook (possible future phase).
 - No multi-year support yet — build for 2026, but don't hardcode 2026 into logic
   that doesn't need it (e.g. don't hardcode Jan/Dec bounds anywhere they could

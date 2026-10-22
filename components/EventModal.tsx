@@ -70,7 +70,7 @@ function CategoryDot({ levelName }: { levelName: string }) {
   return <span className={`h-2 w-2 shrink-0 rounded-full ${dot.className}`} style={dot.style} aria-hidden="true" />;
 }
 
-// Segmented-control button used for Type and Event Type.
+// Segmented-control button used for Type and Category.
 function Seg({
   active,
   disabled,
@@ -427,7 +427,7 @@ function EventModalInner({
       if (eventType === "Event" && zonePickedWithoutLevel) {
         setFormError("Choose a zone.");
       } else {
-        setFormError(eventType === "Event" ? "Choose an Event Type." : "Choose a Level.");
+        setFormError(eventType === "Event" ? "Choose a category." : "Choose a category.");
       }
       return;
     }
@@ -931,8 +931,8 @@ function EventModalInner({
 
           {eventType === "Event" ? (
             <div className="flex flex-col gap-2">
-              <span className={LABEL}>Event type</span>
-              <div className="grid grid-cols-2 gap-2" role="group" aria-label="Event type">
+              <span className={LABEL}>Category</span>
+              <div className="grid grid-cols-2 gap-2" role="group" aria-label="Category">
                 {eventTypeButtons.map((cat) => (
                   <Seg
                     key={cat}
@@ -972,7 +972,7 @@ function EventModalInner({
             </div>
           ) : (
             <label className="flex flex-col gap-1">
-              <span className={LABEL}>Level</span>
+              <span className={LABEL}>Category</span>
               <select value={level} onChange={(e) => setLevel(e.target.value as Level)} className={INPUT}>
                 {!level && (
                   <option value="" disabled>

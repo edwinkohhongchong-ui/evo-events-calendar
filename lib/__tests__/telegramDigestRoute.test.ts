@@ -13,23 +13,34 @@ vi.mock("@/lib/telegramDigestConfig", async () => await import("../telegramDiges
 
 // In-memory stand-in for the telegram_digests table that keeps the real
 // store's rules: the claim only succeeds if today isn't already taken.
-let table: { ready: boolean; rows: TelegramDigestRow[] };
+let table: { ready: boolean; statusCols?: boolean; rows: TelegramDigestRow[] };
 let readError: Error | null;
+// Mirrors the real store: with migration 030 the claim also accepts a stale or
+// failed claim and stamps the attempt; without it the claim is once a day.
 const store = {
   readAllDigests: vi.fn(async () => {
     if (readError) throw readError;
     return table.ready ? { ready: true, rows: table.rows.map((r) => ({ ...r })) } : { ready: false, rows: [] };
   }),
-  claimDigest: vi.fn(async (row: TelegramDigestRow, today: string) => {
+  claimDigest: vi.fn(async (row: TelegramDigestRow, today: string, now: Date) => {
     const stored = table.rows.find((r) => r.id === row.id)!;
-    if (stored.last_sent_on === today) return false;
+    const open = table.statusCols
+      ? stored.last_sent_on !== today || hasUnfinishedClaim(stored, today, now.getTime())
+      : stored.last_sent_on !== today;
+    if (!open) return false;
     stored.last_sent_on = today;
+    if (table.statusCols) Object.assign(stored, { last_attempt_at: now.toISOString(), last_status: row.skip_next ? "skipped" : null, last_error: null });
     if (row.skip_next) stored.skip_next = false;
     return true;
   }),
-  releaseClaim: vi.fn(async (row: TelegramDigestRow, today: string) => {
+  recordRunStatus: vi.fn(async (row: TelegramDigestRow, status: "sent" | "skipped" | "failed", error: string | null = null) => {
+    if (!table.statusCols) return;
+    Object.assign(table.rows.find((r) => r.id === row.id)!, { last_status: status, last_error: error, last_attempt_at: new Date().toISOString() });
+  }),
+  releaseClaim: vi.fn(async (row: TelegramDigestRow, today: string, reason: string | null = null) => {
     const stored = table.rows.find((r) => r.id === row.id)!;
     if (stored.last_sent_on === today) stored.last_sent_on = row.last_sent_on;
+    await store.recordRunStatus(row, "failed", reason);
   }),
   consumeOverride: vi.fn(async (row: TelegramDigestRow) => {
     const stored = table.rows.find((r) => r.id === row.id)!;
@@ -38,13 +49,14 @@ const store = {
 };
 vi.mock("@/lib/telegramDigestStore", () => ({
   readAllDigests: () => store.readAllDigests(),
-  claimDigest: (...a: [TelegramDigestRow, string]) => store.claimDigest(...a),
-  releaseClaim: (...a: [TelegramDigestRow, string]) => store.releaseClaim(...a),
+  claimDigest: (...a: [TelegramDigestRow, string, Date]) => store.claimDigest(...a),
+  recordRunStatus: (...a: [TelegramDigestRow, "sent" | "skipped" | "failed", (string | null)?]) => store.recordRunStatus(...a),
+  releaseClaim: (...a: [TelegramDigestRow, string, (string | null)?]) => store.releaseClaim(...a),
   consumeOverride: (...a: [TelegramDigestRow]) => store.consumeOverride(...a),
 }));
 
 import { GET } from "../../app/api/cron/telegram-digest/route";
-import { DEFAULT_DIGEST_CONFIG } from "../telegramDigestConfig";
+import { DEFAULT_DIGEST_CONFIG, hasUnfinishedClaim } from "../telegramDigestConfig";
 import type { TelegramDigestRow } from "../types";
 
 const saved = { ...process.env };
@@ -321,3 +333,82 @@ describe("GET /api/cron/telegram-digest with configured digests", () => {
     for (const bad of ["Private", TOKEN, SECRET]) expect(text).not.toContain(bad);
   });
 });
+
+describe("GET /api/cron/telegram-digest second daily run (migration 030 applied)", () => {
+  const retryRun = () => vi.setSystemTime(new Date("2026-10-11T12:30:00Z"));
+  const withStatus = (over: Partial<TelegramDigestRow> = {}) =>
+    digest({ last_attempt_at: null, last_status: null, last_error: null, ...over });
+
+  it("the first run marks the digest sent, so the second run does not repeat it", async () => {
+    table = { ready: true, statusCols: true, rows: [withStatus()] };
+    expect((await (await call(`Bearer ${SECRET}`)).json()).status).toBe("sent");
+    expect(table.rows[0]).toMatchObject({ last_sent_on: "2026-10-11", last_status: "sent", last_error: null });
+    retryRun();
+    expect(await (await call(`Bearer ${SECRET}`)).json()).toEqual({ status: "none due" });
+    expect(fetchMock).toHaveBeenCalledTimes(2); // one digest, two chunks, once
+  });
+
+  it("a crash between claim and send (claimed, never confirmed) is recovered by the second run", async () => {
+    table = { ready: true, statusCols: true, rows: [withStatus({ last_sent_on: "2026-10-11", last_attempt_at: "2026-10-11T11:30:05Z" })] };
+    retryRun();
+    expect((await (await call(`Bearer ${SECRET}`)).json()).status).toBe("sent");
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+    expect(table.rows[0].last_status).toBe("sent");
+  });
+
+  it("a claim younger than 10 minutes is left to the run that holds it", async () => {
+    table = { ready: true, statusCols: true, rows: [withStatus({ last_sent_on: "2026-10-11", last_attempt_at: "2026-10-11T11:25:00Z" })] };
+    expect(await (await call(`Bearer ${SECRET}`)).json()).toEqual({ status: "none due" });
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it("a failed send records a fixed message, releases the claim, and the second run retries it", async () => {
+    table = { ready: true, statusCols: true, rows: [withStatus({ last_sent_on: "2026-10-04" })] };
+    fetchMock.mockResolvedValue(new Response("nope secret-detail", { status: 500 }));
+    expect((await call(`Bearer ${SECRET}`)).status).toBe(500);
+    expect(table.rows[0]).toMatchObject({ last_sent_on: "2026-10-04", last_status: "failed", last_error: "Telegram refused the message" });
+    expect(JSON.stringify(table.rows[0])).not.toContain("secret-detail");
+    expect(JSON.stringify(table.rows[0])).not.toContain(TOKEN);
+    fetchMock.mockResolvedValue(new Response("{}", { status: 200 }));
+    retryRun();
+    expect((await (await call(`Bearer ${SECRET}`)).json()).status).toBe("sent");
+    expect(table.rows[0]).toMatchObject({ last_sent_on: "2026-10-11", last_status: "sent", last_error: null });
+  });
+
+  it("a calendar read failure records its own fixed message", async () => {
+    table = { ready: true, statusCols: true, rows: [withStatus()] };
+    buildDigestMessages.mockRejectedValue(new Error("db password secret-detail"));
+    await call(`Bearer ${SECRET}`);
+    expect(table.rows[0]).toMatchObject({ last_status: "failed", last_error: "Could not read the calendar" });
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it("skip_next records 'skipped' and the second run does not send", async () => {
+    table = { ready: true, statusCols: true, rows: [withStatus({ skip_next: true })] };
+    await call(`Bearer ${SECRET}`);
+    expect(table.rows[0]).toMatchObject({ last_status: "skipped", skip_next: false });
+    retryRun();
+    expect(await (await call(`Bearer ${SECRET}`)).json()).toEqual({ status: "none due" });
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it("a skipped digest is recorded in the claim itself, so a failed status write cannot make the retry send it", async () => {
+    table = { ready: true, statusCols: true, rows: [withStatus({ skip_next: true })] };
+    store.recordRunStatus.mockImplementationOnce(async () => {}); // the follow-up status write fails
+    await call(`Bearer ${SECRET}`);
+    expect(table.rows[0]).toMatchObject({ last_status: "skipped", skip_next: false });
+    retryRun();
+    vi.setSystemTime(new Date(Date.now() + 60 * 60 * 1000)); // an hour later, well past the stale-claim window
+    expect(await (await call(`Bearer ${SECRET}`)).json()).toEqual({ status: "none due" });
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it("before migration 030: one attempt per day, a claimed digest is never retried", async () => {
+    table = { ready: true, rows: [digest({ last_sent_on: "2026-10-11" })] };
+    retryRun();
+    expect(await (await call(`Bearer ${SECRET}`)).json()).toEqual({ status: "none due" });
+    expect(fetchMock).not.toHaveBeenCalled();
+    expect(table.rows[0]).not.toHaveProperty("last_status");
+  });
+});
+

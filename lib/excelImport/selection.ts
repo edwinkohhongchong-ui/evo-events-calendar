@@ -85,9 +85,9 @@ export function liveProblems(row: ExcelPlanRow, d: RowDraft, ctx: EditContext): 
       if (!name) out.push("Give it a name.");
       else if (name.length > MAX_EVENT_NAME) out.push(`The name must be ${MAX_EVENT_NAME} characters or fewer.`);
       if (!dateOk(d.start)) out.push(`The date is not a valid date between ${MIN_YEAR} and ${MAX_YEAR}.`);
-      if (!d.category.trim()) out.push("Pick a level.");
+      if (!d.category.trim()) out.push("Pick a category.");
     }
-    if (d.category.trim() && !levelOk(d.category)) out.push("That level does not exist in the calendar.");
+    if (d.category.trim() && !levelOk(d.category)) out.push("That category does not exist in the calendar.");
     if (d.time && !TIME_RE.test(d.time)) out.push("The start time is not a valid time.");
     if (d.endTime && !TIME_RE.test(d.endTime)) out.push("The end time is not a valid time.");
     if (d.endTime && !d.time) out.push("An end time needs a start time.");
@@ -195,7 +195,7 @@ export function tickedRows(plan: ExcelPlan, selected: ReadonlySet<string>, draft
 }
 
 // ---------------------------------------------------------------------------
-// Set level for events that lack one
+// Set category for events that lack one
 
 /** Events whose level is still empty, in the given months (null = all months). */
 export function eventsWithoutLevel(plan: ExcelPlan, drafts: Drafts, months: ReadonlySet<string> | null): ExcelPlanRow[] {
@@ -314,7 +314,7 @@ export function monthCount(plan: ExcelPlan, month: string): number {
   return rowsOfMonth(plan, month).length;
 }
 
-/** "Section | Name | date | time | level" per ticked row (or every row when none are ticked), for pasting into a chat. */
+/** "Section | Name | date | time | category" per ticked row (or every row when none are ticked), for pasting into a chat. */
 export function copyListText(plan: ExcelPlan, selected: ReadonlySet<string>, drafts: Drafts): string {
   const rows = KIND_ORDER.flatMap((k) => rowsOfKind(plan, k));
   const use = selected.size ? rows.filter((r) => selected.has(r.rowId)) : rows;

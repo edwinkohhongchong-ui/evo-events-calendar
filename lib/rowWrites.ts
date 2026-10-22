@@ -92,7 +92,7 @@ export async function updateHolidayRow(
 }
 
 const EVENT_SAVE_ERROR = "Something went wrong saving this event. Check your connection and try again. Your details are still in the form.";
-const EVENT_CATEGORY_GONE = "That event type's category doesn't exist any more. Add it under Categories, then try again.";
+const EVENT_CATEGORY_GONE = "That category doesn't exist any more. Add it under Categories, then try again.";
 
 export async function insertEventRow(values: EventFormValues): Promise<{ id: string; affected: AffectedRow[] }> {
   const row = withMajor(withOwner(pickEventColumns(values)));
@@ -178,7 +178,7 @@ export async function fetchLevelNames(): Promise<string[]> {
   const { data, error } = await supabase.from("levels").select("name");
   if (error) {
     console.error(error);
-    throw new Error("Something went wrong checking the levels. Please try again.");
+    throw new Error("Something went wrong checking the categories. Please try again.");
   }
   return (data ?? []).map((r: { name: string }) => r.name);
 }

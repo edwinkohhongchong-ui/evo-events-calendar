@@ -57,7 +57,7 @@ export function validateQuickAdd(input: QuickAddInput, levels: Named[]): string 
   if (!isValidDateStr(input.date)) return "Pick a valid date.";
   const year = Number(input.date.slice(0, 4));
   if (year < MIN_YEAR || year > MAX_YEAR) return `Pick a date between ${MIN_YEAR} and ${MAX_YEAR}.`;
-  if (!input.level) return input.zonePickedWithoutLevel ? "Choose a zone." : "Choose an Event Type.";
+  if (!input.level) return input.zonePickedWithoutLevel ? "Choose a zone." : "Choose a category.";
   if (!levels.some((l) => l.name === input.level)) {
     return `There's no “${input.level}” category. Add it with + Category (exact name), then try again.`;
   }

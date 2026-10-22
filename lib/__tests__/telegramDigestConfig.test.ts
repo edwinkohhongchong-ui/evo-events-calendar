@@ -3,7 +3,11 @@ import {
   DEFAULT_DIGEST_CONFIG,
   configOf,
   daysSummary,
+  hasUnfinishedClaim,
   isDueToday,
+  lastRunLine,
+  needsAttention,
+  nextSendLine,
   isMissingDigestTable,
   nextSendDate,
   normaliseDigestConfig,
@@ -142,5 +146,57 @@ describe("isMissingDigestTable", () => {
     expect(isMissingDigestTable({ code: "23505", message: "duplicate key" })).toBe(false);
     expect(isMissingDigestTable(null)).toBe(false);
     quiet.mockRestore();
+  });
+});
+
+describe("run status helpers (migration 030)", () => {
+  const CLAIMED = "2026-10-11T11:30:00Z";
+  const T_LATER = Date.parse("2026-10-11T12:30:00Z");
+  const T_SOON = Date.parse("2026-10-11T11:35:00Z");
+
+  it("a stale unconfirmed claim is due again, a fresh one or a confirmed one is not", () => {
+    const claimed = { last_sent_on: SUN, last_status: null, last_attempt_at: CLAIMED };
+    expect(isDueToday(row(claimed), SUN, T_LATER)).toBe(true);
+    expect(isDueToday(row(claimed), SUN, T_SOON)).toBe(false);
+    expect(isDueToday(row({ ...claimed, last_status: "sent" }), SUN, T_LATER)).toBe(false);
+    expect(isDueToday(row({ ...claimed, last_status: "skipped" }), SUN, T_LATER)).toBe(false);
+    expect(isDueToday(row({ ...claimed, last_status: "failed" }), SUN, T_SOON)).toBe(true);
+  });
+
+  it("without the status columns (undefined) a claim is final for the day", () => {
+    expect(isDueToday(row({ last_sent_on: SUN }), SUN, T_LATER)).toBe(false);
+    expect(hasUnfinishedClaim({ last_sent_on: SUN }, SUN, T_LATER)).toBe(false);
+  });
+
+  it("a null attempt time (manual send before the migration) is never stale", () => {
+    expect(hasUnfinishedClaim({ last_sent_on: SUN, last_status: null, last_attempt_at: null }, SUN, T_LATER)).toBe(false);
+  });
+
+  it("nextSendLine: next, off and skipping", () => {
+    expect(nextSendLine(row(), SUN)).toBe("Next send: Sun 11 Oct (around 7:30pm)");
+    expect(nextSendLine(row({ last_sent_on: SUN, last_status: "sent" }), SUN)).toBe("Next send: Sun 18 Oct (around 7:30pm)");
+    expect(nextSendLine(row({ enabled: false }), SUN)).toBe("Off \u2014 nothing will send");
+    expect(nextSendLine(row({ skip_next: true }), SUN)).toBe("Skipping the next send (Sun 11 Oct), then Sun 18 Oct");
+  });
+
+  it("lastRunLine: sent, failed with retry ahead, failed with none, skipped, never", () => {
+    const base = { last_sent_on: "2026-10-04", last_error: null, last_attempt_at: null, last_status: undefined } as const;
+    expect(lastRunLine({ ...base, last_status: "sent" }, SUN)).toEqual({ text: "Last run: sent Sun 4 Oct", failed: false });
+    expect(lastRunLine({ ...base, last_sent_on: null }, SUN)).toEqual({ text: "Not sent yet", failed: false });
+    expect(lastRunLine({ ...base, last_status: "skipped" }, SUN)?.failed).toBe(false);
+    const first = lastRunLine({ ...base, last_status: "failed", last_error: "Telegram refused the message", last_attempt_at: CLAIMED }, SUN, T_SOON)!;
+    expect(first.failed).toBe(true);
+    expect(first.text).toContain("FAILED: Telegram refused the message");
+    expect(first.text).toContain("retry at about 8:30pm");
+    const second = lastRunLine({ ...base, last_status: "failed", last_attempt_at: "2026-10-11T12:30:00Z" }, SUN, T_LATER)!;
+    expect(second.text).toContain("Use Send now");
+    expect(second.text).not.toContain("retry");
+  });
+
+  it("needsAttention only for enabled, failed digests", () => {
+    expect(needsAttention({ enabled: true, last_status: "failed" })).toBe(true);
+    expect(needsAttention({ enabled: false, last_status: "failed" })).toBe(false);
+    expect(needsAttention({ enabled: true, last_status: "sent" })).toBe(false);
+    expect(needsAttention({ enabled: true })).toBe(false);
   });
 });

@@ -45,12 +45,13 @@ it immediately after confirming a migration has been run.
 | 027 | supabase_migration_027_note_details.sql | Optional details (remarks) on calendar day notes and holidays: day_notes.details + holidays.details text, each with a 2000-char check (idempotent, no data changes) | Yes (run by Edwin, 6 Oct 2026; details can now be saved) |
 | 028 | supabase_migration_028_major_events.sql | Big event flag on events: events.is_major boolean not null default false, drives the Sunday Telegram planning check (idempotent, no data changes) | Yes (run by Edwin, 12 Oct 2026; confirmed by check:schema) |
 | 029 | supabase_migration_029_telegram_digests.sql | Configurable Telegram group digests: new table telegram_digests (days, range, filters, intro/closing, one-off edited message, skip next, last sent), managed on the Reminders page; no rows seeded, the built-in Sunday message stays active until a digest is created (idempotent, no data changes) | Yes (run by Edwin, 12 Oct 2026; confirmed by check:schema) |
+| 030 | supabase_migration_030_digest_run_status.sql | Telegram digest run status: telegram_digests.last_attempt_at, last_error, last_status; lets the second daily cron run recover a crashed send and shows Last run on the Reminders page (idempotent, no data changes; the app works before it is run) | Not yet confirmed. |
 
 Note: numbering starts at 002 — there is no `supabase_migration_001_*.sql` file
 in this repo (the initial schema lives in `supabase_schema.sql`).
 
 
-Next available migration number: **030**. (Indexes on event_overrides and event_exceptions were considered and skipped: their unique (event_id, original_date) constraints already index those lookups.)
+Next available migration number: **031**. (Indexes on event_overrides and event_exceptions were considered and skipped: their unique (event_id, original_date) constraints already index those lookups.)
 
 Run `npm run check:schema` (read-only; uses `.env.local`) to see which tables/columns above actually exist in the live database.
 

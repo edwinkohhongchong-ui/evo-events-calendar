@@ -1,5 +1,5 @@
 import { addDays, format } from "date-fns";
-import { parseDateStr, toDateStr } from "./dates";
+import { parseDateStr, sgDateStr, toDateStr } from "./dates";
 import { cleanMultiline, cleanText } from "./telegramDigest";
 import type { DigestRangeMode, TelegramDigestRow } from "./types";
 
@@ -8,7 +8,10 @@ import type { DigestRangeMode, TelegramDigestRow } from "./types";
 // network here, so the Server Actions, the cron route and the tests share it.
 
 /** The settings an Editor can change (everything except bookkeeping columns). */
-export type DigestConfig = Omit<TelegramDigestRow, "id" | "last_sent_on" | "created_at" | "updated_at">;
+export type DigestConfig = Omit<
+  TelegramDigestRow,
+  "id" | "last_sent_on" | "last_attempt_at" | "last_status" | "last_error" | "created_at" | "updated_at"
+>;
 
 export const DIGEST_NAME_MAX = 80;
 export const DIGEST_LEVEL_MAX = 30;
@@ -52,12 +55,31 @@ export function weekdayOf(dateStr: string): number {
   return parseDateStr(dateStr).getDay();
 }
 
-/** Enabled, today's weekday is picked, and not already sent today. */
-export function isDueToday(
-  digest: Pick<TelegramDigestRow, "enabled" | "days_of_week" | "last_sent_on">,
-  sgToday: string
-): boolean {
-  return digest.enabled && digest.days_of_week.includes(weekdayOf(sgToday)) && digest.last_sent_on !== sgToday;
+/** A claim with no confirmed send is treated as crashed after this long. */
+export const STALE_CLAIM_MS = 10 * 60 * 1000;
+
+type DueFields = Pick<TelegramDigestRow, "enabled" | "days_of_week" | "last_sent_on"> &
+  Partial<Pick<TelegramDigestRow, "last_status" | "last_attempt_at">>;
+
+/**
+ * Today was claimed but the send never finished: the run crashed or timed out
+ * between claiming and posting (last_status still null once its migration-030
+ * column exists, and the attempt is old), or the last run failed. Without
+ * migration 030 `last_status` is undefined and this is always false, so a
+ * digest is attempted once a day exactly as before.
+ */
+export function hasUnfinishedClaim(digest: Pick<DueFields, "last_sent_on" | "last_status" | "last_attempt_at">, sgToday: string, nowMs: number): boolean {
+  if (digest.last_sent_on !== sgToday) return false;
+  if (digest.last_status === "failed") return true;
+  if (digest.last_status !== null || !digest.last_attempt_at) return false;
+  const at = Date.parse(digest.last_attempt_at);
+  return Number.isFinite(at) && nowMs - at > STALE_CLAIM_MS;
+}
+
+/** Enabled, today's weekday is picked, and not already (confirmed) sent today. */
+export function isDueToday(digest: DueFields, sgToday: string, nowMs: number = Date.now()): boolean {
+  if (!digest.enabled || !digest.days_of_week.includes(weekdayOf(sgToday))) return false;
+  return digest.last_sent_on !== sgToday || hasUnfinishedClaim(digest, sgToday, nowMs);
 }
 
 /**
@@ -66,7 +88,7 @@ export function isDueToday(
  * to the send after.
  */
 export function nextSendDate(
-  digest: Pick<TelegramDigestRow, "enabled" | "days_of_week" | "last_sent_on" | "skip_next">,
+  digest: DueFields & Pick<TelegramDigestRow, "skip_next">,
   sgToday: string
 ): string | null {
   if (!digest.enabled || digest.days_of_week.length === 0) return null;
@@ -78,6 +100,49 @@ export function nextSendDate(
     skips -= 1;
   }
   return null;
+}
+
+const SEND_TIME_NOTE = "around 7:30pm";
+const RETRY_TIME_NOTE = "about 8:30pm";
+
+/** Singapore hour (0-23) of an instant. */
+const sgHour = (ms: number) => new Date(ms + 8 * 3600 * 1000).getUTCHours();
+
+/** The "Next send" line of a digest card. */
+export function nextSendLine(digest: DueFields & Pick<TelegramDigestRow, "skip_next">, sgToday: string): string {
+  if (!digest.enabled) return "Off \u2014 nothing will send";
+  const next = nextSendDate({ ...digest, skip_next: false }, sgToday);
+  if (!next) return "Nothing scheduled";
+  if (!digest.skip_next) return `Next send: ${formatDayShort(next)} (${SEND_TIME_NOTE})`;
+  const after = nextSendDate(digest, sgToday);
+  return `Skipping the next send (${formatDayShort(next)})${after ? `, then ${formatDayShort(after)}` : ""}`;
+}
+
+/** The "Last run" line of a digest card; `failed` styles it as a warning. */
+export function lastRunLine(
+  digest: Pick<TelegramDigestRow, "last_sent_on" | "last_status" | "last_error" | "last_attempt_at">,
+  sgToday: string,
+  nowMs: number = Date.now()
+): { text: string; failed: boolean } | null {
+  if (digest.last_status === "failed") {
+    const reason = digest.last_error || "the message did not go out";
+    const at = digest.last_attempt_at ? Date.parse(digest.last_attempt_at) : NaN;
+    const retryAhead =
+      Number.isFinite(at) && sgDateStr(new Date(at)) === sgToday && sgHour(at) < 20 && nowMs - at < 3 * 3600 * 1000;
+    return {
+      text: `Last run FAILED: ${reason}. ${retryAhead ? `It will retry at ${RETRY_TIME_NOTE}; or use Send now to send it yourself.` : "Use Send now to send it yourself."}`,
+      failed: true,
+    };
+  }
+  if (digest.last_status === "skipped") return { text: "Last run: skipped on request", failed: false };
+  if (digest.last_status === "sent" && digest.last_sent_on) return { text: `Last run: sent ${formatDayShort(digest.last_sent_on)}`, failed: false };
+  if (digest.last_sent_on) return { text: `Last run: sent ${formatDayShort(digest.last_sent_on)}`, failed: false };
+  return { text: "Not sent yet", failed: false };
+}
+
+/** An enabled digest whose last run failed (a later success replaces the status with "sent"). */
+export function needsAttention(digest: Pick<TelegramDigestRow, "enabled" | "last_status">): boolean {
+  return digest.enabled && digest.last_status === "failed";
 }
 
 export function formatDayShort(dateStr: string): string {

@@ -14,8 +14,9 @@ import {
   DIGEST_MIGRATION_HINT,
   configOf,
   daysSummary,
-  formatDayShort,
-  nextSendDate,
+  lastRunLine,
+  needsAttention,
+  nextSendLine,
   rangeSummary,
   type DigestConfig,
 } from "@/lib/telegramDigestConfig";
@@ -34,7 +35,7 @@ interface Props {
 type Editing = { row?: TelegramDigestRow; prefill?: DigestConfig } | null;
 
 const FIXED_TIME_NOTE =
-  "Sends around 7:30pm Singapore time on the chosen days (Vercel's free plan runs once a day, within the hour).";
+  "Sends around 7:30pm Singapore time on the chosen days (Vercel's free plan runs within the hour). If a send fails, it tries once more at about 8:30pm.";
 
 const errorText = (err: unknown) => (err instanceof Error ? err.message : "Something went wrong. Please try again.");
 
@@ -54,6 +55,7 @@ export default function TelegramDigestPanel({ initial, levels }: Props) {
   const ready = list?.ready === true;
   const rows = list?.rows ?? [];
   const today = todayStr();
+  const failedDigests = rows.filter((r) => needsAttention(r));
 
   async function refresh(message?: string) {
     try {
@@ -142,13 +144,20 @@ export default function TelegramDigestPanel({ initial, levels }: Props) {
         {FIXED_TIME_NOTE}
       </p>
 
+      {ready && failedDigests.length > 0 && (
+        <p role="alert" className="mt-3 break-words rounded-ctl bg-danger/10 px-3 py-2 text-body font-medium text-danger">
+          {failedDigests.length === 1 ? `"${failedDigests[0].name}" did not go out.` : `${failedDigests.length} digests did not go out.`} Use Send now to send{" "}
+          {failedDigests.length === 1 ? "it" : "them"} yourself.
+        </p>
+      )}
+
       {list === null && <p className="mt-3 text-body text-danger">The digests could not be loaded. Please reload the page.</p>}
       {list && !list.ready && <p className="mt-3 rounded-ctl bg-fill px-3 py-2 text-body text-ink">{DIGEST_MIGRATION_HINT}</p>}
 
       {ready && rows.length > 0 && (
         <ul className="mt-4 flex flex-col gap-3">
           {rows.map((row) => {
-            const next = nextSendDate(row, today);
+            const lastRun = lastRunLine(row, today);
             return (
               <li key={row.id} className="rounded-ctl border border-line p-4">
                 <div className="flex flex-wrap items-start justify-between gap-2">
@@ -163,12 +172,11 @@ export default function TelegramDigestPanel({ initial, levels }: Props) {
                     {row.enabled ? "On" : "Off"}
                   </label>
                 </div>
-                <div className="mt-1 break-words text-micro text-ink-2">
-                  {row.last_sent_on ? `Last sent ${formatDayShort(row.last_sent_on)}` : "Not sent yet"}
-                  {" · "}
-                  {row.enabled ? (next ? `Next: ${formatDayShort(next)}${row.skip_next ? " (the one after, as the next is skipped)" : ""}` : "Nothing scheduled") : "Switched off"}
-                  {row.override_text ? " · Edited message waiting" : ""}
-                </div>
+                <div className="mt-1 break-words text-micro text-ink-2">{nextSendLine(row, today)}</div>
+                {lastRun && (
+                  <div className={`mt-0.5 break-words text-micro ${lastRun.failed ? "font-medium text-danger" : "text-ink-2"}`}>{lastRun.text}</div>
+                )}
+                {row.override_text && <div className="mt-0.5 break-words text-micro text-ink-2">Edited message waiting</div>}
                 <div className="mt-2 flex flex-wrap gap-2">
                   <Button size="sm" variant="secondary" onClick={() => { setError(null); setNotice(null); setEditing({ row }); }}>
                     Edit

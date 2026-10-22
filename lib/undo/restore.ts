@@ -3,6 +3,7 @@
 import { supabase } from "../supabase";
 import { AffectedRow, SnapshotRow, UndoTable } from "./types";
 import { planRestore } from "./order";
+import { assertRestorable } from "./restoreRows";
 import { requireRole } from "../authz";
 import { runAction } from "../actionResult";
 import { logActivity } from "../activity";
@@ -27,7 +28,10 @@ async function applyRow(table: UndoTable, id: string, row: SnapshotRow | null): 
 // planRestore decides (see lib/undo/order.ts).
 async function restoreSnapshotImpl(affected: AffectedRow[], which: "before" | "after"): Promise<void> {
   await requireRole("editor");
-  for (const op of planRestore(affected, which)) {
+  if (!Array.isArray(affected) || (which !== "before" && which !== "after")) throw new Error("Nothing to undo.");
+  const ops = planRestore(affected, which);
+  assertRestorable(ops); // all-or-nothing: validate every row before writing any
+  for (const op of ops) {
     await applyRow(op.table, op.id, op.row);
   }
   // "before" image restored = undo; "after" image restored = redo.

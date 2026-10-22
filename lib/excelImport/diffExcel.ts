@@ -290,10 +290,10 @@ function planEvents(classified: ClassifiedExcel, existing: ExcelExisting, occs: 
     const canonical = p.level ? levelByLower.get(p.level.trim().toLowerCase()) : undefined;
     const level = canonical ?? "";
     if (p.level && !canonical) {
-      flags.push(flag("level-not-in-calendar", "warn", `The level "${p.level}" does not exist in the calendar; pick one.`));
+      flags.push(flag("level-not-in-calendar", "warn", `The category "${p.level}" does not exist in the calendar; pick one.`));
     }
     if (!level && !hasCode(flags, "level-unknown") && !hasCode(flags, "level-not-in-calendar")) {
-      flags.push(flag("level-unknown", "warn", "Could not tell which level this event is for; pick one."));
+      flags.push(flag("level-unknown", "warn", "Could not tell which category this event is for; pick one."));
     }
 
     let notes = cleanNotes(p.notes);

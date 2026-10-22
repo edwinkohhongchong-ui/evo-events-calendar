@@ -1,6 +1,6 @@
 import crypto from "crypto";
 import { NextRequest, NextResponse } from "next/server";
-import { supabase } from "@/lib/supabase";
+import { readAll } from "@/lib/readAll";
 import { buildIcsCalendar } from "@/lib/icsExport";
 import { EventRow, ExceptionRow, OverrideRow } from "@/lib/types";
 import { describeFeedMismatch, normaliseFeedToken } from "@/lib/feedToken";
@@ -34,22 +34,19 @@ export async function GET(_request: NextRequest, { params }: { params: { token: 
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
 
-  const [eventsRes, overridesRes, exceptionsRes] = await Promise.all([
-    supabase.from("events").select("*"),
-    supabase.from("event_overrides").select("*"),
-    supabase.from("event_exceptions").select("*"),
-  ]);
-
-  if (eventsRes.error) {
-    console.error(eventsRes.error);
+  let eventsRows: EventRow[], overrideRows: OverrideRow[], exceptionRows: ExceptionRow[];
+  try {
+    [eventsRows, overrideRows, exceptionRows] = await Promise.all([
+      readAll<EventRow>("events"),
+      readAll<OverrideRow>("event_overrides"),
+      readAll<ExceptionRow>("event_exceptions"),
+    ]);
+  } catch {
+    // readAll already logged the driver detail; a partial calendar must never be served.
     return NextResponse.json({ error: "Couldn't load the calendar. Please try again." }, { status: 500 });
   }
 
-  const ics = buildIcsCalendar(
-    (eventsRes.data ?? []) as EventRow[],
-    (overridesRes.data ?? []) as OverrideRow[],
-    (exceptionsRes.data ?? []) as ExceptionRow[]
-  );
+  const ics = buildIcsCalendar(eventsRows, overrideRows, exceptionRows);
 
   return new NextResponse(ics, {
     headers: {

@@ -19,7 +19,7 @@ const EXCEL_INSTRUCTIONS = [
   "Upload the old events calendar workbook (an Excel .xlsx file, up to 5 MB) and click \"Read workbook\".",
   "The app reads every month sheet and the Checklist sheet, then shows what is new, what changed and what is already in the calendar.",
   "Rows are grouped by month: events, seasons and observances, with the checklist at the end. Use the month strip to tick a whole month or jump to it.",
-  "Events need a level. Pick one in the row, or use \"Set level\" to give it to every new event that has none.",
+  "Events need a category. Pick one in the row, or use \"Set category\" to give it to every new event that has none.",
   "Rows marked \"Possible duplicate\" or \"Matched by name\" start unticked. Check them before ticking.",
   "Nothing saves until you click Apply. A big import is saved in batches, and Undo reverses the whole import in one step.",
 ];

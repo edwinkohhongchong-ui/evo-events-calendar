@@ -150,7 +150,10 @@ export default function EventChecklist({ event, ownerOptions = [] }: { event: Ev
     setBusy(true);
     setError(null);
     try {
-      unwrap(await removeEventChecklist(event.id));
+      const affected = unwrap(await removeEventChecklist(event.id));
+      if (affected.length > 0) {
+        record(affected.length === 1 ? "Remove checklist (1 item)" : `Remove checklist (${affected.length} items)`, affected);
+      }
       setConfirmRemove(false);
       setOpen(false);
       autoOpened.current = false;
@@ -220,7 +223,8 @@ export default function EventChecklist({ event, ownerOptions = [] }: { event: Ev
     // Optimistic: drop it now, put it back if the delete fails.
     setItems((prev) => prev && prev.filter((i) => i.id !== item.id));
     try {
-      unwrap(await removeChecklistItem(item.id));
+      const affected = unwrap(await removeChecklistItem(item.id));
+      record(`Remove checklist item "${item.item}"`, affected);
       setError(null);
       router.refresh();
     } catch (err) {

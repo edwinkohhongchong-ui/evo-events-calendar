@@ -110,8 +110,8 @@ describe("validateExcelSelection: events", () => {
     ["end without start", { event_time: null, end_time: "20:00" }, /needs a start time/],
     ["end before start", { event_time: "20:00", end_time: "19:00" }, /after the start time/],
     ["end equal to start", { event_time: "20:00", end_time: "20:00" }, /after the start time/],
-    ["level missing", { level: "" }, /Pick a level/],
-    ["level not in table", { level: "Poly" }, /Pick a level/],
+    ["level missing", { level: "" }, /Pick a category/],
+    ["level not in table", { level: "Poly" }, /Pick a category/],
     ["notes over 500", { notes: "n".repeat(501) }, /500 characters/],
     ["notes not text", { notes: 5 }, /500 characters/],
     ["location over 120", { location: "l".repeat(121) }, /location/],
@@ -155,7 +155,7 @@ describe("validateExcelSelection: event updates", () => {
   });
 
   it("rejects an unknown level, an update of a repeating series, and an event that is gone", () => {
-    expect(bad([upd({ event_time: "18:00", level: "Poly" })])).toMatch(/level does not exist/);
+    expect(bad([upd({ event_time: "18:00", level: "Poly" })])).toMatch(/category does not exist/);
     expect(bad([upd({ event_time: "18:00" }, ID2)])).toMatch(/repeating event/);
     expect(bad([upd({ event_time: "18:00" }), upd({ event_time: "18:00" }, "cccccccc-cccc-4ccc-8ccc-cccccccccccc")])).toMatch(/no longer exists/);
   });

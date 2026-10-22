@@ -71,7 +71,7 @@ function useIsCoarse(): boolean {
   return coarse;
 }
 
-// Quick add for the month grid: name + optional time + Event type, saved in
+// Quick add for the month grid: name + optional time + Category, saved in
 // one step. Rendered through a portal because the sticky month bar's
 // backdrop-filter would otherwise become the containing block of anything
 // fixed. Anchored beside the day on desktop, a bottom sheet below `sm`.
@@ -251,12 +251,12 @@ export default function QuickAddPopover({ date: initialDate, anchor, levels, onC
           </div>
           <div className="flex flex-col gap-1.5">
             <span className={`${LABEL} flex items-center gap-2`}>
-              Event type
+              Category
               {lastUsed && level === lastUsed && (
                 <span className="rounded-pill bg-fill px-2 text-chip font-medium text-ink-2">Last used</span>
               )}
             </span>
-            <div className="grid grid-cols-2 gap-2" role="group" aria-label="Event type">
+            <div className="grid grid-cols-2 gap-2" role="group" aria-label="Category">
               {buttons.map((cat) => (
                 <button
                   key={cat}

@@ -427,6 +427,10 @@ export interface TelegramDigestRow {
   override_text: string | null; // one-off edited message for the next send
   skip_next: boolean;
   last_sent_on: string | null; // yyyy-MM-dd
+  // Migration 030. Absent (undefined) before it is run; null once run but not yet used.
+  last_attempt_at?: string | null; // when the cron last claimed it
+  last_status?: "sent" | "skipped" | "failed" | null; // null = claimed, send not confirmed
+  last_error?: string | null; // short fixed text only
   created_at: string;
   updated_at: string;
 }

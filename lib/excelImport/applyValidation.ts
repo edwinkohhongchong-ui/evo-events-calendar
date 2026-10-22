@@ -159,7 +159,7 @@ function checkEvent(v: Record<string, unknown>, ctx: ExcelApplyContext, op: "cre
 
   if (op === "update") {
     // Only fields the row supplies are changed; a blank never erases what is already saved.
-    if (v.level !== undefined && v.level !== null && v.level !== "" && !levelCanon) return "That level does not exist in the calendar.";
+    if (v.level !== undefined && v.level !== null && v.level !== "" && !levelCanon) return "That category does not exist in the calendar.";
     if (start && !end) {
       // A new start with no new end is checked against the end already saved.
       const savedEnd = normaliseTime(ctx.eventTimes.get((id ?? "").toLowerCase())?.end_time);
@@ -186,7 +186,7 @@ function checkEvent(v: Record<string, unknown>, ctx: ExcelApplyContext, op: "cre
   if (!name) return "Give it a name.";
   if (name.length > MAX_EVENT_NAME) return `The name must be ${MAX_EVENT_NAME} characters or fewer.`;
   if (!dateOk(v.event_date)) return `The date is not a valid date between ${MIN_YEAR} and ${MAX_YEAR}.`;
-  if (!levelCanon) return "Pick a level that exists in the calendar.";
+  if (!levelCanon) return "Pick a category that exists in the calendar.";
   const location = optText(v.location, MAX_LOCATION);
   if (!location.ok) return `The location must be text of ${MAX_LOCATION} characters or fewer.`;
   if (v.event_type !== "Event" && v.event_type !== "Gathering") return "Pick the kind of event (Event or Gathering).";
