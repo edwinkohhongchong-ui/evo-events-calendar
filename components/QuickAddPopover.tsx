@@ -7,6 +7,7 @@ import { createEvent } from "@/lib/actions";
 import { unwrap } from "@/lib/actionResult";
 import { dotStyle } from "@/lib/colorStyle";
 import { formatDateDisplay, isValidDateStr } from "@/lib/dates";
+import type { PastoralFocus } from "@/lib/pastoralFocus";
 import { useLevelColor } from "@/lib/levelColorContext";
 import { useUndo } from "@/lib/undo/UndoProvider";
 import { useEscapeKey } from "@/lib/useEscapeKey";
@@ -16,13 +17,13 @@ import {
   DATE_INPUT_MAX,
   DATE_INPUT_MIN,
   defaultQuickLevel,
-  displayCategoryFor,
   eventTypeButtonNames,
+  NO_PASTORAL_FOCUS,
+  PASTORAL_PILLS,
   placePopover,
   readLastQuickLevel,
   validateQuickAdd,
   writeLastQuickLevel,
-  zoneLevelsOf,
 } from "@/lib/quickAdd";
 import Button from "./ui/Button";
 import { INPUT, LABEL } from "./ui/fieldStyles";
@@ -32,6 +33,8 @@ export interface QuickAddDraft {
   date: string;
   time: string;
   level: string;
+  /** Raw name (no Y/P/U/A prefix): the full modal applies the prefix on save. */
+  pastoral: PastoralFocus;
 }
 
 interface QuickAddPopoverProps {
@@ -88,8 +91,8 @@ export default function QuickAddPopover({ date: initialDate, anchor, levels, onC
   const [level, setLevel] = useState(() => defaultQuickLevel(readLastQuickLevel(), levels));
   // The pre-selected type came from the last quick add, not from the user's pick this time.
   const [lastUsed, setLastUsed] = useState(level);
-  const [zonePicked, setZonePicked] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [pastoral, setPastoral] = useState<PastoralFocus>(NO_PASTORAL_FOCUS);
   const [saving, setSaving] = useState(false);
   const [pos, setPos] = useState<{ left: number; top: number } | null>(null);
 
@@ -128,8 +131,8 @@ export default function QuickAddPopover({ date: initialDate, anchor, levels, onC
       window.removeEventListener("resize", place);
       window.removeEventListener("scroll", place, true);
     };
-    // error/zonePicked change the height, so re-place when they do.
-  }, [desktop, anchor, error, zonePicked, level]);
+    // error changes the height, so re-place when they do.
+  }, [desktop, anchor, error, level]);
 
   // The card is visibility:hidden until placed on desktop, and a hidden input
   // can't take focus, so focus once it is visible. Skipped on touch: the
@@ -141,21 +144,12 @@ export default function QuickAddPopover({ date: initialDate, anchor, levels, onC
     nameRef.current?.focus();
   }, [visible, coarse]);
 
-  const zoneLevels = zoneLevelsOf(levels);
   const buttons = eventTypeButtonNames(levels);
-  const active = displayCategoryFor(level, zonePicked);
 
   function pickCategory(cat: string) {
     setError(null);
     setLastUsed("");
-    if (cat !== "Zone") {
-      setZonePicked(false);
-      setLevel(cat);
-    } else if (displayCategoryFor(level) !== "Zone") {
-      // Same as the full form: no zone is pre-selected, the user must choose.
-      setLevel("");
-      setZonePicked(true);
-    }
+    setLevel(cat);
   }
 
   async function handleSubmit(e: FormEvent) {
@@ -166,7 +160,7 @@ export default function QuickAddPopover({ date: initialDate, anchor, levels, onC
       date,
       time,
       level,
-      zonePickedWithoutLevel: zonePicked,
+      pastoral,
     };
     const problem = validateQuickAdd(input, levels);
     if (problem) {
@@ -229,6 +223,54 @@ export default function QuickAddPopover({ date: initialDate, anchor, levels, onC
               maxLength={200}
             />
           </label>
+          <div className="flex flex-col gap-1.5">
+            <span className={`${LABEL} flex items-center gap-2`}>
+              Category
+              {lastUsed && level === lastUsed && (
+                <span className="rounded-pill bg-fill px-2 text-chip font-medium text-ink-2">Last used</span>
+              )}
+            </span>
+            <div className="grid grid-cols-2 gap-2" role="group" aria-label="Category">
+              {buttons.map((cat) => (
+                <button
+                  key={cat}
+                  type="button"
+                  aria-pressed={level === cat}
+                  title={cat}
+                  onClick={() => pickCategory(cat)}
+                  className={[
+                    "inline-flex min-h-[36px] coarse:min-h-[44px] min-w-0 items-center justify-center gap-1.5 whitespace-nowrap rounded-pill px-3 text-body font-medium transition-colors duration-fast",
+                    level === cat ? "bg-navy text-white" : "bg-fill text-ink hover:bg-line",
+                  ].join(" ")}
+                >
+                  <CategoryDot levelName={cat} />
+                  <span className="min-w-0 truncate">{cat}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+          <div
+            className="flex flex-wrap items-center gap-2"
+            role="group"
+            aria-label="Pastoral focus"
+            title="Adds a prefix to the name, e.g. Youth + Poly saves as “YP: …”"
+          >
+            <span className={LABEL}>Pastoral focus</span>
+            {PASTORAL_PILLS.map(([key, label]) => (
+              <button
+                key={key}
+                type="button"
+                aria-pressed={pastoral[key]}
+                onClick={() => setPastoral((prev) => ({ ...prev, [key]: !prev[key] }))}
+                className={[
+                  "min-h-[30px] coarse:min-h-[44px] rounded-pill px-3 text-body font-medium transition-colors duration-fast",
+                  pastoral[key] ? "bg-navy text-white" : "bg-fill text-ink hover:bg-line",
+                ].join(" ")}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
           <div className={desktop ? "flex flex-col gap-3" : "grid grid-cols-2 gap-3 [&>label]:min-w-0"}>
             <label className="flex flex-col gap-1">
               <span className={LABEL}>Date</span>
@@ -248,80 +290,6 @@ export default function QuickAddPopover({ date: initialDate, anchor, levels, onC
               <span className={LABEL}>{desktop ? "Start time (optional)" : "Time (optional)"}</span>
               <input type="time" value={time} onChange={(e) => setTime(e.target.value)} className={INPUT} />
             </label>
-          </div>
-          <div className="flex flex-col gap-1.5">
-            <span className={`${LABEL} flex items-center gap-2`}>
-              Category
-              {lastUsed && level === lastUsed && (
-                <span className="rounded-pill bg-fill px-2 text-chip font-medium text-ink-2">Last used</span>
-              )}
-            </span>
-            <div className="grid grid-cols-2 gap-2" role="group" aria-label="Category">
-              {buttons.map((cat) => (
-                <button
-                  key={cat}
-                  type="button"
-                  aria-pressed={active === cat}
-                  title={cat}
-                  onClick={() => pickCategory(cat)}
-                  className={[
-                    "inline-flex min-h-[36px] coarse:min-h-[44px] min-w-0 items-center justify-center gap-1.5 whitespace-nowrap rounded-pill px-3 text-body font-medium transition-colors duration-fast",
-                    active === cat ? "bg-navy text-white" : "bg-fill text-ink hover:bg-line",
-                  ].join(" ")}
-                >
-                  {(cat !== "Zone" || level) && <CategoryDot levelName={cat === "Zone" ? level : cat} />}
-                  <span className="min-w-0 truncate">{cat}</span>
-                </button>
-              ))}
-            </div>
-            {active === "Zone" && !desktop && (
-              <div className="grid grid-cols-2 gap-2" role="group" aria-label="Zone">
-                {zoneLevels.map((l) => (
-                  <button
-                    key={l.id}
-                    type="button"
-                    aria-pressed={level === l.name}
-                    onClick={() => {
-                      setLevel(l.name);
-                      setZonePicked(false);
-                      setLastUsed("");
-                      setError(null);
-                    }}
-                    className={[
-                      "inline-flex min-h-[44px] min-w-0 items-center justify-center gap-1.5 rounded-pill px-3 text-body font-medium transition-colors duration-fast",
-                      level === l.name ? "bg-navy text-white" : "bg-fill text-ink hover:bg-line",
-                    ].join(" ")}
-                  >
-                    <CategoryDot levelName={l.name} />
-                    {l.name}
-                  </button>
-                ))}
-              </div>
-            )}
-            {active === "Zone" && desktop && (
-              <select
-                value={level}
-                onChange={(e) => {
-                  setLevel(e.target.value);
-                  setZonePicked(false);
-                  setLastUsed("");
-                  setError(null);
-                }}
-                aria-label="Zone"
-                className={INPUT}
-              >
-                {!level && (
-                  <option value="" disabled>
-                    — Select zone —
-                  </option>
-                )}
-                {zoneLevels.map((l) => (
-                  <option key={l.id} value={l.name}>
-                    {l.name}
-                  </option>
-                ))}
-              </select>
-            )}
           </div>
           {error && (
             <p role="alert" className="text-body text-danger">
@@ -349,6 +317,7 @@ export default function QuickAddPopover({ date: initialDate, anchor, levels, onC
                   date: isValidDateStr(date) ? date : initialDate,
                   time,
                   level,
+                  pastoral,
                 })
               }
               className="min-h-[32px] coarse:min-h-[44px] text-body font-medium text-navy hover:underline"

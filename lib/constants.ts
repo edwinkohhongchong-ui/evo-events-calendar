@@ -116,12 +116,6 @@ export const LEVEL_DOT_CLASSES: Record<SeasonColorKey, string> = {
   green: "bg-green-500",
 };
 
-// The Event-type picker in the Add/Edit Event form lists every category from
-// the `levels` table by its own name. The one grouping kept is "Zone": the
-// categories below (when they exist) are folded into a single Zone dropdown.
-// Names must match the Categories page exactly.
-export const ZONE_LEVEL_NAMES = ["Youth", "Poly", "Uni", "Adults"];
-
 export const TARGET_MONTHS: TargetMonth[] = [
   "Jan",
   "Feb",

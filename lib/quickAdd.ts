@@ -1,34 +1,20 @@
 import type { EventFormValues } from "./actions";
-import { ZONE_LEVEL_NAMES } from "./constants";
 import { isValidDateStr, MAX_YEAR, MIN_YEAR } from "./dates";
+import { applyTitlePrefix, type PastoralFocus } from "./pastoralFocus";
 
 type Named = { name: string };
 
-/** Zone categories that currently exist, in the order of `levels`. */
-export function zoneLevelsOf<T extends Named>(levels: T[]): T[] {
-  return levels.filter((l) => ZONE_LEVEL_NAMES.includes(l.name));
-}
-
 /**
  * Buttons for the Event-type picker (shared by EventModal and the quick-add
- * popover): every non-zone category by its exact name with Churchwide first,
- * "Zone" right after it when any zone category exists. "Gathering" is a
- * Gathering-type category, not an Event type, so it is left out.
+ * popover): every category by its exact name, in `levels` order with
+ * Churchwide first. "Gathering" is a Gathering-type category, not an Event
+ * type, so it is left out.
  */
 export function eventTypeButtonNames(levels: Named[]): string[] {
-  const direct = levels
-    .filter((l) => !ZONE_LEVEL_NAMES.includes(l.name) && l.name !== "Gathering")
+  return levels
+    .filter((l) => l.name !== "Gathering")
     .map((l) => l.name)
     .sort((x, y) => (x === "Churchwide" ? -1 : y === "Churchwide" ? 1 : 0));
-  if (zoneLevelsOf(levels).length === 0) return direct;
-  const head = direct[0] === "Churchwide" ? 1 : 0;
-  return [...direct.slice(0, head), "Zone", ...direct.slice(head)];
-}
-
-/** Which button is lit for a level; "Zone" for a zone level or an undecided zone pick. */
-export function displayCategoryFor(levelName: string, zonePickedWithoutLevel = false): string {
-  if (levelName) return ZONE_LEVEL_NAMES.includes(levelName) ? "Zone" : levelName;
-  return zonePickedWithoutLevel ? "Zone" : "";
 }
 
 /** Native date input bounds (the year range the calendar supports). */
@@ -46,9 +32,19 @@ export interface QuickAddInput {
   date: string;
   time: string;
   level: string;
-  /** "Zone" was clicked but no zone chosen yet. */
-  zonePickedWithoutLevel?: boolean;
+  /** Pastoral focus pills; absent means none chosen. */
+  pastoral?: PastoralFocus;
 }
+
+export const NO_PASTORAL_FOCUS: PastoralFocus = { youth: false, poly: false, uni: false, adults: false };
+
+/** Pill order and labels, same as the full modal. */
+export const PASTORAL_PILLS: Array<[keyof PastoralFocus, string]> = [
+  ["youth", "Youth"],
+  ["poly", "Poly"],
+  ["uni", "Uni"],
+  ["adults", "Adults"],
+];
 
 /** Same rules and wording as the full modal; null when the form can be saved. */
 export function validateQuickAdd(input: QuickAddInput, levels: Named[]): string | null {
@@ -57,7 +53,7 @@ export function validateQuickAdd(input: QuickAddInput, levels: Named[]): string 
   if (!isValidDateStr(input.date)) return "Pick a valid date.";
   const year = Number(input.date.slice(0, 4));
   if (year < MIN_YEAR || year > MAX_YEAR) return `Pick a date between ${MIN_YEAR} and ${MAX_YEAR}.`;
-  if (!input.level) return input.zonePickedWithoutLevel ? "Choose a zone." : "Choose a category.";
+  if (!input.level) return "Choose a category.";
   if (!levels.some((l) => l.name === input.level)) {
     return `There's no “${input.level}” category. Add it with + Category (exact name), then try again.`;
   }
@@ -66,8 +62,9 @@ export function validateQuickAdd(input: QuickAddInput, levels: Named[]): string 
 
 /** createEvent payload for a plain single-day, non-recurring Event. */
 export function buildQuickAddValues(input: QuickAddInput): EventFormValues {
+  const focus = input.pastoral ?? NO_PASTORAL_FOCUS;
   return {
-    name: input.name.trim(),
+    name: applyTitlePrefix(input.name.trim(), focus),
     event_date: input.date,
     end_date: null,
     event_time: input.time || null,
@@ -79,10 +76,10 @@ export function buildQuickAddValues(input: QuickAddInput): EventFormValues {
     repeat_until: null,
     notes: null,
     event_type: "Event",
-    pastoral_youth: false,
-    pastoral_poly: false,
-    pastoral_uni: false,
-    pastoral_adults: false,
+    pastoral_youth: focus.youth,
+    pastoral_poly: focus.poly,
+    pastoral_uni: focus.uni,
+    pastoral_adults: focus.adults,
     gathering_type: null,
     series: null,
     preacher_name: null,
@@ -136,4 +133,26 @@ export function writeLastQuickLevel(level: string): void {
   } catch {
     // storage blocked: the default simply isn't remembered
   }
+}
+
+/** What the popover hands over when "More options" is clicked. */
+export interface QuickAddHandoff {
+  name: string;
+  time: string;
+  level: string;
+  pastoral: PastoralFocus;
+}
+
+/**
+ * Add-modal prefill from a quick-add draft. The name stays raw: EventModal
+ * applies the Y/P/U/A prefix itself on save, so passing a prefixed name here
+ * would double it.
+ */
+export function handoffToModalInitial(draft: QuickAddHandoff) {
+  return {
+    initialName: draft.name,
+    initialTime: draft.time,
+    initialLevel: draft.level,
+    initialPastoral: draft.pastoral,
+  };
 }

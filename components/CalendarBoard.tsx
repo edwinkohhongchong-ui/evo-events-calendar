@@ -18,15 +18,20 @@ import CalendarGrid from "./CalendarGrid";
 import MonthAgenda from "./MonthAgenda";
 import EventCardContent from "./EventCardContent";
 import EventModal from "./EventModal";
+import DragScopeModal from "./DragScopeModal";
 import QuickAddPopover, { type QuickAddDraft } from "./QuickAddPopover";
 import HolidayModal from "./HolidayModal";
 import SeasonModal from "./SeasonModal";
 import ErrorBanner from "./ErrorBanner";
 import InfoNotice from "./InfoNotice";
+import { handoffToModalInitial } from "@/lib/quickAdd";
 import { buildDayIndex } from "@/lib/dayIndex";
 import { occurrenceKey } from "@/lib/occurrenceKey";
 import { withOptimisticMove } from "@/lib/optimisticMove";
-import { moveOccurrence, extendOccurrenceSpan, moveOccurrenceStart } from "@/lib/actions";
+import { withoutDeleted } from "@/lib/eventDelete";
+import { useOptimisticDelete } from "@/lib/useOptimisticDelete";
+import { moveOccurrence, extendOccurrenceSpan, moveOccurrenceStart, shiftSeries } from "@/lib/actions";
+import { dragDelta, needsDragScopePrompt, shiftDate } from "@/lib/seriesShift";
 import { eventLockToken, isEventConflict, rememberEventToken } from "@/lib/eventConflict";
 import { unwrap } from "@/lib/actionResult";
 import { SeasonSegment } from "@/lib/seasonBars";
@@ -91,6 +96,10 @@ export default function CalendarBoard({
   const [optimisticMove, setOptimisticMove] = useState<Record<string, string>>({});
   const [optimisticResize, setOptimisticResize] = useState<Record<string, string>>({});
   const [optimisticStart, setOptimisticStart] = useState<Record<string, string>>({});
+  // Whole-series drags in flight: event id -> days shifted so far.
+  const [optimisticSeries, setOptimisticSeries] = useState<Record<string, number>>({});
+  // A recurring occurrence dropped on another day, waiting for "only this / all".
+  const [pendingDrag, setPendingDrag] = useState<{ occurrence: EventOccurrence; targetDate: string } | null>(null);
   const setKey = (set: typeof setOptimisticMove, key: string, value: string) =>
     set((prev) => ({ ...prev, [key]: value }));
   const dropKey = (set: typeof setOptimisticMove, key: string) =>
@@ -100,6 +109,7 @@ export default function CalendarBoard({
       return rest;
     });
   const [error, setError] = useState<string | null>(null);
+  const { hidden: deletedHidden, requestDelete, error: deleteError, dismissError: dismissDeleteError } = useOptimisticDelete();
   const [notice, setNotice] = useState<string | null>(null);
   // Bounced here from an Editor-only page by middleware: say so once, then tidy the URL.
   const searchParams = useSearchParams();
@@ -162,11 +172,18 @@ export default function CalendarBoard({
       setOptimisticMove({});
       setOptimisticResize({});
       setOptimisticStart({});
+      setOptimisticSeries({});
     }
   }, [isPending]);
 
   const displayOccurrences = useMemo(() => {
-    let next = occurrences;
+    let next = withoutDeleted(occurrences, deletedHidden);
+    if (Object.keys(optimisticSeries).length > 0) {
+      next = next.map((occ) => {
+        const delta = optimisticSeries[occ.event.id];
+        return delta ? withOptimisticMove(occ, shiftDate(occ.occurrenceDate, delta)) : occ;
+      });
+    }
     if (Object.keys(optimisticMove).length > 0) {
       next = next.map((occ) => {
         const d = optimisticMove[occurrenceKey(occ)];
@@ -186,7 +203,7 @@ export default function CalendarBoard({
       });
     }
     return next.filter((occ) => isVisible(occ.event.level));
-  }, [occurrences, optimisticMove, optimisticResize, optimisticStart, isVisible]);
+  }, [occurrences, deletedHidden, optimisticSeries, optimisticMove, optimisticResize, optimisticStart, isVisible]);
 
   // Search dims non-matching chips (CalendarGrid/EventBarRow/EventCardContent
   // read this context) rather than removing them, so dates keep their context.
@@ -322,6 +339,17 @@ export default function CalendarBoard({
     if (!occurrence) return;
     if (targetDate === occurrence.occurrenceDate) return; // dropped on its own cell
 
+    if (needsDragScopePrompt(occurrence.event)) {
+      // Show the card on the new day while the question is open; cancelling
+      // drops this preview and it snaps back with nothing written.
+      setKey(setOptimisticMove, occurrenceKey(occurrence), targetDate);
+      setPendingDrag({ occurrence, targetDate });
+      return;
+    }
+    await moveOne(occurrence, targetDate);
+  }
+
+  async function moveOne(occurrence: EventOccurrence, targetDate: string) {
     setKey(setOptimisticMove, occurrenceKey(occurrence), targetDate);
     inFlightRef.current++;
     try {
@@ -337,10 +365,53 @@ export default function CalendarBoard({
     } catch (err) {
       dropKey(setOptimisticMove, occurrenceKey(occurrence));
       setError(err instanceof Error ? err.message : "Couldn't move that event — it's back where it was. Please try again.");
-        if (err instanceof Error && isEventConflict(err.message)) startTransition(() => router.refresh()); // show their version
+      if (err instanceof Error && isEventConflict(err.message)) startTransition(() => router.refresh()); // show their version
     } finally {
       inFlightRef.current--;
     }
+  }
+
+  async function moveSeries(occurrence: EventOccurrence, delta: number) {
+    const eventId = occurrence.event.id;
+    const bump = (by: number) =>
+      setOptimisticSeries((prev) => {
+        const sum = (prev[eventId] ?? 0) + by;
+        const rest = { ...prev };
+        if (sum === 0) delete rest[eventId];
+        else rest[eventId] = sum;
+        return rest;
+      });
+    bump(delta);
+    inFlightRef.current++;
+    try {
+      const affected = unwrap(await shiftSeries(eventId, delta, eventLockToken(occurrence.event, freshTokensRef.current)));
+      rememberEventToken(freshTokensRef.current, eventId, affected);
+      record(`Move all "${occurrence.event.name}"`, affected);
+      startTransition(() => router.refresh());
+    } catch (err) {
+      bump(-delta);
+      setError(err instanceof Error ? err.message : "Couldn't move that series — it's back where it was. Please try again.");
+      if (err instanceof Error && isEventConflict(err.message)) startTransition(() => router.refresh()); // show their version
+    } finally {
+      inFlightRef.current--;
+    }
+  }
+
+  function cancelPendingDrag() {
+    if (pendingDrag) dropKey(setOptimisticMove, occurrenceKey(pendingDrag.occurrence));
+    setPendingDrag(null);
+  }
+
+  function choosePendingDrag(scope: "only" | "all") {
+    if (!pendingDrag) return;
+    const { occurrence, targetDate } = pendingDrag;
+    setPendingDrag(null);
+    if (scope === "only") {
+      void moveOne(occurrence, targetDate);
+      return;
+    }
+    dropKey(setOptimisticMove, occurrenceKey(occurrence));
+    void moveSeries(occurrence, dragDelta(occurrence, targetDate));
   }
 
   return (
@@ -350,6 +421,7 @@ export default function CalendarBoard({
       <FocusHighlighter />
       {notice && <InfoNotice message={notice} onDismiss={() => setNotice(null)} />}
       {error && <ErrorBanner message={error} onDismiss={() => setError(null)} />}
+      {deleteError && <ErrorBanner message={deleteError} onDismiss={dismissDeleteError} />}
       <DndContext
         id="calendar-dnd"
         sensors={sensors}
@@ -417,6 +489,16 @@ export default function CalendarBoard({
         <p className="print-footer hidden print-show">Printed {formatDateDisplay(todayStr())}</p>
         <DragOverlay>{activeOcc && <EventCardContent occurrence={activeOcc} lifted />}</DragOverlay>
       </DndContext>
+      {pendingDrag && (
+        <DragScopeModal
+          occurrence={pendingDrag.occurrence}
+          targetDate={pendingDrag.targetDate}
+          delta={dragDelta(pendingDrag.occurrence, pendingDrag.targetDate)}
+          onCancel={cancelPendingDrag}
+          onOnlyThis={() => choosePendingDrag("only")}
+          onAll={() => choosePendingDrag("all")}
+        />
+      )}
       {quickAdd && isEditor && (
         <QuickAddPopover
           key={quickAdd.date}
@@ -440,9 +522,7 @@ export default function CalendarBoard({
         <EventModal
           mode={modal.type === "add" ? "add" : "edit"}
           initialDate={modal.type === "add" ? modal.date : undefined}
-          initialName={modal.type === "add" ? modal.draft?.name : undefined}
-          initialTime={modal.type === "add" ? modal.draft?.time : undefined}
-          initialLevel={modal.type === "add" ? modal.draft?.level : undefined}
+          {...(modal.type === "add" && modal.draft ? handoffToModalInitial(modal.draft) : {})}
           event={modal.type === "edit" ? modal.occurrence.event : modal.type === "editEvent" ? modal.event : undefined}
           occurrence={modal.type === "edit" ? modal.occurrence : undefined}
           levels={levels}
@@ -454,6 +534,10 @@ export default function CalendarBoard({
           onDeleted={() => {
             setModal({ type: "closed" });
             router.refresh();
+          }}
+          onDelete={(request) => {
+            setModal({ type: "closed" });
+            void requestDelete(request);
           }}
         />
       )}

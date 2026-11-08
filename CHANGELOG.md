@@ -8,6 +8,14 @@ items (features/fixes) that push contains — a push with 1 item goes up by
 `1.05`). If MINOR would pass `.99`, MAJOR increments and MINOR carries the
 remainder (e.g. `1.99` + 2 items → `2.01`).
 
+## v2.147 — 2026-11-08
+
+- Deleting a repeating event always offers "Only this event" or "All events in the series", including when the event is opened from the overdue-checklist pill or after reloading an edit conflict (two paths skipped the choice before). Choosing "All events in the series" deletes straight away and relies on Undo.
+- Deleting is quicker: the checks run at the same time, and the event disappears from the calendar immediately and is confirmed in the background; if the delete fails it comes back with a plain message, and Undo still works.
+- Dragging a repeating event now asks "Only this event" or "All events in the series". "All events" moves the whole series by the same number of days (a weekly Monday event dragged to Wednesday becomes every Wednesday), shifting its one-off changes with it; Cancel or Escape snaps it back. It is refused with a clear message in the rare case where one-off changes would collide.
+- Quick add (clicking a day) now shows the Pastoral focus buttons (Youth, Poly, Uni, Adults) right under Category, before date and time, and carries them into the full form if you open "More options".
+- Categories are now direct buttons in quick add and the Add/Edit Event form (Churchwide, Youth, Poly, Uni, Adults, TG, COW/Thirdspace ...) instead of hiding Youth, Poly, Uni and Adults under a "Zone" button.
+
 ## v2.142 — 2026-10-22
 
 - The two checklists are now separate and clearly named in the menu (Editors): a new "Checklists" group holds "Calendar Checklist" (your year-planning list: is everything covered?) and "Event Template Checklist" (the reusable lists you add to events). The event templates moved out of Admin > Reminders onto their own page; the Reminders page keeps a short pointer to it. Help text and tour steps use the new names; Viewers see no change.

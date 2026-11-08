@@ -8,7 +8,7 @@ import { EventRow, EventOccurrence, Recurring } from "./types";
 // falls on the last day of shorter months (Feb 28, Apr 30) and returns to the
 // 31st afterwards; a yearly Feb 29 series is Feb 28 in non-leap years and
 // Feb 29 again in leap years. date-fns clamps each result to the target month.
-function nthOccurrence(anchor: Date, recurring: Recurring, n: number): Date {
+export function nthOccurrence(anchor: Date, recurring: Recurring, n: number): Date {
   switch (recurring) {
     case "Weekly":
       return addWeeks(anchor, n);

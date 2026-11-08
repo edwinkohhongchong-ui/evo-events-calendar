@@ -9,19 +9,18 @@ import {
   createEvent,
   updateEvent,
   getEventById,
-  deleteEvent,
   detachOccurrence,
   splitSeriesFromOccurrence,
-  deleteOccurrence,
   EventFormValues,
 } from "@/lib/actions";
 import { unwrap } from "@/lib/actionResult";
 import { isEventConflict } from "@/lib/eventConflict";
+import { DeleteRequest, deleteScopeOccurrence } from "@/lib/eventDelete";
 import { computeDuration, computeEndTime, endsNextDay } from "@/lib/timeMath";
 import { formatDateDisplay, formatEventTimeRange } from "@/lib/dates";
 import { PastoralFocus, applyTitlePrefix, stripTitlePrefix } from "@/lib/pastoralFocus";
-import { GATHERING_TYPES, ZONE_LEVEL_NAMES } from "@/lib/constants";
-import { displayCategoryFor as displayCategory, eventTypeButtonNames, zoneLevelsOf } from "@/lib/quickAdd";
+import { GATHERING_TYPES } from "@/lib/constants";
+import { eventTypeButtonNames } from "@/lib/quickAdd";
 import { useUndo } from "@/lib/undo/UndoProvider";
 import { useIsEditor } from "@/lib/roleContext";
 import { useEscapeKey } from "@/lib/useEscapeKey";
@@ -47,6 +46,7 @@ interface EventModalProps {
   initialName?: string;
   initialTime?: string;
   initialLevel?: string;
+  initialPastoral?: PastoralFocus;
   event?: EventRow;
   // The specific occurrence being edited — present whenever this modal was
   // opened from a rendered occurrence (calendar, day view, category list).
@@ -57,7 +57,11 @@ interface EventModalProps {
   levels: LevelRow[];
   onClose: () => void;
   onSaved: () => void;
+  // The event no longer exists (found out on Reload): close and refresh.
   onDeleted: () => void;
+  // Delete confirmed. The parent closes the modal and runs the delete in the
+  // background (lib/useOptimisticDelete.ts), so this never waits on the server.
+  onDelete: (request: DeleteRequest) => void;
 }
 
 type Step = "view" | "form" | "editScope" | "deleteScope";
@@ -161,12 +165,13 @@ function EventModalInner({
   initialName,
   initialTime,
   initialLevel,
+  initialPastoral,
   event,
   occurrence,
   levels,
   onClose,
   onSaved,
-  onDeleted,
+  onDelete,
   onDuplicate,
   isDuplicate = false,
   onReload,
@@ -187,10 +192,10 @@ function EventModalInner({
   // form). Mirrors the same pattern used for Season/Level color suggestion.
   const [nameTouched, setNameTouched] = useState(!!event || !!initialName);
   const [pastoralFocus, setPastoralFocus] = useState<PastoralFocus>({
-    youth: event?.pastoral_youth ?? false,
-    poly: event?.pastoral_poly ?? false,
-    uni: event?.pastoral_uni ?? false,
-    adults: event?.pastoral_adults ?? false,
+    youth: event?.pastoral_youth ?? initialPastoral?.youth ?? false,
+    poly: event?.pastoral_poly ?? initialPastoral?.poly ?? false,
+    uni: event?.pastoral_uni ?? initialPastoral?.uni ?? false,
+    adults: event?.pastoral_adults ?? initialPastoral?.adults ?? false,
   });
   const [gatheringType, setGatheringType] = useState<GatheringType>(
     event?.gathering_type ?? GATHERING_TYPES[0]
@@ -218,12 +223,6 @@ function EventModalInner({
   // first, which a leader could easily save without ever noticing (see
   // Pastor review finding #1).
   const [level, setLevel] = useState<Level>(event?.level ?? initialLevel ?? "");
-  // Tracks that "Zone" was clicked as the top-level category while no
-  // specific zone Level has been chosen yet (level stays "" in that state —
-  // see handleEventTypeCategoryChange/Bug 1 fix). Needed because
-  // topCategoryFor("") can't tell "Zone, undecided" apart from "nothing
-  // picked yet"; this flag disambiguates purely for display/validation.
-  const [zonePickedWithoutLevel, setZonePickedWithoutLevel] = useState(false);
   const [location, setLocation] = useState(event?.location ?? "");
   const [owner, setOwner] = useState(event?.owner ?? "");
   const [isMajor, setIsMajor] = useState(event?.is_major === true);
@@ -232,8 +231,8 @@ function EventModalInner({
   const [repeatUntil, setRepeatUntil] = useState(event?.repeat_until ?? "");
   // Gate for saving a recurring event with no Repeat Until — forces an
   // explicit "yes, forever" choice instead of silently defaulting to
-  // indefinite recurrence (see Pastor review finding — mirrors the same
-  // "force an explicit choice" pattern as the Zone picker below). Purely a
+  // indefinite recurrence (see Pastor review finding — mirrors the
+  // "force an explicit choice" pattern of the blank Category). Purely a
   // client-side confirmation; nothing is persisted for this.
   const [acknowledgeNoEndDate, setAcknowledgeNoEndDate] = useState(false);
   const [notes, setNotes] = useState(event?.notes ?? "");
@@ -306,11 +305,11 @@ function EventModalInner({
   const checklistTemplateId = checklistChoice ?? suggestedTemplate?.id ?? "";
 
   const isRecurringSeries = mode === "edit" && !!event && event.recurring !== "None";
-  // Scope choices need to know which specific occurrence was clicked —
-  // without it there's nothing to resolve "only this event" against, so
-  // callers that can't supply one (there currently are none) fall back to
-  // the old whole-series-only behavior.
+  // Edit scope needs the specific occurrence that was clicked.
   const canChooseScope = isRecurringSeries && !!occurrence;
+  // Delete scope is offered for every recurring event: with no clicked
+  // occurrence (overdue pill, post-Reload) it anchors on the series' first date.
+  const deleteOccurrenceTarget = mode === "edit" && event ? deleteScopeOccurrence(event, occurrence) : undefined;
   const wrapsPastMidnight = !!eventTime && !!endTime && endsNextDay(eventTime, endTime);
 
   // Start/End/Duration stay independently editable at all times — each
@@ -369,28 +368,8 @@ function EventModalInner({
   }
 
   // The Event-type picker is built from the Categories table, so adding,
-  // renaming or deleting a category shows up here with its exact name. The
-  // only grouping kept is "Zone", which folds the youth-stage categories in
-  // ZONE_LEVEL_NAMES (those that still exist) into one dropdown. Gatherings
-  // keep their own flat Level dropdown. Everything is derived from `level`
-  // (one source of truth), not tracked as separate state.
-  function displayCategoryFor(levelName: string): string {
-    return displayCategory(levelName, zonePickedWithoutLevel);
-  }
-
-  function handleEventTypeCategoryChange(category: string) {
-    if (category !== "Zone") {
-      setZonePickedWithoutLevel(false);
-      setLevel(category);
-    } else if (!ZONE_LEVEL_NAMES.includes(level)) {
-      // Zone: do NOT auto-select whichever zone Level happens to sort
-      // first — leave the choice unset and force the user to explicitly
-      // open the sub-dropdown and pick one. If a zone Level is already
-      // selected (e.g. editing an existing event), leave it as-is.
-      setLevel("");
-      setZonePickedWithoutLevel(true);
-    }
-  }
+  // renaming or deleting a category shows up here with its exact name.
+  // Gatherings keep their own flat Level dropdown.
 
   // What actually gets saved, shown so a mistake is caught before Save
   // rather than after — same title-prefix logic handleSubmit uses, not a
@@ -424,11 +403,7 @@ function EventModalInner({
       return;
     }
     if (!level) {
-      if (eventType === "Event" && zonePickedWithoutLevel) {
-        setFormError("Choose a zone.");
-      } else {
-        setFormError(eventType === "Event" ? "Choose a category." : "Choose a category.");
-      }
+      setFormError("Choose a category.");
       return;
     }
     if (!levels.some((l) => l.name === level)) {
@@ -545,42 +520,21 @@ function EventModalInner({
   }
 
   function handleDeleteClick() {
-    if (canChooseScope) {
+    if (deleteOccurrenceTarget) {
       setStep("deleteScope");
     } else {
       setConfirmDelete(true);
     }
   }
 
-  async function handleDeleteOnlyThis() {
-    if (!event || !occurrence) return;
-    setSaving(true);
-    setFormError(null);
-    try {
-      const affected = unwrap(await deleteOccurrence(event, occurrence.originalDate));
-      record(`Delete "${event.name}" (only this event)`, affected);
-      onDeleted();
-    } catch (err) {
-      setConflict(false);
-      setFormError(err instanceof Error ? err.message : "Something went wrong deleting this event.");
-      setSaving(false);
-    }
+  function handleDeleteOnlyThis() {
+    if (!event || !deleteOccurrenceTarget) return;
+    onDelete({ scope: "occurrence", event, originalDate: deleteOccurrenceTarget.originalDate });
   }
 
-  async function handleDelete() {
+  function handleDelete() {
     if (!event) return;
-    setSaving(true);
-    setFormError(null);
-    try {
-      const affected = unwrap(await deleteEvent(event.id, lockToken));
-      record(`Delete "${event.name}"`, affected);
-      onDeleted();
-    } catch (err) {
-      const message = err instanceof Error ? err.message : "Something went wrong deleting this event.";
-      setConflict(isEventConflict(message));
-      setFormError(message);
-      setSaving(false);
-    }
+    onDelete({ scope: "series", event, lockToken });
   }
 
   // The event as it appears on the clicked date (post-override time/span), minus its id.
@@ -652,23 +606,13 @@ function EventModalInner({
     );
   }
 
-  const zoneLevels = zoneLevelsOf(levels);
   const eventTypeButtons = eventTypeButtonNames(levels);
 
   return (
     <ModalShell title={title} subtitle={subtitle} onClose={onClose} footer={footer}>
       {confirmDelete ? (
         <ConfirmDialog
-          message={
-            isRecurringSeries ? (
-              <>
-                <strong className="text-danger">This will delete all occurrences of this recurring event</strong>{" "}
-                — the entire &ldquo;{event?.name}&rdquo; series ({event?.recurring}), not just one date.
-              </>
-            ) : (
-              <>Delete &ldquo;{event?.name}&rdquo;?</>
-            )
-          }
+          message={<>Delete &ldquo;{event?.name}&rdquo;?</>}
           error={formError}
           busy={saving}
           onCancel={() => setConfirmDelete(false)}
@@ -786,20 +730,17 @@ function EventModalInner({
         />
       ) : step === "deleteScope" ? (
         <RecurringScopeDialog
-          title="Delete just this occurrence, or the whole recurring series?"
+          title={`“${event?.name}” repeats ${event?.recurring?.toLowerCase()}. Delete only ${formatDateDisplay(deleteOccurrenceTarget?.occurrenceDate ?? eventDate)}, or every event in the series?`}
           optionALabel="Only this event"
-          optionADescription="Removes just this occurrence — the rest of the series is unaffected."
-          optionBLabel="The whole series"
-          optionBDescription={`Deletes every occurrence of "${event?.name}" (${event?.recurring}).`}
+          optionADescription="Removes just this date. The rest of the series stays."
+          optionBLabel="All events in the series"
+          optionBDescription="Deletes every date of this recurring event, past and future. You can undo it right after."
           optionBDanger
           busy={saving}
           error={formError}
           onCancel={() => setStep("form")}
           onChooseA={handleDeleteOnlyThis}
-          onChooseB={() => {
-            setStep("form");
-            setConfirmDelete(true);
-          }}
+          onChooseB={handleDelete}
         />
       ) : (
         <form id="event-form" onSubmit={handleSubmit} className="flex flex-col gap-4">
@@ -932,43 +873,14 @@ function EventModalInner({
           {eventType === "Event" ? (
             <div className="flex flex-col gap-2">
               <span className={LABEL}>Category</span>
-              <div className="grid grid-cols-2 gap-2" role="group" aria-label="Category">
+              <div className="grid grid-cols-2 gap-2 sm:grid-cols-3" role="group" aria-label="Category">
                 {eventTypeButtons.map((cat) => (
-                  <Seg
-                    key={cat}
-                    title={cat}
-                    active={displayCategoryFor(level) === cat}
-                    onClick={() => handleEventTypeCategoryChange(cat)}
-                  >
-                    {(cat !== "Zone" || ZONE_LEVEL_NAMES.includes(level)) && (
-                      <CategoryDot levelName={cat === "Zone" ? level : cat} />
-                    )}
+                  <Seg key={cat} title={cat} active={level === cat} onClick={() => setLevel(cat)}>
+                    <CategoryDot levelName={cat} />
                     <span className="min-w-0 truncate">{cat}</span>
                   </Seg>
                 ))}
               </div>
-              {displayCategoryFor(level) === "Zone" && (
-                <select
-                  value={level}
-                  onChange={(e) => {
-                    setLevel(e.target.value as Level);
-                    setZonePickedWithoutLevel(false);
-                  }}
-                  aria-label="Zone"
-                  className={INPUT}
-                >
-                  {!level && (
-                    <option value="" disabled>
-                      — Select zone —
-                    </option>
-                  )}
-                  {zoneLevels.map((l) => (
-                    <option key={l.id} value={l.name}>
-                      {l.name}
-                    </option>
-                  ))}
-                </select>
-              )}
             </div>
           ) : (
             <label className="flex flex-col gap-1">

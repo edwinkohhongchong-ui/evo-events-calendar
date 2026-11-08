@@ -13,7 +13,8 @@ import { logActivity } from "./activity";
 import { runAction } from "./actionResult";
 import { EVENT_CONFLICT_MESSAGE } from "./eventConflict";
 import { insertEventRow, updateEventRow } from "./rowWrites";
-import { pickEventColumns } from "./pickColumns";
+import { pickEventColumns, pickSeriesShiftColumns } from "./pickColumns";
+import { planSeriesShift } from "./seriesShift";
 import { MAJOR_MIGRATION_HINT, isMissingMajorColumn, withMajor } from "./majorEvent";
 import { OWNER_MIGRATION_HINT, isMissingOwnerColumn, withOwner } from "./owner";
 
@@ -311,30 +312,22 @@ async function updateEventImpl(
 // as before; a conflict deletes nothing, so the captured rows are discarded.
 async function deleteEventImpl(id: string, expectedUpdatedAt?: string): Promise<AffectedRow[]> {
   await requireRole("editor");
-  const before = await fetchRow("events", id);
-  const { data: overrides, error: overridesError } = await supabase
-    .from("event_overrides")
-    .select("*")
-    .eq("event_id", id);
-  if (overridesError) {
-    console.error(overridesError);
+  // The four capture reads are independent, so they run as one round trip.
+  const [before, overridesRes, exceptionsRes, checklistRes] = await Promise.all([
+    fetchRow("events", id),
+    supabase.from("event_overrides").select("*").eq("event_id", id),
+    supabase.from("event_exceptions").select("*").eq("event_id", id),
+    supabase.from("event_checklist_items").select("*").eq("event_id", id),
+  ]);
+  const { data: overrides, error: overridesError } = overridesRes;
+  const { data: exceptions, error: exceptionsError } = exceptionsRes;
+  const { data: checklistItems, error: checklistError } = checklistRes;
+  if (overridesError || exceptionsError) {
+    console.error(overridesError ?? exceptionsError);
     throw new Error("Something went wrong deleting this event. Please try again.");
   }
-  const { data: exceptions, error: exceptionsError } = await supabase
-    .from("event_exceptions")
-    .select("*")
-    .eq("event_id", id);
-  if (exceptionsError) {
-    console.error(exceptionsError);
-    throw new Error("Something went wrong deleting this event. Please try again.");
-  }
-
-  // The checklist cascades with the event, so capture it for undo. Tolerate
+  // The checklist cascades with the event, so it is captured for undo. Tolerate
   // the table being absent (migration 024 not applied): treat as empty.
-  const { data: checklistItems, error: checklistError } = await supabase
-    .from("event_checklist_items")
-    .select("*")
-    .eq("event_id", id);
   if (checklistError && checklistError.code !== "42P01" && checklistError.code !== "PGRST205") {
     console.error(checklistError);
     throw new Error("Something went wrong deleting this event. Please try again.");
@@ -773,17 +766,90 @@ async function moveOccurrenceStartImpl(
   return [{ table: "event_overrides", id: data.id, before: existing ?? null, after: data }];
 }
 
+// "All events in the series" drag: shifts the whole series by `delta` days —
+// event_date, end_date and repeat_until move together so the weekly/monthly/
+// yearly pattern follows — and re-keys every override/exception by the same
+// shift (planSeriesShift) so they still line up with the moved occurrences.
+// The plan is computed from the stored row, never from client-supplied dates.
+//
+// PostgREST has no multi-statement transaction, so this follows the split
+// pattern: the guarded events update goes first (atomic lock check), then the
+// child rows one by one, and rollbackSplit restores everything already applied
+// if a later step fails. A shift whose re-keyed rows would overlap each other
+// is refused before anything is written.
+async function shiftSeriesImpl(eventId: string, delta: number, expectedUpdatedAt?: string): Promise<AffectedRow[]> {
+  await requireRole("editor");
+  const failMessage = "Something went wrong moving this series. Please try again.";
+  const [before, overridesRes, exceptionsRes] = await Promise.all([
+    fetchRow("events", eventId),
+    supabase.from("event_overrides").select("*").eq("event_id", eventId),
+    supabase.from("event_exceptions").select("*").eq("event_id", eventId),
+  ]);
+  if (!before) throw new Error("Event not found.");
+  if (overridesRes.error || exceptionsRes.error) {
+    console.error(overridesRes.error ?? exceptionsRes.error);
+    throw new Error(failMessage);
+  }
+  const overrides = overridesRes.data ?? [];
+  const exceptions = exceptionsRes.data ?? [];
+
+  const plan = planSeriesShift(before as EventRow, overrides, exceptions, delta);
+  if (!plan.ok) throw new Error(plan.error);
+
+  const updated = await updateEventRowGuarded(eventId, pickSeriesShiftColumns(plan.patch), expectedUpdatedAt, failMessage, before);
+  const affected: AffectedRow[] = [{ table: "events", id: eventId, before, after: updated }];
+
+  try {
+    const steps = [
+      ...plan.overrides.map((o) => ({ table: "event_overrides" as const, ...o, before: overrides.find((r) => r.id === o.id)! })),
+      ...plan.exceptions.map((x) => ({ table: "event_exceptions" as const, ...x, before: exceptions.find((r) => r.id === x.id)! })),
+    ];
+    for (const step of steps) {
+      const { data, error } = await supabase.from(step.table).update(step.patch).eq("id", step.id).select().single();
+      if (error) {
+        console.error(error);
+        throw new Error(failMessage);
+      }
+      affected.push({ table: step.table, id: step.id, before: step.before, after: data });
+    }
+  } catch (err) {
+    console.error("shiftSeries failed part-way; rolling back:", err);
+    await rollbackSplit(affected);
+    throw err;
+  }
+
+  await logActivity({ action: "moved", entity: "event", entityId: eventId, label: String(before.name), itemDate: plan.patch.event_date });
+  return affected;
+}
+
 // "Only this event" delete: excepts the occurrence so the series stops
 // generating it, without touching the series or any other occurrence.
 async function deleteOccurrenceImpl(event: EventRow, originalDate: string): Promise<AffectedRow[]> {
   await requireRole("editor");
-  const { data: existingException } = await supabase
-    .from("event_exceptions")
-    .select("*")
-    .eq("event_id", event.id)
-    .eq("original_date", originalDate)
-    .maybeSingle();
+  const failMessage = "Something went wrong deleting this event occurrence. Please try again.";
+  // Both lookups are independent and must see the state before the writes.
+  const [existingExceptionRes, existingOverrideRes] = await Promise.all([
+    supabase
+      .from("event_exceptions")
+      .select("*")
+      .eq("event_id", event.id)
+      .eq("original_date", originalDate)
+      .maybeSingle(),
+    supabase
+      .from("event_overrides")
+      .select("*")
+      .eq("event_id", event.id)
+      .eq("original_date", originalDate)
+      .maybeSingle(),
+  ]);
+  if (existingExceptionRes.error || existingOverrideRes.error) {
+    console.error(existingExceptionRes.error ?? existingOverrideRes.error);
+    throw new Error(failMessage);
+  }
+  const existingException = existingExceptionRes.data;
+  const existingOverride = existingOverrideRes.data;
 
+  // Except the occurrence first: if this fails, the override is left alone.
   const { data: exception, error: exceptionError } = await supabase
     .from("event_exceptions")
     .upsert({ event_id: event.id, original_date: originalDate }, { onConflict: "event_id,original_date" })
@@ -791,18 +857,12 @@ async function deleteOccurrenceImpl(event: EventRow, originalDate: string): Prom
     .single();
   if (exceptionError) {
     console.error(exceptionError);
-    throw new Error("Something went wrong deleting this event occurrence. Please try again.");
+    throw new Error(failMessage);
   }
   const affected: AffectedRow[] = [
     { table: "event_exceptions", id: exception.id, before: existingException ?? null, after: exception },
   ];
 
-  const { data: existingOverride } = await supabase
-    .from("event_overrides")
-    .select("*")
-    .eq("event_id", event.id)
-    .eq("original_date", originalDate)
-    .maybeSingle();
   if (existingOverride) {
     const { error: deleteOverrideError } = await supabase
       .from("event_overrides")
@@ -810,7 +870,7 @@ async function deleteOccurrenceImpl(event: EventRow, originalDate: string): Prom
       .eq("id", existingOverride.id);
     if (deleteOverrideError) {
       console.error(deleteOverrideError);
-      throw new Error("Something went wrong deleting this event occurrence. Please try again.");
+      throw new Error(failMessage);
     }
     affected.push({ table: "event_overrides", id: existingOverride.id, before: existingOverride, after: null });
   }
@@ -864,6 +924,10 @@ export async function extendOccurrenceSpan(...args: Parameters<typeof extendOccu
 
 export async function moveOccurrenceStart(...args: Parameters<typeof moveOccurrenceStartImpl>) {
   return runAction(() => moveOccurrenceStartImpl(...args));
+}
+
+export async function shiftSeries(...args: Parameters<typeof shiftSeriesImpl>) {
+  return runAction(() => shiftSeriesImpl(...args));
 }
 
 export async function deleteOccurrence(...args: Parameters<typeof deleteOccurrenceImpl>) {

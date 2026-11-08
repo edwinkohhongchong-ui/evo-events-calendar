@@ -12,6 +12,9 @@ import { resolveLevelColor } from "@/lib/levelColor";
 import { formatDateDisplay, formatEventTimeRange } from "@/lib/dates";
 import { useEventFilter } from "@/lib/eventFilterContext";
 import { useIsEditor } from "@/lib/roleContext";
+import { withoutDeleted } from "@/lib/eventDelete";
+import { useOptimisticDelete } from "@/lib/useOptimisticDelete";
+import ErrorBanner from "./ErrorBanner";
 
 interface CategoryListViewProps {
   occurrences: EventOccurrence[];
@@ -34,13 +37,14 @@ export default function CategoryListView({ occurrences, levels, defaultAddDate }
   const isEditor = useIsEditor();
   const [collapsed, setCollapsed] = useState<Set<string>>(() => new Set(levels.map((l) => l.name)));
   const [modal, setModal] = useState<ModalState>({ type: "closed" });
+  const { hidden: deletedHidden, requestDelete, error: deleteError, dismissError: dismissDeleteError } = useOptimisticDelete();
 
   const grouped = useMemo(() => {
     const map = new Map<string, EventOccurrence[]>();
     for (const level of levels) {
       if (isVisible(level.name)) map.set(level.name, []);
     }
-    for (const occ of occurrences) {
+    for (const occ of withoutDeleted(occurrences, deletedHidden)) {
       if (!isVisible(occ.event.level)) continue;
       const existing = map.get(occ.event.level);
       if (existing) {
@@ -59,7 +63,7 @@ export default function CategoryListView({ occurrences, levels, defaultAddDate }
       );
     }
     return map;
-  }, [occurrences, levels, isVisible]);
+  }, [occurrences, deletedHidden, levels, isVisible]);
 
   function toggle(name: string) {
     setCollapsed((prev) => {
@@ -72,6 +76,7 @@ export default function CategoryListView({ occurrences, levels, defaultAddDate }
 
   return (
     <div className="mt-6 flex flex-col gap-2">
+      {deleteError && <ErrorBanner message={deleteError} onDismiss={dismissDeleteError} />}
       <div className="flex items-center justify-between">
         <h2 className="text-title text-navy">Events by category</h2>
         {isEditor && (
@@ -158,6 +163,10 @@ export default function CategoryListView({ occurrences, levels, defaultAddDate }
           onDeleted={() => {
             setModal({ type: "closed" });
             router.refresh();
+          }}
+          onDelete={(request) => {
+            setModal({ type: "closed" });
+            void requestDelete(request);
           }}
         />
       )}

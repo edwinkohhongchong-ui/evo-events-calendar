@@ -16,6 +16,8 @@ import DayViewEventContent from "./DayViewEventContent";
 import EventModal from "./EventModal";
 import { useIsEditor } from "@/lib/roleContext";
 import ErrorBanner from "./ErrorBanner";
+import { withoutDeleted } from "@/lib/eventDelete";
+import { useOptimisticDelete } from "@/lib/useOptimisticDelete";
 import { retimeOccurrence } from "@/lib/actions";
 import { eventLockToken, isEventConflict, rememberEventToken } from "@/lib/eventConflict";
 import { unwrap } from "@/lib/actionResult";
@@ -58,6 +60,7 @@ export default function DayView({ occurrences, levels }: DayViewProps) {
     null
   );
   const [error, setError] = useState<string | null>(null);
+  const { hidden: deletedHidden, requestDelete, error: deleteError, dismissError: dismissDeleteError } = useOptimisticDelete();
   const [modal, setModal] = useState<ModalState>({ type: "closed" });
   const [activeOcc, setActiveOcc] = useState<EventOccurrence | null>(null);
   const isDraggingRef = useRef(false);
@@ -74,7 +77,7 @@ export default function DayView({ occurrences, levels }: DayViewProps) {
   }, [isPending]);
 
   const displayOccurrences = useMemo(() => {
-    let next = occurrences;
+    let next = withoutDeleted(occurrences, deletedHidden);
     if (optimisticStart) {
       next = next.map((occ) => {
         if (occurrenceKey(occ) !== optimisticStart.key || !occ.startTime) return occ;
@@ -88,7 +91,7 @@ export default function DayView({ occurrences, levels }: DayViewProps) {
       });
     }
     return next.filter((occ) => isVisible(occ.event.level));
-  }, [occurrences, optimisticStart, isVisible]);
+  }, [occurrences, deletedHidden, optimisticStart, isVisible]);
 
   // No sensors for Viewers: nothing can be dragged.
   const isEditor = useIsEditor();
@@ -141,6 +144,7 @@ export default function DayView({ occurrences, levels }: DayViewProps) {
   return (
     <LevelColorProvider colorMap={colorMap}>
       {error && <ErrorBanner message={error} onDismiss={() => setError(null)} />}
+      {deleteError && <ErrorBanner message={deleteError} onDismiss={dismissDeleteError} />}
       <div className="mb-3">
         <LevelChips levels={levels} />
       </div>
@@ -201,6 +205,10 @@ export default function DayView({ occurrences, levels }: DayViewProps) {
           onDeleted={() => {
             setModal({ type: "closed" });
             router.refresh();
+          }}
+          onDelete={(request) => {
+            setModal({ type: "closed" });
+            void requestDelete(request);
           }}
         />
       )}

@@ -2,37 +2,32 @@ import { describe, it, expect } from "vitest";
 import {
   buildQuickAddValues,
   defaultQuickLevel,
-  displayCategoryFor,
   eventTypeButtonNames,
+  handoffToModalInitial,
   placePopover,
   validateQuickAdd,
 } from "../quickAdd";
+import { applyTitlePrefix } from "../pastoralFocus";
 
 const names = (...n: string[]) => n.map((name) => ({ name }));
 
 describe("eventTypeButtonNames", () => {
-  it("Churchwide first, Zone right after, Gathering excluded, exact names", () => {
+  it("every category by exact name, Churchwide first, Gathering excluded", () => {
     expect(eventTypeButtonNames(names("COW", "Youth", "Churchwide", "Gathering", "Thirdspace", "Poly"))).toEqual([
       "Churchwide",
-      "Zone",
       "COW",
+      "Youth",
       "Thirdspace",
+      "Poly",
     ]);
   });
-  it("no Zone button when no zone category exists", () => {
-    expect(eventTypeButtonNames(names("COW", "Gathering"))).toEqual(["COW"]);
+  it("shows Youth, Poly, Uni and Adults directly, with no Zone button", () => {
+    const out = eventTypeButtonNames(names("Youth", "Poly", "Uni", "Adults", "TG Meetings"));
+    expect(out).toEqual(["Youth", "Poly", "Uni", "Adults", "TG Meetings"]);
+    expect(out).not.toContain("Zone");
   });
-  it("Zone leads when there is no Churchwide", () => {
-    expect(eventTypeButtonNames(names("COW", "Uni"))).toEqual(["Zone", "COW"]);
-  });
-});
-
-describe("displayCategoryFor", () => {
-  it("folds zone levels and undecided zone into Zone", () => {
-    expect(displayCategoryFor("Youth")).toBe("Zone");
-    expect(displayCategoryFor("", true)).toBe("Zone");
-    expect(displayCategoryFor("COW")).toBe("COW");
-    expect(displayCategoryFor("")).toBe("");
+  it("keeps custom categories", () => {
+    expect(eventTypeButtonNames(names("Women", "Gathering"))).toEqual(["Women"]);
   });
 });
 
@@ -51,10 +46,7 @@ describe("validateQuickAdd", () => {
   const ok = { name: "TG", date: "2026-10-05", time: "", level: "COW" };
   it("passes a complete form", () => expect(validateQuickAdd(ok, lv)).toBeNull());
   it("requires name (whitespace is empty)", () => expect(validateQuickAdd({ ...ok, name: "  " }, lv)).toBe("Name is required."));
-  it("requires level, with the zone wording", () => {
-    expect(validateQuickAdd({ ...ok, level: "" }, lv)).toBe("Choose a category.");
-    expect(validateQuickAdd({ ...ok, level: "", zonePickedWithoutLevel: true }, lv)).toBe("Choose a zone.");
-  });
+  it("requires a category", () => expect(validateQuickAdd({ ...ok, level: "" }, lv)).toBe("Choose a category."));
   it("rejects a level that no longer exists", () =>
     expect(validateQuickAdd({ ...ok, level: "Gone" }, lv)).toContain("There's no “Gone” category"));
 });
@@ -112,5 +104,51 @@ describe("validateQuickAdd date", () => {
   });
   it("buildQuickAddValues saves the chosen date", () => {
     expect(buildQuickAddValues({ ...base, date: "2026-07-04" }).event_date).toBe("2026-07-04");
+  });
+});
+
+describe("buildQuickAddValues pastoral focus", () => {
+  const base = { name: " Study Mining ", date: "2026-10-05", time: "", level: "Youth" };
+  const none = { youth: false, poly: false, uni: false, adults: false };
+
+  it("adds no prefix and no flags when nothing is chosen", () => {
+    const v = buildQuickAddValues(base);
+    expect(v.name).toBe("Study Mining");
+    expect([v.pastoral_youth, v.pastoral_poly, v.pastoral_uni, v.pastoral_adults]).toEqual([false, false, false, false]);
+  });
+
+  it("Youth + Poly saves as YP: with the matching flags", () => {
+    const v = buildQuickAddValues({ ...base, pastoral: { ...none, youth: true, poly: true } });
+    expect(v.name).toBe("YP: Study Mining");
+    expect([v.pastoral_youth, v.pastoral_poly, v.pastoral_uni, v.pastoral_adults]).toEqual([true, true, false, false]);
+  });
+
+  it("keeps Y, P, U, A letter order", () => {
+    expect(buildQuickAddValues({ ...base, pastoral: { youth: true, poly: true, uni: true, adults: true } }).name).toBe("YPUA: Study Mining");
+    expect(buildQuickAddValues({ ...base, pastoral: { ...none, adults: true, youth: true } }).name).toBe("YA: Study Mining");
+  });
+});
+
+describe("quick-add to full modal handoff", () => {
+  const draft = { name: "Study Mining", time: "19:30", level: "Youth", pastoral: { youth: true, poly: false, uni: false, adults: true } };
+
+  it("carries the raw name, time, level and the lit pastoral chips", () => {
+    expect(handoffToModalInitial(draft)).toEqual({
+      initialName: "Study Mining",
+      initialTime: "19:30",
+      initialLevel: "Youth",
+      initialPastoral: draft.pastoral,
+    });
+  });
+
+  it("choosing the Youth category adds no Y: prefix; only the pills do", () => {
+    const none = { youth: false, poly: false, uni: false, adults: false };
+    expect(buildQuickAddValues({ name: "Camp", date: "2026-10-05", time: "", level: "Youth", pastoral: none }).name).toBe("Camp");
+  });
+
+  it("keeps the name unprefixed so the modal's save-time prefix is not doubled", () => {
+    const name = handoffToModalInitial(draft).initialName;
+    expect(name).not.toMatch(/^YA:/);
+    expect(applyTitlePrefix(name, draft.pastoral)).toBe("YA: Study Mining");
   });
 });

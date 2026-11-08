@@ -44,6 +44,10 @@ export const EVENT_COLUMNS: Allow<EventFormValues> = {
   is_major: true, // only sent when true / when clearing (withMajor, lib/majorEvent.ts)
 };
 
+// The only columns a whole-series drag rewrites on the events row.
+export type SeriesShiftValues = Pick<EventFormValues, "event_date" | "end_date" | "repeat_until">;
+export const SERIES_SHIFT_COLUMNS: Allow<SeriesShiftValues> = { event_date: true, end_date: true, repeat_until: true };
+
 export const LEVEL_COLUMNS: Allow<LevelFormValues> = { name: true, color_key: true, sort_order: true };
 
 export const SEASON_COLUMNS: Allow<SeasonFormValues> = {
@@ -105,6 +109,7 @@ function pick<T extends object>(allow: Allow<T>, input: T): T {
 }
 
 export const pickEventColumns = (v: EventFormValues) => pick(EVENT_COLUMNS, v);
+export const pickSeriesShiftColumns = (v: SeriesShiftValues) => pick(SERIES_SHIFT_COLUMNS, v);
 export const pickLevelColumns = (v: LevelFormValues) => pick(LEVEL_COLUMNS, v);
 export const pickSeasonColumns = (v: SeasonFormValues) => pick(SEASON_COLUMNS, v);
 export const pickHolidayColumns = (v: HolidayFormValues) => pick(HOLIDAY_COLUMNS, v);

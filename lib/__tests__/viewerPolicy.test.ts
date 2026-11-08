@@ -31,7 +31,7 @@ const POLICY: Record<string, Record<string, Role>> = {
     moveOccurrence: "editor", retimeOccurrence: "editor", createEvent: "editor", updateEvent: "editor",
     getEventById: "viewer", deleteEvent: "editor", detachOccurrence: "editor",
     splitSeriesFromOccurrence: "editor", extendOccurrenceSpan: "editor", moveOccurrenceStart: "editor",
-    deleteOccurrence: "editor",
+    deleteOccurrence: "editor", shiftSeries: "editor",
   },
   "lib/checklistActions.ts": {
     createChecklistItem: "editor", updateChecklistItem: "editor", updateChecklistStatus: "editor",
