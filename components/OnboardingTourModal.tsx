@@ -3,7 +3,8 @@
 import { useEffect, useRef, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { useOnboardingTour } from "@/lib/useOnboardingTour";
-import { TOUR_STEPS } from "@/lib/tourSteps";
+import { tourStepsFor } from "@/lib/tourSteps";
+import { useIsEditor } from "@/lib/roleContext";
 import { useEscapeKey } from "@/lib/useEscapeKey";
 import { useFocusTrap } from "@/lib/useFocusTrap";
 import Button from "@/components/ui/Button";
@@ -34,8 +35,9 @@ export default function OnboardingTourModal() {
     if (isOpen && card && !card.contains(document.activeElement)) card.focus({ preventScroll: true });
   }, [isOpen, step]);
 
-  const total = TOUR_STEPS.length;
-  const current = TOUR_STEPS[step];
+  const steps = tourStepsFor(useIsEditor());
+  const total = steps.length;
+  const current = steps[step];
 
   // Navigate to the step's route if we're not already there.
   useEffect(() => {
@@ -174,7 +176,7 @@ export default function OnboardingTourModal() {
           </div>
 
           <div className="flex items-center justify-center gap-1.5">
-            {TOUR_STEPS.map((_, i) => (
+            {steps.map((_, i) => (
               <span
                 key={i}
                 className={`h-1.5 rounded-full transition-all ${

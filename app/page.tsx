@@ -4,6 +4,7 @@ import { getCalendarData, getEventChecklistProgress, getGeneralComments, getMont
 import { expandEvents } from "@/lib/recurrence";
 import { applyOverrides } from "@/lib/overrides";
 import { computeSeasonSegments } from "@/lib/seasonBars";
+import { headers } from "next/headers";
 import { clampYearMonth, parseDateStr, toDateStr } from "@/lib/dates";
 import CalendarBoard from "@/components/CalendarBoard";
 import CategoryListView from "@/components/CategoryListView";
@@ -22,6 +23,9 @@ interface HomeProps {
 
 export default async function Home({ searchParams }: HomeProps) {
   const { year, month } = clampYearMonth(searchParams.year, searchParams.month);
+  // General / Month Notes are Editor-only: a Viewer neither sees the panels nor
+  // receives the comment text. Fail safe: a missing header means no notes.
+  const isEditor = (await headers()).get("x-evo-role") === "editor";
 
   const { monthStart, gridStart, gridEnd, weeks } = getMonthGrid(year, month);
   const gridStartStr = toDateStr(gridStart);
@@ -36,8 +40,8 @@ export default async function Home({ searchParams }: HomeProps) {
   ] =
     await Promise.all([
       getCalendarData(gridStartStr, gridEndStr),
-      getGeneralComments(),
-      getMonthComments(year, month),
+      isEditor ? getGeneralComments() : Promise.resolve([]),
+      isEditor ? getMonthComments(year, month) : Promise.resolve([]),
       getOpenChecklistRows(),
     ]);
   // Only this one depends on the events just loaded.
@@ -61,7 +65,8 @@ export default async function Home({ searchParams }: HomeProps) {
 
   return (
     <main className="max-w-[1600px] mx-auto px-4 py-4 sm:px-6 sm:py-5 print:max-w-none print:p-0">
-      <div className="grid grid-cols-1 lg:grid-cols-[232px_minmax(0,1fr)_232px] gap-4 lg:gap-6 items-start print:block">
+      <div className={`grid grid-cols-1 ${isEditor ? "lg:grid-cols-[232px_minmax(0,1fr)_232px]" : ""} gap-4 lg:gap-6 items-start print:block`}>
+        {isEditor && (
         <div className="order-2 lg:order-1 print:hidden">
           <NotesPanel
             title="General Notes"
@@ -71,6 +76,7 @@ export default async function Home({ searchParams }: HomeProps) {
             comments={generalComments}
           />
         </div>
+        )}
         <div className="order-1 lg:order-2 min-w-0">
           <CalendarBoard
             weeks={weeks}
@@ -88,6 +94,7 @@ export default async function Home({ searchParams }: HomeProps) {
             <CategoryListView occurrences={inMonthOccurrences} levels={levels} defaultAddDate={defaultAddDate} />
           </div>
         </div>
+        {isEditor && (
         <div className="order-3 print:hidden">
           <NotesPanel
             key={`${year}-${month}`}
@@ -100,6 +107,7 @@ export default async function Home({ searchParams }: HomeProps) {
             comments={monthComments}
           />
         </div>
+        )}
       </div>
     </main>
   );

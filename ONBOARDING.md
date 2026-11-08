@@ -13,8 +13,7 @@ not public-facing.
   (hosting/deploy), Tailwind CSS, `@dnd-kit/core` for drag-and-drop.
 
 ## Secrets and environment variables
-The app has two logins, **Editor** (full access) and **Viewer** (look and
-comment in the sidebars, tick checklist items on events, and use Export to download or print — templates and everything else are Editor-only). Their passcodes live in the
+The app has two logins, **Editor** (full access) and **Viewer** (look, tick checklist items on events, and use Export to download or print — templates and everything else are Editor-only). Their passcodes live in the
 `EVO_PASSCODE_EDITOR` and `EVO_PASSCODE_VIEWER` environment variables (the old
 single `EVO_PASSCODE` is no longer read). Values marked "Sensitive" in Vercel
 can never be viewed again, so keep every real value in a password manager.

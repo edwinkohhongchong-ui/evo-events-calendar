@@ -51,7 +51,7 @@ function validateNoteComment(v: NoteCommentValues) {
 }
 
 async function createNoteCommentImpl(values: NoteCommentValues): Promise<AffectedRow[]> {
-  await requireRole("viewer");
+  await requireRole("editor");
   validateNoteComment(values);
   if (values.content.trim() === "") throw new Error("Write something before posting.");
   if (values.parent_id) {

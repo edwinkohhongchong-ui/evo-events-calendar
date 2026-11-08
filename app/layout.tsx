@@ -39,8 +39,8 @@ export default async function RootLayout({
   // a missing header means Viewer, never Editor.
   const roleHeader = (await headers()).get("x-evo-role") as Role | null;
   const role = roleHeader ?? "viewer";
-  // General Notes drawer (top bar) — only fetched for signed-in requests.
-  const generalComments = roleHeader ? await getGeneralComments() : [];
+  // General Notes drawer (top bar) — Editors only; a Viewer never receives the text.
+  const generalComments = roleHeader === "editor" ? await getGeneralComments() : [];
 
   return (
     <html lang="en">

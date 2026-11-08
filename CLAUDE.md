@@ -61,9 +61,10 @@ migration and `npm run check:schema` checks the live database.
   to scanning quickly, so favor information density over whitespace, but keep
   text legible (don't go below ~13px for event text).
 - Auth: a two-role passcode gate shipped in v1.19 (Editor / Viewer, middleware-
-  enforced). Viewers can look, comment in the sidebars (General Notes /
-  Month Notes comments and replies), tick/untick items on an event's
-  checklist (`setChecklistItemDone`, the only checklist write open to them) and
+  enforced). Viewers can look, but cannot see the General Notes / Month Notes
+  at all (the panels, drawer, comments and replies are Editor-only, and the
+  server never sends them the text; their activity-feed entries are hidden
+  too), tick/untick items on an event's checklist (`setChecklistItemDone`, the only checklist write open to them) and
   use Export (download/print, read-only); templates and every other mutation
   are Editor-only. Server-side
   re-checks on every mutating Server Action (added in v1.35,

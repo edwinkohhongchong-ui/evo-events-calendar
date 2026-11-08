@@ -28,6 +28,8 @@ export interface TourStep {
    * highlighted element is actually mounted/visible.
    */
   requiresMenuOpen?: boolean;
+  /** Hidden from Viewers (they cannot see the thing the step points at). */
+  editorOnly?: boolean;
 }
 
 export const TOUR_STEPS: TourStep[] = [
@@ -112,14 +114,16 @@ export const TOUR_STEPS: TourStep[] = [
   // --- Part 4 of 6: Notes and updates ---
   {
     title: "General Notes (left panel)",
-    body: "Use this for notes that should show up every month, no matter which month you're viewing. Anyone can add a note or reply here. On every other tab, tap the notes icon beside the bell to open the same notes.",
+    body: "Use this for notes that should show up every month, no matter which month you're viewing. Add a note or reply here. On every other tab, tap the notes icon beside the bell to open the same notes.",
     route: "/",
+    editorOnly: true,
     targetSelector: '[data-tour="general-notes-panel"]',
   },
   {
     title: "Month Notes (right panel)",
-    body: "Use this for notes specific to the month you're currently looking at. Anyone can add a note or reply here too.",
+    body: "Use this for notes specific to the month you're currently looking at. Add a note or reply here too.",
     route: "/",
+    editorOnly: true,
     targetSelector: '[data-tour="month-notes-panel"]',
   },
   {
@@ -132,7 +136,7 @@ export const TOUR_STEPS: TourStep[] = [
   // --- Part 5 of 6: Editor vs. Viewer access ---
   {
     title: "Viewer or Editor?",
-    body: "Viewers can look around, comment in the sidebars (General Notes and Month Notes), tick items off an event's checklist, and use Export to download or print. Event Template Checklist and everything else are Editor-only: adding, editing, moving or deleting, Undo, and the other tabs in the ☰ menu. If a button is missing for you, that's expected.",
+    body: "Viewers can look around (General Notes and Month Notes are Editor-only), tick items off an event's checklist, and use Export to download or print. Event Template Checklist and everything else are Editor-only: adding, editing, moving or deleting, Undo, and the other tabs in the ☰ menu. If a button is missing for you, that's expected.",
     route: "/",
     targetSelector: '[data-tour="hamburger-menu-panel"]',
     requiresMenuOpen: true,
@@ -156,3 +160,9 @@ export const TOUR_STEPS: TourStep[] = [
     targetSelector: '[data-tour="undo-button"]',
   },
 ];
+
+// Viewers never see the General Notes / Month Notes panels, so the steps that
+// point at them are dropped for Viewers.
+export function tourStepsFor(isEditor: boolean): TourStep[] {
+  return isEditor ? TOUR_STEPS : TOUR_STEPS.filter((s) => !s.editorOnly);
+}

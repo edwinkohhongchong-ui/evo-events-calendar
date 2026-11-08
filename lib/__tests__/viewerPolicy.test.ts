@@ -16,16 +16,16 @@ import {
   stripComments,
 } from "./policySource";
 
-// Viewer policy: read everything, and post comments in the sidebars; nothing
-// else. This reads the Server Action / route sources (no Supabase needed). The
+// Viewer policy: read the calendar and tick checklist items; nothing else (the
+// General / Month Notes and their comments are Editor-only). This reads the Server Action / route sources (no Supabase needed). The
 // "use server" files and route handlers are DISCOVERED from disk, and any file
 // not listed here fails the suite, so a new Actions file or API route cannot
 // slip in without an explicit, reviewed policy entry.
 type Role = "viewer" | "editor";
 
 // file -> exported action -> required role. Only the three entries marked
-// "viewer" may be reached by a Viewer (two reads, the sidebar comment post and
-// ticking an event checklist item).
+// "viewer" may be reached by a Viewer (two reads and ticking an event
+// checklist item).
 const POLICY: Record<string, Record<string, Role>> = {
   "lib/actions.ts": {
     moveOccurrence: "editor", retimeOccurrence: "editor", createEvent: "editor", updateEvent: "editor",
@@ -47,7 +47,7 @@ const POLICY: Record<string, Record<string, Role>> = {
   },
   "lib/holidayActions.ts": { createHoliday: "editor", updateHoliday: "editor", deleteHoliday: "editor" },
   "lib/levelActions.ts": { createLevel: "editor", updateLevel: "editor", deleteLevel: "editor" },
-  "lib/noteCommentActions.ts": { createNoteComment: "viewer", deleteNoteComment: "editor" },
+  "lib/noteCommentActions.ts": { createNoteComment: "editor", deleteNoteComment: "editor" },
   "lib/reminderTemplateActions.ts": {
     createReminderTemplate: "editor", updateReminderTemplate: "editor", deleteReminderTemplate: "editor",
   },
@@ -67,7 +67,7 @@ const POLICY: Record<string, Record<string, Role>> = {
 // guard: its only export is requireRole, which mutates nothing.
 const GUARD_FILES: Record<string, string[]> = { "lib/authz.ts": ["requireRole"] };
 
-const VIEWER_LEVEL = ["getEventById", "getEventChecklist", "setChecklistItemDone", "createNoteComment"];
+const VIEWER_LEVEL = ["getEventById", "getEventChecklist", "setChecklistItemDone"];
 
 describe("server action files are fully covered", () => {
   it("finds the \"use server\" files on disk (guards the glob itself)", () => {
@@ -124,7 +124,7 @@ describe("server action files are fully covered", () => {
     }
   });
 
-  it("only reads, ticking a checklist item and the sidebar comment post are open to Viewers", () => {
+  it("only reads and ticking a checklist item are open to Viewers (notes and comments are Editor-only)", () => {
     const viewerLevel = Object.values(POLICY)
       .flatMap((a) => Object.entries(a))
       .filter(([, r]) => r === "viewer")

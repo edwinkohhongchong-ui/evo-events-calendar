@@ -6,7 +6,7 @@ import { usePathname } from "next/navigation";
 import { useUndo } from "@/lib/undo/UndoProvider";
 import { useIsEditor } from "@/lib/roleContext";
 import { useOnboardingTour } from "@/lib/useOnboardingTour";
-import { TOUR_STEPS } from "@/lib/tourSteps";
+import { tourStepsFor } from "@/lib/tourSteps";
 import { useEscapeKey } from "@/lib/useEscapeKey";
 import ErrorBanner from "./ErrorBanner";
 import NotificationBell from "./NotificationBell";
@@ -178,7 +178,7 @@ export default function NavBar({ generalComments = [] }: { generalComments?: Not
   // only ever opens the menu, never closes it — a Viewer/Editor who closes
   // it manually mid-step just loses the highlight, not the tour itself.
   useEffect(() => {
-    if (tourOpen && TOUR_STEPS[tourStep]?.requiresMenuOpen) {
+    if (tourOpen && tourStepsFor(isEditor)[tourStep]?.requiresMenuOpen) {
       setMenuOpen(true);
       // Expand every group so the tour's target (e.g. Export Document) is mounted.
       setOpenGroups({ tools: true, checklists: true, admin: true, export: true });
@@ -187,7 +187,7 @@ export default function NavBar({ generalComments = [] }: { generalComments?: Not
       // doesn't linger over the next highlight (e.g. the bell).
       setMenuOpen(false);
     }
-  }, [tourOpen, tourStep]);
+  }, [tourOpen, tourStep, isEditor]);
   const {
     undo,
     redo,
@@ -364,7 +364,7 @@ export default function NavBar({ generalComments = [] }: { generalComments?: Not
             }
           }}
         />
-        {pathname !== "/" && (
+        {isEditor && pathname !== "/" && (
           <GeneralNotesDrawer
             open={notesOpen}
             onOpenChange={(o) => {

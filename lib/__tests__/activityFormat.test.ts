@@ -58,6 +58,8 @@ describe("truncateLabel / summaryFor", () => {
 describe("role filtering", () => {
   it("limits viewers to calendar-visible entities", () => {
     for (const e of VIEWER_ENTITIES) expect(canRoleSeeEntity("viewer", e)).toBe(true);
+    expect(canRoleSeeEntity("viewer", "note")).toBe(false);
+    expect(canRoleSeeEntity("viewer", "comment")).toBe(false);
     expect(canRoleSeeEntity("viewer", "category")).toBe(false);
     expect(canRoleSeeEntity("viewer", "checklist")).toBe(false);
     expect(canRoleSeeEntity("viewer", "undo")).toBe(false);

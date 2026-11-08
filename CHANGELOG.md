@@ -8,6 +8,12 @@ items (features/fixes) that push contains — a push with 1 item goes up by
 `1.05`). If MINOR would pass `.99`, MAJOR increments and MINOR carries the
 remainder (e.g. `1.99` + 2 items → `2.01`).
 
+## v2.150 — 2026-11-08
+
+- Viewers no longer see General Notes or Month Notes: the panels and top-bar button are gone, the server stops sending them the note text, Viewers can no longer add note comments, and note activity is hidden from their activity bell. Calendar day notes are unchanged. The tour skips those steps for Viewers.
+- Login attempts are now logged for Vercel Logs (`login_failed`, `login_throttled`, `login_success`) with the role and a scrambled form of the IP address, never the passcode, so staff typos can be told apart from guessing.
+- Stronger login limit: it uses the address Vercel supplies instead of a forgeable one, adds a per-role cap on failures (60 per 10 minutes), and waits longer after each repeat failure for the same address.
+
 ## v2.147 — 2026-11-08
 
 - Deleting a repeating event always offers "Only this event" or "All events in the series", including when the event is opened from the overdue-checklist pill or after reloading an edit conflict (two paths skipped the choice before). Choosing "All events in the series" deletes straight away and relies on Undo.

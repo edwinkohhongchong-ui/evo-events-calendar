@@ -91,8 +91,9 @@ export function summaryFor(
 }
 
 // Everything a Viewer may see: things visible on the calendar page, which is
-// the only page a Viewer can open (see isPathAllowedForRole).
-export const VIEWER_ENTITIES: ActivityEntity[] = ["event", "holiday", "season", "note", "comment", "day_note"];
+// the only page a Viewer can open (see isPathAllowedForRole). General / Month
+// Notes activity ("note", "comment") is excluded: Viewers can't see those notes.
+export const VIEWER_ENTITIES: ActivityEntity[] = ["event", "holiday", "season", "day_note"];
 
 export function canRoleSeeEntity(role: "editor" | "viewer", entity: ActivityEntity): boolean {
   return role === "editor" || VIEWER_ENTITIES.includes(entity);
